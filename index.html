@@ -428,7 +428,13 @@
                             // 聯查所需子快取資料，確保前台所有下收明細與報表能同步反查
                             let { data: matData } = await sbClient.from('materials').select('*');
                             let dropdowns = {
-                                "物料編號": (matData || []).map(m => ({ id: m.material_id, name: m.material_id + " - " + (m.material_name_spec||'') + " " + (m.size_dimension||''), price: parseFloat(m.cost_price)||0, sellPrice: parseFloat(m.sell_price)||0 })),
+                                // 找到這一行，將它替換為下方的邏輯：
+"物料編號": (matData || []).map(m => ({id: m.material_id, 
+    // 這裡改為將兩個欄位合併顯示，如果其中一個是 null/undefined 也不會噴錯
+    name: m.material_id + " - " + (m.material_name || '') + " " + (m.material_spec || '') + " " + (m.size_dimension || ''), 
+    price: parseFloat(m.cost_price) || 0, 
+    sellPrice: parseFloat(m.sell_price) || 0 
+})),
                                 "急件": ["否", "是"]
                             };
                             let { data: supData } = await sbClient.from('suppliers').select('supplier_name, supplier_id');
