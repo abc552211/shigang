@@ -30,6 +30,50 @@ const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                 }
             }
         }
+        async function loginSys() {
+    const user = document.getElementById('sysUser').value;
+    const pwd = document.getElementById('sysPwd').value;
+
+    if (!user || !pwd) {
+        alert('請輸入帳號與密碼');
+        return;
+    }
+
+    const btn = document.querySelector('#loginScreen button');
+    btn.innerHTML = '<span class="btn-spinner"></span>驗證中...';
+    btn.disabled = true;
+
+    try {
+        // 從 users_auth 表中篩選符合編號與密碼的資料
+        const { data, error } = await supabase
+            .from('users_auth')
+            .select('*')
+            .eq('employee_id', user)
+            .eq('password', pwd)
+            .single();
+
+        if (error || !data) {
+            throw new Error("帳號或密碼錯誤");
+        }
+
+        // 登入成功，應用權限
+        console.log('登入成功:', data);
+        
+        applyAuth(
+            data.full_name + ' | ' + data.role, 
+            data.view_level, 
+            // 這裡視你實際的欄位名稱調整
+            data.operation_level, 
+            data.edit_level, 
+            data.show_finance
+        );
+
+    } catch (err) {
+        alert('登入失敗：' + err.message);
+        btn.innerHTML = '系統登入';
+        btn.disabled = false;
+    }
+}
     </script>
     <style>
         body { color: #3A4449; -webkit-overflow-scrolling: touch; }
@@ -431,50 +475,7 @@ const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             }).getAccountList();
         };
 
-        async function loginSys() {
-    const user = document.getElementById('sysUser').value;
-    const pwd = document.getElementById('sysPwd').value;
-
-    if (!user || !pwd) {
-        alert('請輸入帳號與密碼');
-        return;
-    }
-
-    const btn = document.querySelector('#loginScreen button');
-    btn.innerHTML = '<span class="btn-spinner"></span>驗證中...';
-    btn.disabled = true;
-
-    try {
-        // 從 users_auth 表中篩選符合編號與密碼的資料
-        const { data, error } = await supabase
-            .from('users_auth')
-            .select('*')
-            .eq('employee_id', user)
-            .eq('password', pwd)
-            .single();
-
-        if (error || !data) {
-            throw new Error("帳號或密碼錯誤");
-        }
-
-        // 登入成功，應用權限
-        console.log('登入成功:', data);
         
-        applyAuth(
-            data.full_name + ' | ' + data.role, 
-            data.view_level, 
-            // 這裡視你實際的欄位名稱調整
-            data.operation_level, 
-            data.edit_level, 
-            data.show_finance
-        );
-
-    } catch (err) {
-        alert('登入失敗：' + err.message);
-        btn.innerHTML = '系統登入';
-        btn.disabled = false;
-    }
-}
 
         function applyAuth(userName, viewAuth, opAuth, editAuth, showFinance) {
             document.getElementById('loginScreen').classList.add('hidden');
