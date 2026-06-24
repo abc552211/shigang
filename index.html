@@ -641,30 +641,35 @@
                         this.successHandler({ success: true, headers: Object.keys(config.fields), data: translated });
                     },
 
-                    // 【除錯版】addHandover：寫入前先列印欄位檢查
+                    // 【絕對安全版】EIP 交接資料庫寫入引擎
 async function addHandover(content, priority, assignee, imageBase64, creator) {
-    // 構造寫入 Supabase 的物件，請對照 Table 欄位名稱
-    let dbRow = {
+    // 檢查欄位命名，必須與 Supabase 欄位一字不差
+    const dbRow = {
         content: content,
         priority: priority,
         creator: creator,
-        created_at: new Date().toISOString(), // 確保時間格式是 ISO 字串
+        created_at: new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }),
         image_url: imageBase64 || "",
         assignee: assignee
     };
 
-    console.log("正在發送給 Supabase 的資料:", dbRow); // 👈 這裡會幫您列印出欄位結構
-
-    let { data, error } = await sbClient.from('handovers').insert([dbRow]);
-
-    if (error) {
-        console.error("Supabase 寫入失敗細節:", error);
-        alert("寫入失敗，請檢查 Console 錯誤：" + error.message);
-    } else {
-        console.log("寫入成功！");
-        refreshSystem();
+    try {
+        const { error } = await sbClient.from('handovers').insert([dbRow]);
+        
+        if (error) {
+            console.error("Supabase 寫入失敗:", error);
+            alert("寫入失敗，請確認欄位設定。錯誤代碼：" + error.message);
+        } else {
+            console.log("交接資料寫入成功");
+            refreshSystem(); // 重新整理畫面
+        }
+    } catch (err) {
+        console.error("執行異常:", err);
     }
-},
+}
+  
+                    
+                    ,
                     deleteHandover: async function(timeId, operatorName) {
                         await sbClient.from('handovers').delete().eq('created_at', timeId);
                         this.successHandler({ success: true });
