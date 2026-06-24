@@ -641,35 +641,36 @@
                         this.successHandler({ success: true, headers: Object.keys(config.fields), data: translated });
                     },
 
-                    // 【絕對安全版】EIP 交接資料庫寫入引擎
-async function addHandover(content, priority, assignee, imageBase64, creator) {
-    // 檢查欄位命名，必須與 Supabase 欄位一字不差
-    const dbRow = {
-        content: content,
-        priority: priority,
-        creator: creator,
-        created_at: new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }),
-        image_url: imageBase64 || "",
-        assignee: assignee
-    };
+                    // ================= 還原：原本的交接發布函數 =================
+        function addHandover(content, priority, assignee, imageBase64, creator) {
+            const op = document.getElementById('userNameDisplay').innerText;
+            if (!content) return alert("請輸入交接內容");
+            
+            // 確保按鈕狀態切換
+            let btn = document.querySelector('button[onclick*="submitHandover"]');
+            if (btn) {
+                btn.innerHTML = '<span class="btn-spinner"></span>發布中'; 
+                btn.disabled = true;
+            }
 
-    try {
-        const { error } = await sbClient.from('handovers').insert([dbRow]);
-        
-        if (error) {
-            console.error("Supabase 寫入失敗:", error);
-            alert("寫入失敗，請確認欄位設定。錯誤代碼：" + error.message);
-        } else {
-            console.log("交接資料寫入成功");
-            refreshSystem(); // 重新整理畫面
-        }
-    } catch (err) {
-        console.error("執行異常:", err);
-    }
-}
-  
-                    
-                    
+            google.script.run
+                .withSuccessHandler(res => {
+                    closeModal('handoverModal');
+                    refreshSystem();
+                    if (btn) {
+                        btn.innerHTML = '新增發布'; 
+                        btn.disabled = false;
+                    }
+                })
+                .withFailureHandler(err => {
+                    alert('系統異常：' + err);
+                    if (btn) {
+                        btn.innerHTML = '新增發布'; 
+                        btn.disabled = false;
+                    }
+                })
+                .addHandover(content, priority, assignee, imageBase64, op); 
+        },
                     deleteHandover: async function(timeId, operatorName) {
                         await sbClient.from('handovers').delete().eq('created_at', timeId);
                         this.successHandler({ success: true });
