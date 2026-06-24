@@ -641,36 +641,12 @@
                         this.successHandler({ success: true, headers: Object.keys(config.fields), data: translated });
                     },
 
-                    // ================= 還原：原本的交接發布函數 =================
-        function addHandover(content, priority, assignee, imageBase64, creator) {
-            const op = document.getElementById('userNameDisplay').innerText;
-            if (!content) return alert("請輸入交接內容");
-            
-            // 確保按鈕狀態切換
-            let btn = document.querySelector('button[onclick*="submitHandover"]');
-            if (btn) {
-                btn.innerHTML = '<span class="btn-spinner"></span>發布中'; 
-                btn.disabled = true;
-            }
-
-            google.script.run
-                .withSuccessHandler(res => {
-                    closeModal('handoverModal');
-                    refreshSystem();
-                    if (btn) {
-                        btn.innerHTML = '新增發布'; 
-                        btn.disabled = false;
-                    }
-                })
-                .withFailureHandler(err => {
-                    alert('系統異常：' + err);
-                    if (btn) {
-                        btn.innerHTML = '新增發布'; 
-                        btn.disabled = false;
-                    }
-                })
-                .addHandover(content, priority, assignee, imageBase64, op); 
-        },
+                    // EIP 專屬交接發布與刪除
+                    addHandover: async function(content, priority, assignee, imageBase64, creator) {
+                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+                        await sbClient.from('handovers').insert([{ content: content, priority: priority, creator: creator, created_at: ts, image_url: imageBase64 || "", assignee: assignee }]);
+                        this.successHandler({ success: true });
+                    },
                     deleteHandover: async function(timeId, operatorName) {
                         await sbClient.from('handovers').delete().eq('created_at', timeId);
                         this.successHandler({ success: true });
