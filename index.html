@@ -2,66 +2,59 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>系統登入</title>
+    <title>測試登入</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* 簡單的奶茶色系風格 */
-        body { background-color: #f5efe6; font-family: sans-serif; display: flex; justify-content: center; padding-top: 100px; }
-        .login-box { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 300px; }
-        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #dcdcdc; border-radius: 5px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background: #a68b75; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        body { font-family: sans-serif; display: flex; justify-content: center; padding-top: 50px; background: #f4f4f4; }
+        .box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); width: 250px; }
+        input { width: 100%; margin: 10px 0; padding: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #28a745; color: white; border: none; cursor: pointer; }
+        #status { margin-top: 15px; font-weight: bold; text-align: center; }
     </style>
 </head>
 <body>
 
-<div class="login-box" id="loginScreen">
-    <h3>系統登入</h3>
-    <input type="text" id="sysUser" placeholder="員工編號">
-    <input type="password" id="sysPwd" placeholder="密碼">
-    <button onclick="loginSys()">系統登入</button>
-    <p id="loginError" style="color: red; display: none;"></p>
+<div class="box">
+    <h3>系統測試</h3>
+    <input type="text" id="user" placeholder="員工編號">
+    <input type="password" id="pwd" placeholder="密碼">
+    <button onclick="runLogin()">登入</button>
+    <div id="status"></div>
 </div>
 
 <script>
-    // 2. 初始化 Supabase
-    const SUPABASE_URL = "https://tfgtvtceiozvnujiiiqj.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_MIbXBy5UrRMMDwcYIaaQbA_1YWEleuK";
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // 初始化 Supabase
+    const supabase = supabase.createClient(
+        "https://tfgtvtceiozvnujiiiqj.supabase.co",
+        "sb_publishable_MIbXBy5UrRMMDwcYIaaQbA_1YWEleuK"
+    );
 
-    // 3. 登入核心函數
-    async function loginSys() {
-        const user = document.getElementById('sysUser').value;
-        const pwd = document.getElementById('sysPwd').value;
-        const btn = document.querySelector('button');
-        const errDiv = document.getElementById('loginError');
+    async function runLogin() {
+        const u = document.getElementById('user').value;
+        const p = document.getElementById('pwd').value;
+        const status = document.getElementById('status');
 
-        btn.innerText = "驗證中...";
-        btn.disabled = true;
-        errDiv.style.display = "none";
+        status.innerText = "驗證中...";
 
         try {
-            // 從 users_auth 表查找資料
+            // 查詢資料庫
             const { data, error } = await supabase
                 .from('users_auth')
                 .select('*')
-                .eq('employee_id', user)
-                .eq('password', pwd)
+                .eq('employee_id', u)
+                .eq('password', p)
                 .single();
 
-            if (error || !data) throw new Error("帳號或密碼錯誤");
-
-            // 登入成功
-            alert("登入成功，歡迎 " + data.full_name);
-            console.log("使用者資料:", data);
-            
-            // 這裡呼叫你原本的介面切換邏輯
-            // applyAuth(data.full_name, ...);
-
-        } catch (err) {
-            errDiv.innerText = err.message;
-            errDiv.style.display = "block";
-            btn.innerText = "系統登入";
-            btn.disabled = false;
+            if (error || !data) {
+                status.style.color = "red";
+                status.innerText = "帳密錯誤";
+            } else {
+                status.style.color = "green";
+                status.innerText = "成功！";
+            }
+        } catch (e) {
+            status.style.color = "red";
+            status.innerText = "發生錯誤：" + e.message;
         }
     }
 </script>
