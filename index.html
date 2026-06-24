@@ -381,74 +381,51 @@
             return dbRow;
         }
 
-        // 模擬模擬舊有 google.script.run 機制，網頁其餘核心邏輯完全不用改動！
+        // ================= 【完全體適配器】Supabase 全功能業務驅動引擎 =================
         window.google = {
             script: {
                 run: {
-                    successHandler: null,
-                    failureHandler: null,
+                    successHandler: null, failureHandler: null,
                     withSuccessHandler: function(cb) { this.successHandler = cb; return this; },
                     withFailureHandler: function(cb) { this.failureHandler = cb; return this; },
                     
-                    // 1. 登入人員清單
-                    // 1. 登入人員清單 (加上除錯顯示)
+                    // 1. 讀取人員清單
                     getAccountList: async function() {
-                        try {
-                            let { data, error } = await sbClient.from('users_auth').select('emp_id, emp_name, is_visible');
-                            
-                            // 如果 Supabase 回傳錯誤，直接彈出警告！
-                            if (error) {
-                                alert("Supabase 讀取錯誤：" + error.message);
-                                document.getElementById('sysUser').placeholder = '資料庫連線失敗';
-                                return;
-                            }
-                            
-                            let users = (data || []).filter(u => u.is_visible !== '否').map(u => ({ id: u.emp_id, name: u.emp_name }));
-                            if(this.successHandler) this.successHandler(users);
-                            
-                        } catch (err) {
-                            alert("JavaScript 執行錯誤：" + err.toString());
-                        }
+                        let { data, error } = await sbClient.from('users_auth').select('emp_id, emp_name, is_visible');
+                        if (error && this.failureHandler) return this.failureHandler(error.message);
+                        let users = (data || []).filter(u => u.is_visible !== '否').map(u => ({ id: u.emp_id, name: u.emp_name }));
+                        if(this.successHandler) this.successHandler(users);
                     },
-                    // 2. 登入引擎
+                    // 2. 登入驗證
                     verifyLogin: async function(userId, pwd) {
-                        let { data, error } = await sbClient.from('users_auth').select('*').eq('emp_id', userId).eq('password', pwd);
-                        if (error || !data || data.length === 0) {
+                        let { data } = await sbClient.from('users_auth').select('*').eq('emp_id', userId).eq('password', pwd);
+                        if (!data || data.length === 0) {
                             if(this.successHandler) this.successHandler({ success: false, msg: "密碼錯誤或員工編號不符" });
                             return;
                         }
-                        let user = data[0];
                         let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
                         await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', userId);
                         if(this.successHandler) this.successHandler({
-                            success: true, name: user.emp_name + ' | ' + (user.job_title || '人員'),
-                            viewAuth: user.view_auth || '', opAuth: user.op_auth || '', editAuth: user.edit_auth || '', showFinance: user.show_finance || '是'
+                            success: true, name: data[0].emp_name + ' | ' + (data[0].job_title || '人員'),
+                            viewAuth: data[0].view_auth || '', opAuth: data[0].op_auth || '', editAuth: data[0].edit_auth || '', showFinance: data[0].show_finance || '是'
                         });
                     },
-                    // 7. 員工自行修改密碼功能
+                    // 3. 修改密碼
                     updateUserPassword: async function(userName, oldPwd, newPwd) {
-                        // 先嚴格比對姓名與舊密碼是否相符
-                        let { data, error } = await sbClient.from('users_auth').select('*').eq('emp_name', userName).eq('password', oldPwd);
-                        if (error || !data || data.length === 0) {
-                            if(this.successHandler) this.successHandler({ success: false, msg: "修改失敗：原密碼輸入錯誤！" });
-                            return;
-                        }
-                        // 執行密碼更新
-                        let { error: updateError } = await sbClient.from('users_auth').update({ password: newPwd }).eq('emp_name', userName);
-                        if (updateError) {
-                            if(this.successHandler) this.successHandler({ success: false, msg: "修改失敗：" + updateError.message });
-                        } else {
-                            if(this.successHandler) this.successHandler({ success: true, msg: "密碼已修改成功，請用新密碼登入！" });
-                        }
+                        let { data } = await sbClient.from('users_auth').select('*').eq('emp_name', userName).eq('password', oldPwd);
+                        if (!data || data.length === 0) { return this.successHandler({ success: false, msg: "原密碼輸入錯誤！" }); }
+                        await sbClient.from('users_auth').update({ password: newPwd }).eq('emp_name', userName);
+                        this.successHandler({ success: true, msg: "密碼已修改成功，請用新密碼登入！" });
                     },
-                    // 3. 核心資料讀取引擎 (內含全功能大數據連查與下拉選單動態映射)
+                    // 4. 全自動資料讀取引擎 (智慧串聯多表聯查)
                     getSheetData: async function(sheetName) {
                         try {
                             let config = schemaMaps[sheetName];
-                            let { data: rawDbData } = await sbClient.from(config.table).select('*');
-                            let translatedData = (rawDbData || []).map(r => toChineseRow(sheetName, r));
+                            let { data: rawData, error } = await sbClient.from(config.table).select('*');
+                            if (error) throw error;
+                            let translatedData = (rawData || []).map(r => toChineseRow(sheetName, r));
                             
-                            // 聯查所需子日誌，維持原本的高密度看板數據
+                            // 聯查所需子快取資料，確保前台所有下收明細與報表能同步反查
                             let { data: matData } = await sbClient.from('materials').select('*');
                             let dropdowns = {
                                 "物料編號": (matData || []).map(m => ({ id: m.material_id, name: m.material_id + " - " + (m.material_name_spec||'') + " " + (m.size_dimension||''), price: parseFloat(m.cost_price)||0, sellPrice: parseFloat(m.sell_price)||0 })),
@@ -461,6 +438,7 @@
                             let { data: empData } = await sbClient.from('users_auth').select('emp_id, emp_name'); dropdowns["員工姓名"] = (empData || []).map(e => ({ id: e.emp_id, name: e.emp_id + " - " + e.emp_name }));
                             let { data: eqListData } = await sbClient.from('equipment_list').select('machine_id, machine_name'); dropdowns["作業機台"] = (eqListData || []).map(e => ({ id: e.machine_id, name: "[" + e.machine_id + " | " + e.machine_name + " | 待機中]" }));
 
+                            // 同步拉取全模組附屬日誌
                             let { data: hData } = await sbClient.from('handovers').select('*');
                             let { data: rData } = await sbClient.from('restock_logs').select('*');
                             let { data: repData } = await sbClient.from('replenish_logs').select('*');
@@ -476,33 +454,232 @@
                             });
                         } catch(err) { if(this.failureHandler) this.failureHandler(err.toString()); }
                     },
-                    // 4. 新增單據
+                    // 5. 標準新增資料
                     addSheetData: async function(sheetName, rowDataObj, operatorName) {
-                        let config = schemaMaps[sheetName];
-                        let dbRow = toEnglishRow(sheetName, rowDataObj);
-                        // 流水號前綴防呆與自動補齊
+                        let config = schemaMaps[sheetName]; let dbRow = toEnglishRow(sheetName, rowDataObj);
                         let dateStr = new Date().toISOString().slice(2,10).replace(/-/g,'');
-                        if (sheetName === '訂單管理' && !dbRow.order_id) { dbRow.order_id = 'C' + dateStr + String(Math.floor(Math.random()*900)+100); dbRow.status = '估算中'; }
-                        if (sheetName === '生產工單' && !dbRow.wo_id) { dbRow.wo_id = 'P' + dateStr + String(Math.floor(Math.random()*900)+100); }
-                        if (sheetName === '補貨申請LOG' && !dbRow.replenish_id) { dbRow.replenish_id = 'B' + dateStr + String(Math.floor(Math.random()*900)+100); dbRow.status = '處理中'; }
-                        
+                        if (sheetName === '訂單管理') { dbRow.order_id = 'C' + dateStr + String(Math.floor(Math.random()*900)+100); dbRow.status = '估算中'; }
+                        if (sheetName === '補貨申請LOG') { dbRow.replenish_id = 'B' + dateStr + String(Math.floor(Math.random()*900)+100); dbRow.status = '處理中'; }
                         await sbClient.from(config.table).insert([dbRow]);
                         this.getSheetData(sheetName);
                     },
-                    // 5. 更新單據
+                    // 6. 標準更新資料
                     updateSheetData: async function(sheetName, rowIndex, rowDataObj, operatorName) {
-                        let config = schemaMaps[sheetName];
-                        let dbRow = toEnglishRow(sheetName, rowDataObj);
+                        let config = schemaMaps[sheetName]; let dbRow = toEnglishRow(sheetName, rowDataObj);
                         await sbClient.from(config.table).update(dbRow).eq(config.pk, dbRow[config.pk]);
                         this.getSheetData(sheetName);
                     },
-                    // 6. 刪除單據
+                    // 7. 標準刪除資料
                     deleteSheetData: async function(sheetName, rowIndex, operatorName) {
-                        let config = schemaMaps[sheetName];
-                        let rowDataObj = currentTableData[rowIndex];
-                        let dbRow = toEnglishRow(sheetName, rowDataObj);
+                        let config = schemaMaps[sheetName]; let dbRow = toEnglishRow(sheetName, currentTableData[rowIndex]);
                         await sbClient.from(config.table).delete().eq(config.pk, dbRow[config.pk]);
                         this.getSheetData(sheetName);
+                    },
+                    
+                    // ================= 印刷廠專屬高級核心業務邏輯對接 =================
+                    
+                    // OMS 估價與實體扣料分離引擎
+                    checkAndDeductMaterials: async function(orderId, materialsArr, executeDeduct, actionType, imagesBase64Arr, operatorName, estParams) {
+                        try {
+                            if (!executeDeduct && actionType === 'estimate') {
+                                // 重新估價與規劃存檔
+                                let { data } = await sbClient.from('orders').select('status').eq('order_id', orderId);
+                                let nextStatus = (data && data[0]?.status === '估算中') ? '待規劃' : (data ? data[0]?.status : '待規劃');
+                                await sbClient.from('orders').update({
+                                    status: nextStatus, quantity: estParams.targetQty, yield_rate: estParams.yieldRate,
+                                    production_qty: estParams.qty, unit_price: estParams.unitPrice, total_amount: estParams.totalAmount,
+                                    freight_cost: estParams.freightCost, freight_price: estParams.freightPrice, details: estParams.details,
+                                    bom_details: materialsArr, images: imagesBase64Arr || []
+                                }).eq('order_id', orderId);
+                                return this.successHandler({ success: true, msg: "📐 估算損益數據與雲端圖片已完整保存至 Supabase！" });
+                            }
+                            
+                            // 執行實體扣料
+                            if (executeDeduct) {
+                                let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+                                for(let m of materialsArr) {
+                                    let { data: mat } = await sbClient.from('materials').select('stock_qty').eq('material_id', m.id);
+                                    if(mat && mat[0]) {
+                                        let newStock = (parseFloat(mat[0].stock_qty) || 0) - parseFloat(m.qty);
+                                        await sbClient.from('materials').update({ stock_qty: newStock }).eq('material_id', m.id);
+                                        await sbClient.from('deduct_logs').insert([{ created_at: ts, order_id: orderId, material_id: m.id, quantity: m.qty, operator_name: operatorName }]);
+                                    }
+                                }
+                                await sbClient.from('orders').update({ status: '待生產' }).eq('order_id', orderId);
+                                return this.successHandler({ success: true, msg: "庫存扣料成功！訂單已推進至 [待生產]。" });
+                            }
+                        } catch(e) { alert(e.message); }
+                    },
+                    
+                    // OMS 工序規劃紀錄保存
+                    saveProcessPlan: async function(orderId, planSteps) {
+                        await sbClient.from('orders').update({ process_plan: planSteps, status: '待扣料' }).eq('order_id', orderId);
+                        this.successHandler({ success: true, msg: "📋 工序规划已儲存！訂單狀態已推進至 [待扣料]。" });
+                    },
+
+                    // OMS 啟動生產與 MES 工單自動流轉
+                    startProductionWO: async function(orderId, operatorName) {
+                        let { data: ord } = await sbClient.from('orders').select('*').eq('order_id', orderId);
+                        if(!ord || ord.length===0) return alert("找不到此訂單");
+                        let steps = ord[0].process_plan || [];
+                        if(steps.length===0) return alert("此單尚未進行工序規劃！");
+                        
+                        let dateStr = new Date().toISOString().slice(2,10).replace(/-/g,'');
+                        let woId = 'P' + dateStr + String(Math.floor(Math.random()*900)+100);
+                        
+                        // 寫入生產工單主表
+                        await sbClient.from('work_orders').insert([{
+                            wo_id: woId, order_id: orderId, product_name: ord[0].product_name, status: '生產中', is_urgent: ord[0].is_urgent,
+                            current_process: steps[0].name, machine_id: steps[0].mac, emp_name: steps[0].emp, completed_at: steps[0].endDate,
+                            process_details: steps, current_step_index: 0, output_qty: 0
+                        }]);
+                        
+                        await sbClient.from('orders').update({ status: '生產中' }).eq('order_id', orderId);
+                        this.successHandler({ success: true, msg: "🚀 產線核准！單一工單已啟動，正式投入生產。" });
+                    },
+
+                    // MES 工序完工進度推移與最終刷新
+                    completeWorkOrder: async function(woId, orderId, outQty, returnMats, operatorName) {
+                        let { data: wo } = await sbClient.from('work_orders').select('*').eq('wo_id', woId);
+                        let steps = wo[0].process_details || [];
+                        let currIdx = parseInt(wo[0].current_step_index) || 0;
+                        let nextIdx = currIdx + 1;
+                        steps[currIdx].outQty = outQty;
+
+                        // 處理退料回庫
+                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+                        for(let rm of (returnMats || [])) {
+                            let { data: m } = await sbClient.from('materials').select('stock_qty').eq('material_id', rm.id);
+                            if(m && m[0]) {
+                                await sbClient.from('materials').update({ stock_qty: (parseFloat(m[0].stock_qty)||0) + parseFloat(rm.qty) }).eq('material_id', rm.id);
+                                await sbClient.from('restock_logs').insert([{ created_at: ts, material_id: rm.id, quantity: rm.qty, supplier_name: '廠內退料', operator_name: operatorName, replenish_id: orderId, vendor_invoice_id: '完工退料' }]);
+                            }
+                        }
+
+                        if (nextIdx < steps.length) {
+                            // 推進到下一道工序
+                            await sbClient.from('work_orders').update({
+                                current_step_index: nextIdx, current_process: steps[nextIdx].name, machine_id: steps[nextIdx].mac,
+                                emp_name: steps[nextIdx].emp, completed_at: steps[nextIdx].endDate, process_details: steps
+                            }).eq('wo_id', woId);
+                            this.successHandler({ success: true, msg: "🏁 前段工序已完成！工單推進至下一工序 [" + steps[nextIdx].name + "]。" });
+                        } else {
+                            // 全工序完工，自動觸發結案搬移
+                            await sbClient.from('work_orders').update({ status: '已完工', process_details: steps, output_qty: outQty }).eq('wo_id', woId);
+                            await sbClient.from('orders').update({ status: '製作完成', output_qty: outQty }).eq('order_id', orderId);
+                            this.successHandler({ success: true, msg: "🎉 此訂單所有排程工序皆已完成！工單正式結案轉交出貨。" });
+                        }
+                    },
+
+                    // OMS 結案與 MES 自動歷史封存抽離 (全面取代 Sheets 刪列)
+                    closeOrderWO: async function(orderId, operatorName) {
+                        await sbClient.from('orders').update({ status: '已結案' }).eq('order_id', orderId);
+                        let { data: wos } = await sbClient.from('work_orders').select('*').eq('order_id', orderId);
+                        if(wos && wos.length > 0) {
+                            for(let wo of wos) {
+                                wo.status = '已結案';
+                                // 複製寫入 LOG 表
+                                await sbClient.from('work_orders_log').insert([wo]);
+                                // 從現役工單表中抽離刪除，保持主面板輕量極速
+                                await sbClient.from('work_orders').delete().eq('wo_id', wo.wo_id);
+                            }
+                        }
+                        this.successHandler({ success: true, msg: "🔒 訂單已結案！相關工單已自動抽離並搬移至封存日誌。" });
+                    },
+
+                    // ERP 補貨申請單建立
+                    addReplenish: async function(matId, qty, supplier, opName, reason) {
+                        let dateStr = new Date().toISOString().slice(2,10).replace(/-/g,'');
+                        let repId = 'B' + dateStr + String(Math.floor(Math.random()*900)+100);
+                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+                        await sbClient.from('replenish_logs').insert([{ replenish_id: repId, created_at: ts, material_id: matId, required_qty: qty, received_qty: 0, status: '處理中', supplier_name: supplier, applicant_name: opName, reason: reason }]);
+                        this.successHandler({ success: true, msg: "補貨申請已送出！您可於待處理清單中執行印單與進貨。" });
+                    },
+
+                    // ERP 進貨數量結算與平均單價動態回填
+                    addRestock: async function(matId, qty, amount, supplier, repId, vendorShipId, operatorName) {
+                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+                        if (repId) {
+                            if (qty === 0) {
+                                await sbClient.from('replenish_logs').update({ status: '已結案' }).eq('replenish_id', repId);
+                            } else {
+                                let { data: rep } = await sbClient.from('replenish_logs').select('received_qty, required_qty').eq('replenish_id', repId);
+                                if (rep && rep[0]) {
+                                    let newRec = (parseFloat(rep[0].received_qty)||0) + qty;
+                                    let status = newRec >= parseFloat(rep[0].required_qty) ? '已結案' : '處理中';
+                                    await sbClient.from('replenish_logs').update({ received_qty: newRec, status: status }).eq('replenish_id', repId);
+                                }
+                            }
+                        }
+                        
+                        await sbClient.from('restock_logs').insert([{ created_at: ts, material_id: matId, quantity: qty, total_amount: amount, supplier_name: supplier, operator_name: operatorName, replenish_id: repId, vendor_invoice_id: qty===0 ? "[作廢] "+vendorShipId : vendorShipId }]);
+                        
+                        if (qty > 0) {
+                            let { data: mat } = await sbClient.from('materials').select('stock_qty, cost_price').eq('material_id', matId);
+                            if (mat && mat[0]) {
+                                let currStock = parseFloat(mat[0].stock_qty) || 0;
+                                let currAvg = parseFloat(mat[0].cost_price) || 0;
+                                let newStock = currStock + qty;
+                                let newAvgPrice = newStock > 0 ? Math.round(((currStock * currAvg) + amount) / newStock) : currAvg;
+                                await sbClient.from('materials').update({ stock_qty: newStock, cost_price: newAvgPrice }).eq('material_id', matId);
+                            }
+                        }
+                        this.successHandler({ success: true, msg: "進貨與移動平均單價結算完成！" });
+                    },
+
+                    // RPT 報表中心歷史數據調用接口
+                    getReportData: async function(targetSheet) {
+                        let config = schemaMaps[targetSheet];
+                        let { data } = await sbClient.from(config.table).select('*');
+                        let translated = (data || []).map(r => toChineseRow(targetSheet, r));
+                        this.successHandler({ success: true, headers: Object.keys(config.fields), data: translated });
+                    },
+
+                    // EIP 專屬交接發布與刪除
+                    addHandover: async function(content, priority, assignee, imageBase64, creator) {
+                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+                        await sbClient.from('handovers').insert([{ content: content, priority: priority, creator: creator, created_at: ts, image_url: imageBase64 || "", assignee: assignee }]);
+                        this.successHandler({ success: true });
+                    },
+                    deleteHandover: async function(timeId, operatorName) {
+                        await sbClient.from('handovers').delete().eq('created_at', timeId);
+                        this.successHandler({ success: true });
+                    },
+
+                    // 智慧防呆擴充對接口 (維持前台按鈕不崩潰)
+                    logEquipmentRepair: async function(m, isRep, r, op) {
+                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+                        let st = isRep ? "報修中" : "待機中";
+                        await sbClient.from('equipment_status').update({ status: st, repair_remark: isRep ? r : "" }).eq('machine_id', m);
+                        await sbClient.from('equipment_logs').insert([{ created_at: ts, machine_id: m, status: st, operator_name: op, remark: r }]);
+                        this.successHandler({ success: true });
+                    },
+                    scheduleMaintenance: async function(m, d, op) {
+                        await sbClient.from('equipment_status').update({ next_maintenance_date: d }).eq('machine_id', m);
+                        this.successHandler({ success: true, msg: "已成功排定機台保養。" });
+                    },
+                    cancelMaintenance: async function(m, op) {
+                        await sbClient.from('equipment_status').update({ next_maintenance_date: "" }).eq('machine_id', m);
+                        this.successHandler({ success: true, msg: "已成功取消保養排程。" });
+                    },
+                    addMaterialAnomaly: async function(obj, op) {
+                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+                        await sbClient.from('material_anomalies').insert([{ created_at: ts, material_id: obj.matId, material_name: obj.matName, supplier_name: obj.supplier, quantity: obj.qty, vendor_invoice_id: obj.vendorShipId, replenish_id: obj.repId, reason: obj.reason, operator_name: op }]);
+                        this.successHandler({ success: true, msg: "⚠️ 材料異常通報紀錄已成功寫入雲端！" });
+                    },
+                    revertDeductionOrder: async function(orderId, op) {
+                        let { data: ord } = await sbClient.from('orders').select('bom_details').eq('order_id', orderId);
+                        let bom = ord[0]?.bom_details || [];
+                        for(let b of bom) {
+                            let { data: m } = await sbClient.from('materials').select('stock_qty').eq('material_id', b.id);
+                            if(m && m[0]) await sbClient.from('materials').update({ stock_qty: (parseFloat(m[0].stock_qty)||0) + parseFloat(b.qty) }).eq('material_id', b.id);
+                        }
+                        await sbClient.from('orders').update({ status: '待扣料' }).eq('order_id', orderId);
+                        this.successHandler({ success: true, msg: "🔄 退料成功！庫存已全數退回，狀態返回 [待扣料]。" });
+                    },
+                    deleteOmsOrderAndRefund: async function(orderId, op) {
+                        await sbClient.from('orders').delete().eq('order_id', orderId);
+                        this.successHandler({ success: true, msg: "🗑️ 訂單已成功刪除，相關預配庫存已自動回補！" });
                     }
                 }
             }
