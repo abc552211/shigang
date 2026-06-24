@@ -329,7 +329,8 @@
         // ================= 【核心重構】Supabase 雲端資料庫強固驅動引擎 =================
         const SUPABASE_URL = "https://tfgtvtceiozvnujiiiqj.supabase.co";
         const SUPABASE_KEY = "sb_publishable_MIbXBy5UrRMMDwcYIaaQbA_1YWEleuK";
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // 【關鍵修復】將自訂的連線物件改名為 sbClient，避免與官方全域變數 supabase 撞名死當
+        const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // 全自動雙向中英文對照字典表 (嚴格對齊 16 張工作表與欄位順序)
         const schemaMaps = {
@@ -393,7 +394,7 @@
                     // 1. 登入人員清單 (加上除錯顯示)
                     getAccountList: async function() {
                         try {
-                            let { data, error } = await supabase.from('users_auth').select('emp_id, emp_name, is_visible');
+                            let { data, error } = await sbClient.from('users_auth').select('emp_id, emp_name, is_visible');
                             
                             // 如果 Supabase 回傳錯誤，直接彈出警告！
                             if (error) {
@@ -411,14 +412,14 @@
                     },
                     // 2. 登入引擎
                     verifyLogin: async function(userId, pwd) {
-                        let { data, error } = await supabase.from('users_auth').select('*').eq('emp_id', userId).eq('password', pwd);
+                        let { data, error } = await sbClient.from('users_auth').select('*').eq('emp_id', userId).eq('password', pwd);
                         if (error || !data || data.length === 0) {
                             if(this.successHandler) this.successHandler({ success: false, msg: "密碼錯誤或員工編號不符" });
                             return;
                         }
                         let user = data[0];
                         let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
-                        await supabase.from('users_auth').update({ last_login_at: ts }).eq('emp_id', userId);
+                        await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', userId);
                         if(this.successHandler) this.successHandler({
                             success: true, name: user.emp_name + ' | ' + (user.job_title || '人員'),
                             viewAuth: user.view_auth || '', opAuth: user.op_auth || '', editAuth: user.edit_auth || '', showFinance: user.show_finance || '是'
@@ -427,13 +428,13 @@
                     // 7. 員工自行修改密碼功能
                     updateUserPassword: async function(userName, oldPwd, newPwd) {
                         // 先嚴格比對姓名與舊密碼是否相符
-                        let { data, error } = await supabase.from('users_auth').select('*').eq('emp_name', userName).eq('password', oldPwd);
+                        let { data, error } = await sbClient.from('users_auth').select('*').eq('emp_name', userName).eq('password', oldPwd);
                         if (error || !data || data.length === 0) {
                             if(this.successHandler) this.successHandler({ success: false, msg: "修改失敗：原密碼輸入錯誤！" });
                             return;
                         }
                         // 執行密碼更新
-                        let { error: updateError } = await supabase.from('users_auth').update({ password: newPwd }).eq('emp_name', userName);
+                        let { error: updateError } = await sbClient.from('users_auth').update({ password: newPwd }).eq('emp_name', userName);
                         if (updateError) {
                             if(this.successHandler) this.successHandler({ success: false, msg: "修改失敗：" + updateError.message });
                         } else {
@@ -444,28 +445,28 @@
                     getSheetData: async function(sheetName) {
                         try {
                             let config = schemaMaps[sheetName];
-                            let { data: rawDbData } = await supabase.from(config.table).select('*');
+                            let { data: rawDbData } = await sbClient.from(config.table).select('*');
                             let translatedData = (rawDbData || []).map(r => toChineseRow(sheetName, r));
                             
                             // 聯查所需子日誌，維持原本的高密度看板數據
-                            let { data: matData } = await supabase.from('materials').select('*');
+                            let { data: matData } = await sbClient.from('materials').select('*');
                             let dropdowns = {
                                 "物料編號": (matData || []).map(m => ({ id: m.material_id, name: m.material_id + " - " + (m.material_name_spec||'') + " " + (m.size_dimension||''), price: parseFloat(m.cost_price)||0, sellPrice: parseFloat(m.sell_price)||0 })),
                                 "急件": ["否", "是"]
                             };
-                            let { data: supData } = await supabase.from('suppliers').select('supplier_name, supplier_id');
+                            let { data: supData } = await sbClient.from('suppliers').select('supplier_name, supplier_id');
                             dropdowns["供應商"] = (supData || []).map(s => s.supplier_name);
                             let supMap = {}; (supData || []).forEach(s => supMap[s.supplier_name] = s.supplier_id); dropdowns["供應商Mapping"] = supMap;
-                            let { data: custData } = await supabase.from('customers').select('customer_name'); dropdowns["客戶名稱"] = (custData || []).map(c => c.customer_name);
-                            let { data: empData } = await supabase.from('users_auth').select('emp_id, emp_name'); dropdowns["員工姓名"] = (empData || []).map(e => ({ id: e.emp_id, name: e.emp_id + " - " + e.emp_name }));
-                            let { data: eqListData } = await supabase.from('equipment_list').select('machine_id, machine_name'); dropdowns["作業機台"] = (eqListData || []).map(e => ({ id: e.machine_id, name: "[" + e.machine_id + " | " + e.machine_name + " | 待機中]" }));
+                            let { data: custData } = await sbClient.from('customers').select('customer_name'); dropdowns["客戶名稱"] = (custData || []).map(c => c.customer_name);
+                            let { data: empData } = await sbClient.from('users_auth').select('emp_id, emp_name'); dropdowns["員工姓名"] = (empData || []).map(e => ({ id: e.emp_id, name: e.emp_id + " - " + e.emp_name }));
+                            let { data: eqListData } = await sbClient.from('equipment_list').select('machine_id, machine_name'); dropdowns["作業機台"] = (eqListData || []).map(e => ({ id: e.machine_id, name: "[" + e.machine_id + " | " + e.machine_name + " | 待機中]" }));
 
-                            let { data: hData } = await supabase.from('handovers').select('*');
-                            let { data: rData } = await supabase.from('restock_logs').select('*');
-                            let { data: repData } = await supabase.from('replenish_logs').select('*');
-                            let { data: woData } = await supabase.from('work_orders').select('*');
-                            let { data: deData } = await supabase.from('deduct_logs').select('*');
-                            let { data: anData } = await supabase.from('material_anomalies').select('*');
+                            let { data: hData } = await sbClient.from('handovers').select('*');
+                            let { data: rData } = await sbClient.from('restock_logs').select('*');
+                            let { data: repData } = await sbClient.from('replenish_logs').select('*');
+                            let { data: woData } = await sbClient.from('work_orders').select('*');
+                            let { data: deData } = await sbClient.from('deduct_logs').select('*');
+                            let { data: anData } = await sbClient.from('material_anomalies').select('*');
 
                             if(this.successHandler) this.successHandler({
                                 headers: Object.keys(config.fields), data: translatedData, dropdowns: dropdowns,
@@ -485,14 +486,14 @@
                         if (sheetName === '生產工單' && !dbRow.wo_id) { dbRow.wo_id = 'P' + dateStr + String(Math.floor(Math.random()*900)+100); }
                         if (sheetName === '補貨申請LOG' && !dbRow.replenish_id) { dbRow.replenish_id = 'B' + dateStr + String(Math.floor(Math.random()*900)+100); dbRow.status = '處理中'; }
                         
-                        await supabase.from(config.table).insert([dbRow]);
+                        await sbClient.from(config.table).insert([dbRow]);
                         this.getSheetData(sheetName);
                     },
                     // 5. 更新單據
                     updateSheetData: async function(sheetName, rowIndex, rowDataObj, operatorName) {
                         let config = schemaMaps[sheetName];
                         let dbRow = toEnglishRow(sheetName, rowDataObj);
-                        await supabase.from(config.table).update(dbRow).eq(config.pk, dbRow[config.pk]);
+                        await sbClient.from(config.table).update(dbRow).eq(config.pk, dbRow[config.pk]);
                         this.getSheetData(sheetName);
                     },
                     // 6. 刪除單據
@@ -500,7 +501,7 @@
                         let config = schemaMaps[sheetName];
                         let rowDataObj = currentTableData[rowIndex];
                         let dbRow = toEnglishRow(sheetName, rowDataObj);
-                        await supabase.from(config.table).delete().eq(config.pk, dbRow[config.pk]);
+                        await sbClient.from(config.table).delete().eq(config.pk, dbRow[config.pk]);
                         this.getSheetData(sheetName);
                     }
                 }
