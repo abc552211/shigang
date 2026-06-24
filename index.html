@@ -361,9 +361,16 @@
                 let enKey = config.fields[chKey];
                 let val = dbRow[enKey];
                 // 自動處理 JSONB 欄位轉回前台物件
-                if(val && (enKey==='process_plan' || enKey==='images' || enKey==='bom_details' || enKey==='process_details')) {
-                    try { val = typeof val === 'string' ? JSON.parse(val) : val; } catch(e){}
-                }
+                // 替換 toChineseRow 中的這一小段
+if(val && (enKey === 'process_plan' || enKey === 'images' || enKey === 'bom_details' || enKey === 'process_details')) {
+    try {
+        // 如果是字串，才執行 JSON.parse；如果已經是物件，直接傳入
+        val = typeof val === 'string' ? JSON.parse(val) : val;
+    } catch(e) { 
+        console.error("JSON 解析失敗:", enKey, val); 
+        val = []; // 給空陣列防止程式崩潰
+    }
+}
                 chRow[chKey] = val !== null && val !== undefined ? String(val) : '';
             }
             return chRow;
@@ -1930,14 +1937,25 @@ getSheetData: async function(sheetName) {
             const op = document.getElementById('userNameDisplay').innerText;
 
             const rows = document.querySelectorAll('.mat-row');
-            let matArr = [];
-            for(let i=0; i<rows.length; i++) { 
-                let input = rows[i].querySelector('.mat-sel-input'); let qtyInput = rows[i].querySelector('.mat-qty'); let noteInput = rows[i].querySelector('.mat-note');
-                if(input && qtyInput && input.value && qtyInput.value) { 
-                    let actualQ = rows[i].getAttribute('data-actual-qty') || qtyInput.value;
-                    matArr.push({ id: input.value.split(' ')[0], qty: actualQ, baseQty: qtyInput.value, note: noteInput ? noteInput.value : '' }); 
-                } 
-            }
+            // 在 submitMaterialCheck 函數內部：
+let matArr = [];
+document.querySelectorAll('.mat-row').forEach(row => {
+    let input = row.querySelector('.mat-sel-input');
+    let qtyInput = row.querySelector('.mat-qty');
+    let noteInput = row.querySelector('.mat-note');
+    if(input && input.value && qtyInput && qtyInput.value) {
+        matArr.push({ 
+            id: input.value.split(' - ')[0], // 確保這裡切出來的是正確 ID
+            qty: row.getAttribute('data-actual-qty'), 
+            baseQty: qtyInput.value, 
+            note: noteInput ? noteInput.value : '' 
+        });
+    }
+});
+
+// 送出前檢查
+console.log("正在送出的配料明細:", matArr); 
+// 點開 F12 Console 確認這裡有沒有抓到資料，如果這裡是空的，代表前面的選擇器抓不到 row
             if(matArr.length === 0) return alert("請至少輸入一項物料與數量");
             
             btn.innerHTML = '<span class="btn-spinner"></span>處理中'; btn.disabled = true;
