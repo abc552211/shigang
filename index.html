@@ -669,7 +669,7 @@ async function addHandover(content, priority, assignee, imageBase64, creator) {
 }
   
                     
-                    ,
+                    
                     deleteHandover: async function(timeId, operatorName) {
                         await sbClient.from('handovers').delete().eq('created_at', timeId);
                         this.successHandler({ success: true });
