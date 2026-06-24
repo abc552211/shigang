@@ -7,8 +7,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <script>
+        // 2. 初始化 Supabase 連線用戶端
+    const SUPABASE_URL = "https://tfgtvtceiozvnujiiiqj.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_MIbXBy5UrRMMDwcYIaaQbA_1YWEleuK";
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         tailwind.config = {
             theme: {
                 extend: {
@@ -425,18 +430,55 @@
             }).getAccountList();
         };
 
-        function loginSys() {
-            const user = document.getElementById('sysUser').value;
-            const pwd = document.getElementById('sysPwd').value;
-            if (!user) { alert('請選擇登入人員'); return; }
-            if (!pwd) return;
-            const btn = document.querySelector('#loginScreen button');
-            btn.innerHTML = '<span class="btn-spinner"></span>驗證中'; btn.disabled = true;
-            google.script.run.withSuccessHandler(res => {
-                if (res.success) applyAuth(res.name, res.viewAuth, res.opAuth, res.editAuth);
-                else { document.getElementById('loginError').classList.remove('hidden'); btn.innerHTML = '系統登入'; btn.disabled = false; }
-            }).withFailureHandler(err => { alert('系統異常：'+err); btn.innerHTML = '系統登入'; btn.disabled = false; }).verifyLogin(user, pwd);
-        }
+        async function loginSys() {
+    const userEmail = document.getElementById('sysUser').value; // 原本是員工編號，建議改為 Email
+    const pwd = document.getElementById('sysPwd').value;
+    
+    if (!userEmail || !pwd) {
+        alert('請輸入帳號與密碼');
+        return;
+    }
+
+    const btn = document.querySelector('#loginScreen button');
+    btn.innerHTML = '<span class="btn-spinner"></span>驗證中';
+    btn.disabled = true;
+
+    try {
+        // 1. Supabase 登入驗證
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: userEmail,
+            password: pwd
+        });
+
+        if (error) throw error;
+
+        // 2. 登入成功後，從「權限管理」Table 抓取該用戶的權限設定
+        // 假設你的權限表欄位名稱為 email
+        const { data: profile, error: profileError } = await supabase
+            .from('權限管理')
+            .select('*')
+            .eq('email', userEmail)
+            .single();
+
+        if (profileError) throw profileError;
+
+        // 3. 執行你原本的權限應用邏輯
+        applyAuth(
+            profile.員工姓名 + ' | ' + profile.職稱, 
+            profile.可視系統, 
+            profile.可操作系統, 
+            profile.可編輯系統, 
+            profile.顯示財務金額
+        );
+
+    } catch (err) {
+        console.error("登入錯誤:", err.message);
+        document.getElementById('loginError').classList.remove('hidden');
+        document.getElementById('loginError').innerText = '登入失敗：' + err.message;
+        btn.innerHTML = '系統登入';
+        btn.disabled = false;
+    }
+}
 
         function applyAuth(userName, viewAuth, opAuth, editAuth, showFinance) {
             document.getElementById('loginScreen').classList.add('hidden');
@@ -538,7 +580,8 @@
                     
                     // 【核心修正】異步網絡讀取成功後，同樣精確傳入操作與編輯布林值
                     renderTable(res.data || [], userOpAuth.includes(currentSysName), userEditAuth.includes(currentSysName));
-                }).withFailureHandler(err => {
+                }
+                ).withFailureHandler(err => {
                     alert('讀取失敗：'+err); document.getElementById('loadingIndicator').classList.add('hidden'); document.getElementById('loadingIndicator').classList.remove('flex');
                 }).getSheetData(sheetName);
             }
