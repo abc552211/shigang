@@ -641,12 +641,30 @@
                         this.successHandler({ success: true, headers: Object.keys(config.fields), data: translated });
                     },
 
-                    // EIP 專屬交接發布與刪除
-                    addHandover: async function(content, priority, assignee, imageBase64, creator) {
-                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
-                        await sbClient.from('handovers').insert([{ content: content, priority: priority, creator: creator, created_at: ts, image_url: imageBase64 || "", assignee: assignee }]);
-                        this.successHandler({ success: true });
-                    },
+                    // 【除錯版】addHandover：寫入前先列印欄位檢查
+async function addHandover(content, priority, assignee, imageBase64, creator) {
+    // 構造寫入 Supabase 的物件，請對照 Table 欄位名稱
+    let dbRow = {
+        content: content,
+        priority: priority,
+        creator: creator,
+        created_at: new Date().toISOString(), // 確保時間格式是 ISO 字串
+        image_url: imageBase64 || "",
+        assignee: assignee
+    };
+
+    console.log("正在發送給 Supabase 的資料:", dbRow); // 👈 這裡會幫您列印出欄位結構
+
+    let { data, error } = await sbClient.from('handovers').insert([dbRow]);
+
+    if (error) {
+        console.error("Supabase 寫入失敗細節:", error);
+        alert("寫入失敗，請檢查 Console 錯誤：" + error.message);
+    } else {
+        console.log("寫入成功！");
+        refreshSystem();
+    }
+},
                     deleteHandover: async function(timeId, operatorName) {
                         await sbClient.from('handovers').delete().eq('created_at', timeId);
                         this.successHandler({ success: true });
