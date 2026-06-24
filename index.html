@@ -1,44 +1,42 @@
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-    // 這裡直接建立一個獨立的客戶端實例
-    const mySupabase = supabase.createClient(
-        "https://tfgtvtceiozvnujiiiqj.supabase.co",
-        "sb_publishable_MIbXBy5UrRMMDwcYIaaQbA_1YWEleuK"
-    );
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <input type="text" id="sysUser" placeholder="員工編號">
+    <input type="password" id="sysPwd" placeholder="密碼">
+    <button onclick="checkLogin()">登入</button>
+    <div id="status"></div>
 
-    async function runLogin() {
-        const user = document.getElementById('sysUser').value;
-        const pwd = document.getElementById('sysPwd').value;
-        const status = document.getElementById('status');
+    <script>
+        // 強制初始化
+        window.sb = supabase.createClient(
+            "https://tfgtvtceiozvnujiiiqj.supabase.co",
+            "sb_publishable_MIbXBy5UrRMMDwcYIaaQbA_1YWEleuK"
+        );
 
-        if (!user || !pwd) {
-            alert("請輸入帳號與密碼");
-            return;
+        async function checkLogin() {
+            const user = document.getElementById('sysUser').value;
+            const pwd = document.getElementById('sysPwd').value;
+            
+            try {
+                const { data, error } = await window.sb
+                    .from('users_auth')
+                    .select('*')
+                    .eq('employee_id', user)
+                    .eq('password', pwd)
+                    .single();
+
+                if (error || !data) throw new Error("帳密錯誤");
+                
+                document.getElementById('status').innerText = "成功！";
+                alert("登入成功");
+            } catch (e) {
+                document.getElementById('status').innerText = e.message;
+            }
         }
-
-        status.innerText = "驗證中...";
-        status.style.color = "blue";
-
-        try {
-            // 注意這裡使用的是 mySupabase
-            const { data, error } = await mySupabase
-                .from('users_auth')
-                .select('*')
-                .eq('employee_id', user)
-                .eq('password', pwd)
-                .single();
-
-            if (error) throw error;
-            if (!data) throw new Error("查無此帳號");
-
-            status.style.color = "green";
-            status.innerText = "成功！";
-            alert("登入成功，歡迎：" + data.full_name);
-
-        } catch (e) {
-            status.style.color = "red";
-            status.innerText = "錯誤: " + e.message;
-            console.error("錯誤細節:", e);
-        }
-    }
-</script>
+    </script>
+</body>
+</html>
