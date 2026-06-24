@@ -432,50 +432,45 @@ const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         };
 
         async function loginSys() {
-    const userEmail = document.getElementById('sysUser').value; // 原本是員工編號，建議改為 Email
+    const user = document.getElementById('sysUser').value;
     const pwd = document.getElementById('sysPwd').value;
-    
-    if (!userEmail || !pwd) {
+
+    if (!user || !pwd) {
         alert('請輸入帳號與密碼');
         return;
     }
 
     const btn = document.querySelector('#loginScreen button');
-    btn.innerHTML = '<span class="btn-spinner"></span>驗證中';
+    btn.innerHTML = '<span class="btn-spinner"></span>驗證中...';
     btn.disabled = true;
 
     try {
-        // 1. Supabase 登入驗證
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email: userEmail,
-            password: pwd
-        });
-
-        if (error) throw error;
-
-        // 2. 登入成功後，從「權限管理」Table 抓取該用戶的權限設定
-        // 假設你的權限表欄位名稱為 email
-        const { data: profile, error: profileError } = await supabase
-            .from('權限管理')
+        // 從 users_auth 表中篩選符合編號與密碼的資料
+        const { data, error } = await supabase
+            .from('users_auth')
             .select('*')
-            .eq('email', userEmail)
+            .eq('employee_id', user)
+            .eq('password', pwd)
             .single();
 
-        if (profileError) throw profileError;
+        if (error || !data) {
+            throw new Error("帳號或密碼錯誤");
+        }
 
-        // 3. 執行你原本的權限應用邏輯
+        // 登入成功，應用權限
+        console.log('登入成功:', data);
+        
         applyAuth(
-            profile.員工姓名 + ' | ' + profile.職稱, 
-            profile.可視系統, 
-            profile.可操作系統, 
-            profile.可編輯系統, 
-            profile.顯示財務金額
+            data.full_name + ' | ' + data.role, 
+            data.view_level, 
+            // 這裡視你實際的欄位名稱調整
+            data.operation_level, 
+            data.edit_level, 
+            data.show_finance
         );
 
     } catch (err) {
-        console.error("登入錯誤:", err.message);
-        document.getElementById('loginError').classList.remove('hidden');
-        document.getElementById('loginError').innerText = '登入失敗：' + err.message;
+        alert('登入失敗：' + err.message);
         btn.innerHTML = '系統登入';
         btn.disabled = false;
     }
