@@ -333,6 +333,7 @@
 
         // 全自動雙向中英文對照字典表 (嚴格對齊 16 張工作表與欄位順序)
         const schemaMaps = {
+            '權限管理': { table: 'users_auth', pk: 'emp_id', fields: { '員工編號': 'emp_id', '員工姓名': 'emp_name', '密碼': 'password', '職稱': 'job_title', '可視系統': 'view_auth', '可操作系統': 'op_auth', '可編輯系統': 'edit_auth', '顯示': 'is_visible', '最近一次登入時間': 'last_login_at', '顯示財務金額': 'show_finance' }},
             '內部公告': { table: 'announcements', pk: 'title', fields: { '發布日期': 'publish_date', '公告類別': 'category', '標題': 'title', '內容': 'content', '發佈人': 'publisher' }},
             '交接清單': { table: 'handovers', pk: 'created_at', fields: { '交接事項': 'content', '優先級': 'priority', '建立人': 'creator', '接收人': 'assignee', '建立時間': 'created_at' }},
             '交接清單LOG': { table: 'handovers_log', pk: 'created_at', fields: { '時間': 'created_at', '動作': 'action', '內容': 'content', '操作人': 'operator_name' }},
@@ -408,6 +409,22 @@
                             success: true, name: user.emp_name + ' | ' + (user.job_title || '人員'),
                             viewAuth: user.view_auth || '', opAuth: user.op_auth || '', editAuth: user.edit_auth || '', showFinance: user.show_finance || '是'
                         });
+                    },
+                    // 7. 員工自行修改密碼功能
+                    updateUserPassword: async function(userName, oldPwd, newPwd) {
+                        // 先嚴格比對姓名與舊密碼是否相符
+                        let { data, error } = await supabase.from('users_auth').select('*').eq('emp_name', userName).eq('password', oldPwd);
+                        if (error || !data || data.length === 0) {
+                            if(this.successHandler) this.successHandler({ success: false, msg: "修改失敗：原密碼輸入錯誤！" });
+                            return;
+                        }
+                        // 執行密碼更新
+                        let { error: updateError } = await supabase.from('users_auth').update({ password: newPwd }).eq('emp_name', userName);
+                        if (updateError) {
+                            if(this.successHandler) this.successHandler({ success: false, msg: "修改失敗：" + updateError.message });
+                        } else {
+                            if(this.successHandler) this.successHandler({ success: true, msg: "密碼已修改成功，請用新密碼登入！" });
+                        }
                     },
                     // 3. 核心資料讀取引擎 (內含全功能大數據連查與下拉選單動態映射)
                     getSheetData: async function(sheetName) {
