@@ -1,60 +1,72 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>測試登入</title>
+    <title>系統登入</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: sans-serif; display: flex; justify-content: center; padding-top: 50px; background: #f4f4f4; }
         .box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); width: 250px; }
         input { width: 100%; margin: 10px 0; padding: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background: #28a745; color: white; border: none; cursor: pointer; }
+        button { width: 100%; padding: 10px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
         #status { margin-top: 15px; font-weight: bold; text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h3>系統測試</h3>
-    <input type="text" id="user" placeholder="員工編號">
-    <input type="password" id="pwd" placeholder="密碼">
-    <button onclick="runLogin()">登入</button>
+    <h3>系統登入</h3>
+    <input type="text" id="sysUser" placeholder="員工編號">
+    <input type="password" id="sysPwd" placeholder="密碼">
+    <button onclick="loginSys()">系統登入</button>
     <div id="status"></div>
 </div>
 
 <script>
-    // 初始化 Supabase
-    const supabase = supabase.createClient(
-        "https://tfgtvtceiozvnujiiiqj.supabase.co",
-        "sb_publishable_MIbXBy5UrRMMDwcYIaaQbA_1YWEleuK"
-    );
+    // 2. 初始化 Supabase (全域只宣告一次)
+    const SUPABASE_URL = "https://tfgtvtceiozvnujiiiqj.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_MIbXBy5UrRMMDwcYIaaQbA_1YWEleuK";
+    
+    // 檢查 supabase 是否已存在，避免重複宣告
+    if (typeof supabase === 'undefined') {
+        window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    }
 
-    async function runLogin() {
-        const u = document.getElementById('user').value;
-        const p = document.getElementById('pwd').value;
+    // 3. 定義 loginSys 函數
+    async function loginSys() {
+        const user = document.getElementById('sysUser').value;
+        const pwd = document.getElementById('sysPwd').value;
         const status = document.getElementById('status');
 
+        if (!user || !pwd) {
+            alert("請輸入帳號與密碼");
+            return;
+        }
+
         status.innerText = "驗證中...";
+        status.style.color = "blue";
 
         try {
-            // 查詢資料庫
+            // 注意：這裡查詢的表名必須是 "users_auth"
+            // 欄位名必須是 "employee_id" 和 "password"
             const { data, error } = await supabase
                 .from('users_auth')
                 .select('*')
-                .eq('employee_id', u)
-                .eq('password', p)
+                .eq('employee_id', user)
+                .eq('password', pwd)
                 .single();
 
             if (error || !data) {
-                status.style.color = "red";
-                status.innerText = "帳密錯誤";
-            } else {
-                status.style.color = "green";
-                status.innerText = "成功！";
+                throw new Error("帳號或密碼錯誤");
             }
+
+            status.style.color = "green";
+            status.innerText = "成功！";
+            alert("歡迎登入，" + data.full_name);
+
         } catch (e) {
             status.style.color = "red";
-            status.innerText = "發生錯誤：" + e.message;
+            status.innerText = e.message;
         }
     }
 </script>
