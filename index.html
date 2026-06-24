@@ -390,10 +390,24 @@
                     withFailureHandler: function(cb) { this.failureHandler = cb; return this; },
                     
                     // 1. 登入人員清單
+                    // 1. 登入人員清單 (加上除錯顯示)
                     getAccountList: async function() {
-                        let { data, error } = await supabase.from('users_auth').select('emp_id, emp_name, is_visible');
-                        let users = (data || []).filter(u => u.is_visible !== '否').map(u => ({ id: u.emp_id, name: u.emp_name }));
-                        if(this.successHandler) this.successHandler(users);
+                        try {
+                            let { data, error } = await supabase.from('users_auth').select('emp_id, emp_name, is_visible');
+                            
+                            // 如果 Supabase 回傳錯誤，直接彈出警告！
+                            if (error) {
+                                alert("Supabase 讀取錯誤：" + error.message);
+                                document.getElementById('sysUser').placeholder = '資料庫連線失敗';
+                                return;
+                            }
+                            
+                            let users = (data || []).filter(u => u.is_visible !== '否').map(u => ({ id: u.emp_id, name: u.emp_name }));
+                            if(this.successHandler) this.successHandler(users);
+                            
+                        } catch (err) {
+                            alert("JavaScript 執行錯誤：" + err.toString());
+                        }
                     },
                     // 2. 登入引擎
                     verifyLogin: async function(userId, pwd) {
