@@ -692,9 +692,9 @@
 
             '內部公告': { table: 'announcements', pk: 'title', fields: { '發布日期': 'publish_date', '公告類別': 'category', '標題': 'title', '內容': 'content', '發佈人': 'publisher' }},
 
-            '交接清單': { table: 'handovers', pk: 'created_at', fields: { '交接事項': 'content', '優先級': 'priority', '建立人': 'creator', '接收人': 'assignee', '建立時間': 'created_at' }},
+            '交接清單': { table: 'handovers', pk: 'id', fields: { '交接事項': 'content', '優先級': 'priority', '建立人': 'creator', '接收人': 'assignee', '建立時間': 'created_at' }},
 
-            '交接清單LOG': { table: 'handovers_log', pk: 'created_at', fields: { '時間': 'created_at', '動作': 'action', '內容': 'content', '操作人': 'operator_name' }},
+            '交接清單LOG': { table: 'handovers_log', pk: 'id', fields: { '時間': 'created_at', '動作': 'action', '內容': 'content', '操作人': 'operator_name' }},
 
             '客戶資料': { table: 'customers', pk: 'customer_id', fields: { '客戶編號': 'customer_id', '客戶名稱': 'customer_name', '統一編號': 'tax_id', '聯絡人': 'contact_person', '聯絡電話': 'phone', '手機': 'mobile', '聯絡地址': 'address', '常用盒型': 'box_type', '偏好材質': 'material_preference', '特殊要求備註': 'remark', '合作狀態': 'status', '銀行代碼': 'bank_code', '匯款帳號': 'bank_account', '傳真': 'fax' }},
 
@@ -894,7 +894,7 @@
 
                                 let { data: ho } = await sbClient.from('handovers').select('*');
 
-                                result.handovers = (ho || []).map(x => ({ time: x.created_at, content: x.content, priority: x.priority, creator: x.creator, assignee: x.assignee, image: x.image_url }));
+                                result.handovers = (ho || []).map(x => ({ id: x.id, time: x.created_at, content: x.content, priority: x.priority, creator: x.creator, assignee: x.assignee, image: x.image_url }));
 
                             }
 
@@ -1392,38 +1392,29 @@ addHandover: async function(content, priority, assignee, imageBase64, creator) {
     this.successHandler({ success: true });
 },
 
-deleteHandover: async function(timeId, operatorName) {
-    // 為了 LOG 完整性，先撈出這筆交接的內容
-    let { data: ho } = await sbClient.from('handovers').select('content').eq('created_at', timeId);
+deleteHandover: async function(id, operatorName) {
+    // 改用 id 撈取內容供 Log 使用
+    let { data: ho } = await sbClient.from('handovers').select('content').eq('id', id);
     let contentStr = (ho && ho.length > 0) ? ho[0].content : '未知內容';
 
-    // 執行刪除主表
-    await sbClient.from('handovers').delete().eq('created_at', timeId);
+    // 改用 id 刪除主表
+    await sbClient.from('handovers').delete().eq('id', id);
 
-    // 【修正 2】同步寫入 LOG 表紀錄
+    // 寫入 LOG
     let d = new Date();
     let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
 
     await sbClient.from('handovers_log').insert([{
         created_at: ts,
         action: '刪除',
-        content: `刪除交接 (原發布時間: ${timeId}): ${contentStr.substring(0, 20)}...`,
+        content: `刪除交接: ${contentStr.substring(0, 20)}...`,
         operator_name: operatorName
     }]);
 
     this.successHandler({ success: true });
 },
 
-                    deleteHandover: async function(timeId, operatorName) {
-
-                        await sbClient.from('handovers').delete().eq('created_at', timeId);
-
-                        this.successHandler({ success: true });
-
-                    },
-
-
-
+                    
                     // 設備維修報修與保養
 
                     logEquipmentRepair: async function(m, isRep, r, op) {
@@ -2102,7 +2093,8 @@ deleteHandover: async function(timeId, operatorName) {
 
                         
 
-                        let delBtn = hasEditAuth ? `<button onclick="doDeleteHandover('${ho.time}', this)" class="text-gray-400 hover:text-red-500 font-bold text-xl leading-none ml-2 p-1 transition-colors" title="結案刪除">&times;</button>` : '';
+                        // 【修改後】 改綁定 ho.id
+                        let delBtn = hasEditAuth ? `<button onclick="doDeleteHandover('${ho.id}', this)" class="text-gray-400 hover:text-red-500 font-bold text-xl leading-none ml-2 p-1 transition-colors" title="結案刪除">&times;</button>` : '';
 
 
 
@@ -3306,12 +3298,13 @@ if(currentSysName === 'ERP') {
             btn.innerHTML = '<span class="btn-spinner"></span>發布中'; btn.disabled = true;
             google.script.run.withSuccessHandler(res => { closeModal('handoverModal'); refreshSystem(); btn.innerHTML = '新增發布'; btn.disabled = false; }).withFailureHandler(err => { alert('系統異常：'+err); btn.innerHTML = '新增發布'; btn.disabled = false; }).addHandover(content, prio, assignee, hoImageBase64, op); 
         }
-        function doDeleteHandover(timeId, btn) {
-            if(!confirm("確定要刪除這筆交接嗎？")) return;
-            const op = document.getElementById('userNameDisplay').innerText;
-            const originText = btn.innerHTML; btn.innerHTML = '<span class="btn-spinner-red"></span>'; btn.disabled = true;
-            google.script.run.withSuccessHandler(res => { refreshSystem(); }).withFailureHandler(err => { alert('系統異常：'+err); btn.innerHTML = originText; btn.disabled = false; }).deleteHandover(timeId, op);
-        }
+        // 替換整段 doDeleteHandover
+function doDeleteHandover(id, btn) {
+    if(!confirm("確定要刪除這筆交接嗎？")) return;
+    const op = document.getElementById('userNameDisplay').innerText;
+    const originText = btn.innerHTML; btn.innerHTML = '<span class="btn-spinner-red"></span>'; btn.disabled = true;
+    google.script.run.withSuccessHandler(res => { refreshSystem(); }).withFailureHandler(err => { alert('系統異常：'+err); btn.innerHTML = originText; btn.disabled = false; }).deleteHandover(id, op);
+}
 
         function buildReturnMatList(containerId, orderId) {
             const container = document.getElementById(containerId); container.innerHTML = '';
