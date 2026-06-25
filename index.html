@@ -1066,17 +1066,19 @@
 
                                 for(let m of materialsArr) {
 
-                                    let { data: mat } = await sbClient.from('materials').select('stock_qty').eq('material_id', m.id);
-
-                                    if(mat && mat[0]) {
-
-                                        let newStock = (parseFloat(mat[0].stock_qty) || 0) - parseFloat(m.qty);
-
-                                        await sbClient.from('materials').update({ stock_qty: newStock }).eq('material_id', m.id);
-
-                                        await sbClient.from('deduct_logs').insert([{ created_at: ts, order_id: orderId, material_id: m.id, quantity: m.qty, operator_name: operatorName }]);
-
-                                    }
+                                    let { data: mat } = await sbClient.from('materials').select('stock_qty, category').eq('material_id', m.id);
+if(mat && mat[0]) {
+    let cat = String(mat[0].category || '');
+    let isService = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('代工') || cat.includes('費');
+    
+    // 如果是服務，只寫入扣料/耗用日誌(用來記帳與算毛利)，但不更新實體庫存數字
+    if (!isService) {
+        let newStock = (parseFloat(mat[0].stock_qty) || 0) - parseFloat(m.qty);
+        await sbClient.from('materials').update({ stock_qty: newStock }).eq('material_id', m.id);
+    }
+    
+    await sbClient.from('deduct_logs').insert([{ created_at: ts, order_id: orderId, material_id: m.id, quantity: m.qty, operator_name: operatorName }]);
+}
 
                                 }
 
@@ -2178,17 +2180,20 @@
 
                     
 
-                    if(currentSysName === 'ERP') {
+                    let isServiceItem = false;
+if(currentSysName === 'ERP') {
+    // 判定是否為無形服務類別
+    let cat = String(row['類別'] || '');
+    isServiceItem = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('代工') || cat.includes('費');
 
-                        let stock = parseFloat(row['目前庫存']) || 0; let safe = parseFloat(row['安全庫存']) || 0;
-
-                        if(stock < safe) isLowStock = true;
-
-                        let reps = currentReplenish.filter(l => l.matId === row['物料編號'] && l.status !== '已結案');
-
-                        reps.forEach(r => { isRestocking = true; restockQty += (parseFloat(r.reqQty) || 0) - (parseFloat(r.inQty) || 0); });
-
-                    }
+    let stock = parseFloat(row['目前庫存']) || 0; let safe = parseFloat(row['安全庫存']) || 0;
+    
+    // 如果是實體物料，才觸發低庫存警報
+    if(!isServiceItem && stock < safe) isLowStock = true;
+    
+    let reps = currentReplenish.filter(l => l.matId === row['物料編號'] && l.status !== '已結案');
+    reps.forEach(r => { isRestocking = true; restockQty += (parseFloat(r.reqQty) || 0) - (parseFloat(r.inQty) || 0); });
+}
 
 
 
@@ -2277,10 +2282,17 @@
                             }
 
                             else if(currentSysName === 'ERP' && key === '目前庫存') {
-
-                                let stock = parseFloat(val) || 0; let safe = parseFloat(row['安全庫存']) || 0; let displayVal = val;
-
-                                if(stock < safe) displayVal = `<span class="text-red-600 font-bold">${val}</span>`; else if(stock > safe) displayVal = `<span class="text-green-600 font-bold">${val}</span>`; else displayVal = `<span class="text-orange-500 font-bold">${val}</span>`;
+    let displayVal = val;
+    if (isServiceItem) {
+        // 無形資產專屬顯示介面
+        displayVal = `<span class="text-indigo-500 font-bold bg-indigo-50 px-2 py-0.5 rounded text-xs">∞ 不計庫存</span>`;
+    } else {
+        let stock = parseFloat(val) || 0; let safe = parseFloat(row['安全庫存']) || 0;
+        if(stock < safe) displayVal = `<span class="text-red-600 font-bold">${val}</span>`; else if(stock > safe) displayVal = `<span class="text-green-600 font-bold">${val}</span>`; else displayVal = `<span class="text-orange-500 font-bold">${val}</span>`;
+    }
+    if (isRestocking && restockQty > 0) displayVal += `<span class="ml-2 bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded text-[10px] font-bold border border-yellow-300 shadow-sm webkit-nowrap">⏳外包/補貨中: ${restockQty}</span>`;
+    val = displayVal;
+}
 
                                 if (isRestocking && restockQty > 0) displayVal += `<span class="ml-2 bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded text-[10px] font-bold border border-yellow-300 shadow-sm webkit-nowrap">⏳補貨中: ${restockQty}</span>`;
 
@@ -2852,10 +2864,16 @@
             if (currentSysName === 'ERP') {
                 let totalInventoryValue = 0; let totalUnreceivedValue = 0;
                 currentTableData.forEach(row => { 
-                    let stock = parseFloat(row['目前庫存']) || 0; 
-                    let price = parseFloat(row['內價']) || parseFloat(row['單價']) || 0; 
-                    if(stock > 0) totalInventoryValue += (stock * price); 
-                });
+    let cat = String(row['類別'] || '');
+    let isService = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('代工') || cat.includes('費');
+    
+    // 只有實體物料才計算庫存總金額
+    if (!isService) {
+        let stock = parseFloat(row['目前庫存']) || 0; 
+        let price = parseFloat(row['內價']) || parseFloat(row['單價']) || 0; 
+        if(stock > 0) totalInventoryValue += (stock * price); 
+    }
+});
                 
                 if (window.currentReplenish) {
                     currentReplenish.forEach(rep => {
