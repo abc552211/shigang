@@ -830,7 +830,7 @@
 
                         }
 
-                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+                        let d = new Date(); let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
 
                         await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', userId);
 
@@ -1082,7 +1082,7 @@
 
                             if (executeDeduct) {
 
-                                let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+                                let d = new Date(); let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
 
                                 for(let m of materialsArr) {
 
@@ -1186,7 +1186,7 @@ if(mat && mat[0]) {
 
                         // 處理退料回庫
 
-                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+                        let d = new Date(); let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
 
                         for(let rm of (returnMats || [])) {
 
@@ -1297,7 +1297,7 @@ addReplenish: async function(matId, qty, supplier, opName, reason) {
 
                     addRestock: async function(matId, qty, amount, supplier, repId, vendorShipId, operatorName) {
 
-                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+                        let d = new Date(); let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
 
                         if (repId) {
 
@@ -1432,7 +1432,7 @@ deleteHandover: async function(id, operatorName) {
 
                     logEquipmentRepair: async function(m, isRep, r, op) {
 
-                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+                        let d = new Date(); let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
 
                         let st = isRep ? "報修中" : "待機中";
 
@@ -1466,7 +1466,7 @@ deleteHandover: async function(id, operatorName) {
 
                     addMaterialAnomaly: async function(obj, op) {
 
-                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+                        let d = new Date(); let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
 
                         await sbClient.from('material_anomalies').insert([{ created_at: ts, material_id: obj.matId, material_name: obj.matName, supplier_name: obj.supplier, quantity: obj.qty, vendor_invoice_id: obj.vendorShipId, replenish_id: obj.repId, reason: obj.reason, operator_name: op }]);
 
@@ -1510,7 +1510,7 @@ deleteHandover: async function(id, operatorName) {
 
                     shipOrderAndWo: async function(woId, oId, trackId, op) {
 
-                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+                        let d = new Date(); let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
 
                         await sbClient.from('orders').update({ tracking_id: trackId, shipped_at: ts, status: '已出貨待OMS結案' }).eq('order_id', oId);
 
