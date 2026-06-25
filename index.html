@@ -1,1358 +1,2821 @@
 <!DOCTYPE html>
+
 <html lang="zh-TW">
+
 <head>
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
     <title>仕罡印刷 - 公司管理系統</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+
+
     <script>
+
         tailwind.config = {
+
             theme: {
+
                 extend: {
+
                     colors: {
+
                         moBg: '#F0F1F0',       // 莫蘭迪淺灰底
+
                         moSide: '#66747A',     // 莫蘭迪深灰藍 (主色/專業感)
+
                         moSideLight: '#8D9B9F', 
+
                         moCard: '#FFFFFF', 
+
                         moText: '#3A4449',     // 深灰字體 (易判讀對比)
+
                         moBorder: '#D2D7D9',
+
                         moAccent: '#81939A'    // 跳色裝飾 (莫蘭迪灰藍)
+
                     }
+
                 }
+
             }
+
         }
+
     </script>
+
     <style>
+
         body { color: #3A4449; -webkit-overflow-scrolling: touch; }
+
         main { overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
+
         .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+
         .login-bg { background: linear-gradient(135deg, #E2E6E7 0%, #C4CBCD 100%); }
+
         .sidebar-bg { background-color: #525F65; border-right: 1px solid #3A4449; }
+
         .nav-btn:hover { background-color: rgba(255,255,255,0.1); transform: translateX(2px); transition: all 0.2s ease; }
+
         .btn-spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: btn-spin 0.8s linear infinite; margin-right: 6px; vertical-align: middle; margin-top: -2px; }
+
         .btn-spinner-red { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(220,38,38,0.3); border-top-color: #DC2626; border-radius: 50%; animation: btn-spin 0.8s linear infinite; margin-right: 6px; vertical-align: middle; margin-top: -2px; }
+
         @keyframes btn-spin { to { transform: rotate(360deg); } }
+
         ::-webkit-scrollbar { width: 6px; height: 6px; }
+
         ::-webkit-scrollbar-track { background: #F0F1F0; }
+
         ::-webkit-scrollbar-thumb { background: #8D9B9F; border-radius: 10px; }
+
         ::-webkit-scrollbar-thumb:hover { background: #66747A; }
+
         td, th { white-space: nowrap; }
+
         .status-badge { padding: 2px 8px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; }
+
         .status-red { background: #FEE2E2; color: #DC2626; border: 1px solid #FCA5A5; }
+
         .status-green { background: #D1FAE5; color: #059669; border: 1px solid #6EE7B7; }
+
         .status-blue { background: #DBEAFE; color: #2563EB; border: 1px solid #93C5FD; }
+
         .status-gray { background: #F3F4F6; color: #4B5563; border: 1px solid #D1D5DB; }
+
         .status-yellow { background: #FEF3C7; color: #D97706; border: 1px solid #FCD34D; }
+
         button { user-select: none; }
+
     </style>
+
 </head>
+
 <body class="bg-moBg text-moText font-sans h-[100dvh] overflow-hidden flex flex-col md:flex-row">
 
+
+
     <div id="loginScreen" class="fixed inset-0 login-bg flex items-center justify-center z-50">
+
         <div class="bg-white p-10 rounded-2xl shadow-xl w-96 text-center border border-gray-200 border-l-8 border-l-moAccent relative">
+
             <h1 class="text-2xl font-bold text-gray-800 mb-1 tracking-widest">仕罡印刷</h1>
+
             <p class="text-sm text-gray-500 mb-8 tracking-wide">公司管理系統</p>
+
             
+
             <input list="dl_sysUser" id="sysUser" placeholder="正在讀取人員名單..." class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:border-moAccent focus:ring-1 focus:ring-moAccent text-center tracking-widest text-gray-700 bg-gray-50">
+
             <datalist id="dl_sysUser"></datalist>
+
             
+
             <input type="password" id="sysPwd" placeholder="請輸入通行密碼" class="w-full p-3 mb-6 border border-gray-300 rounded-lg focus:outline-none focus:border-moAccent focus:ring-1 focus:ring-moAccent text-center tracking-widest text-gray-700 placeholder-gray-400" onkeypress="if(event.key==='Enter') loginSys()">
+
             
+
             <button onclick="loginSys()" class="w-full bg-moSide hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors tracking-widest">系統登入</button>
+
             <p id="loginError" class="text-red-500 text-xs mt-4 hidden tracking-widest">登入失敗，請檢查密碼</p>
+
         </div>
+
     </div>
+
+
 
     <div id="app" class="flex w-full hidden">
+
         
+
         <div class="w-64 sidebar-bg text-gray-300 flex flex-col shadow-md z-10">
+
             <div class="p-4 text-center font-bold text-xl border-b border-gray-600 tracking-wider flex flex-col items-center justify-center h-16 text-white">
+
                 仕罡印刷
+
             </div>
+
             <nav class="flex-1 overflow-y-auto py-2 space-y-1" id="navMenu"></nav>
+
             <div class="p-4 border-t border-gray-600 text-xs text-center bg-gray-800 text-gray-400">
+
                 <div class="mb-2">登入人員: <span id="userNameDisplay" class="font-bold text-white"></span></div>
+
                 <button onclick="openChangePwdModal()" class="w-full bg-gray-700 hover:bg-gray-600 text-white py-1 rounded transition-colors tracking-wider">🔐 修改個人密碼</button>
+
             </div>
+
         </div>
+
+
 
         <main class="flex-1 flex flex-col h-full overflow-hidden">
+
             <header class="bg-moCard px-6 py-4 border-b border-moBorder shadow-sm flex flex-col md:flex-row gap-4 md:gap-0 justify-between items-center">
+
                 
+
                 <div class="flex items-center gap-3 w-full md:w-auto">
+
                     <button onclick="toggleMenu()" class="md:hidden text-moSide hover:bg-gray-100 px-3 py-1 rounded text-2xl transition-colors border border-gray-200 shadow-sm leading-none">☰</button>
+
                     <h1 id="sysTitle" class="text-2xl font-bold text-moSide">歡迎</h1>
+
                 </div>
+
+
 
                 <div class="flex items-center gap-2 w-full md:w-auto" id="headerActions">
+
                     <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="輸入關鍵字模糊搜尋..." class="w-full md:w-48 p-2 border border-moBorder rounded text-sm focus:outline-none focus:ring-1 focus:ring-moSide transition-all">
+
                     <button id="refreshBtn" onclick="refreshSystem()" class="hidden bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded text-sm transition-colors whitespace-nowrap">↻ 刷新</button>
+
                     <button id="addBtn" onclick="openModal()" class="hidden bg-moSide hover:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors whitespace-nowrap">＋ 新增資料</button>
+
                 </div>
+
             </header>
+
             <div class="flex-1 p-6 overflow-auto relative">
+
                 <div id="loadingIndicator" class="hidden flex-col items-center justify-center py-20 text-moSide">
+
                     <div class="w-12 h-12 border-4 border-moBorder border-t-moSide rounded-full animate-spin mb-4"></div>
+
                     <span class="font-bold tracking-widest text-sm text-moText">資料同步中...</span>
+
                 </div>
+
                 
+
                 <div id="rptControlPanel" class="hidden bg-white p-5 rounded-lg border border-moBorder shadow-sm mb-4">
+
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+
                         <div><label class="block text-xs font-bold text-gray-500 mb-1">目標報表</label>
+
                             <select id="rptTargetSheet" class="w-full p-2 border rounded focus:ring-1 focus:ring-moSide text-sm" onchange="document.getElementById('finExpensePanel').classList.toggle('hidden', this.value !== 'FIN')">
+
                                 <option value="訂單管理">OMS 訂單明細與歷程</option>
+
                                 <option value="FIN">💰 期間財務損益表 (估價/毛利)</option>
+
                                 <option value="生產工單">MES 生產工單</option>
+
                                 <option value="進貨紀錄LOG">ERP 進貨紀錄</option>
+
                                 <option value="領料紀錄LOG">ERP 領料紀錄</option>
+
                                 <option value="設備狀態LOG">EQS 設備運作紀錄</option>
+
                             </select>
+
                         </div>
+
                         <div><label class="block text-xs font-bold text-gray-500 mb-1">開始日期</label><input type="date" id="rptStartDate" class="w-full p-2 border rounded text-sm"></div>
+
                         <div><label class="block text-xs font-bold text-gray-500 mb-1">結束日期</label><input type="date" id="rptEndDate" class="w-full p-2 border rounded text-sm"></div>
+
                         <div class="flex gap-2">
+
                             <button onclick="runReport()" class="flex-1 bg-moSide text-white py-2 rounded text-sm hover:bg-gray-600 transition shadow-sm">查詢</button>
+
                             <button onclick="exportCSV()" class="flex-1 bg-green-600 text-white py-2 rounded text-sm hover:bg-green-700 transition shadow-sm">匯出 CSV</button>
+
                         </div>
+
                     </div>
+
                     <div id="finExpensePanel" class="hidden mt-4 pt-4 border-t border-gray-200">
+
                         <p class="text-xs font-bold text-moSide mb-2">請輸入區間常態費用 (供計算稅前/稅後淨利使用)</p>
+
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+
                             <div><label class="block text-xs text-gray-500 mb-1">人事薪資總額</label><input type="number" id="finHr" value="0" class="w-full p-2 border rounded text-sm"></div>
+
                             <div><label class="block text-xs text-gray-500 mb-1">租金與水電費</label><input type="number" id="finRent" value="0" class="w-full p-2 border rounded text-sm"></div>
+
                             <div><label class="block text-xs text-gray-500 mb-1">行銷與雜支</label><input type="number" id="finMisc" value="0" class="w-full p-2 border rounded text-sm"></div>
+
                             <div><label class="block text-xs text-gray-500 mb-1">營業稅率 (%)</label><input type="number" id="finTax" value="5" class="w-full p-2 border rounded text-sm"></div>
+
                         </div>
+
                     </div>
+
                 </div>
+
+
 
                 <div id="tableContainer" class="bg-moCard border border-moBorder rounded-lg shadow-sm p-0"></div>
+
             </div>
+
         </main>
+
     </div> <div id="formModal" class="fixed inset-0 bg-black bg-opacity-40 z-40 hidden flex items-center justify-center p-4">
+
         <div class="bg-moCard rounded-lg w-full max-w-lg border border-moBorder flex flex-col max-h-[90vh]">
+
             <div class="p-4 border-b flex justify-between bg-gray-50"><h3 class="font-bold" id="modalTitle">新增資料</h3><button onclick="closeModal('formModal')">&times;</button></div>
+
             <div class="p-6 overflow-y-auto"><div id="formGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div></div>
+
             <div class="p-4 border-t flex justify-end gap-3 bg-gray-50">
+
                 <button id="deleteBtn" onclick="deleteData(this)" class="hidden px-4 py-2 bg-red-100 text-red-600 hover:bg-red-200 rounded transition-colors mr-auto">刪除單據</button>
+
                 <button onclick="closeModal('formModal')" class="px-4 py-2 border hover:bg-gray-100 rounded transition-colors">取消</button>
+
                 <button id="submitBtn" onclick="submitForm(this)" class="px-4 py-2 bg-moSide hover:bg-gray-600 text-white rounded transition-colors">儲存送出</button>
+
             </div>
+
         </div>
+
     </div>
+
+
 
     <div id="handoverModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4">
+
         <div class="bg-moCard rounded-lg w-full max-w-sm border border-moBorder flex flex-col max-h-[90vh]">
+
             <div class="p-4 border-b flex justify-between bg-gray-50"><h3 class="font-bold">新增工作交接</h3><button onclick="closeModal('handoverModal')">&times;</button></div>
+
             <div class="p-6 space-y-4 overflow-y-auto">
+
                 <div class="grid grid-cols-2 gap-4">
+
                     <div><label class="block text-sm font-bold mb-1">優先級</label>
+
                         <select id="hoPriority" class="w-full p-2 border rounded focus:ring-1 focus:ring-moSide"><option value="高">高 (紅色)</option><option value="中" selected>中 (黃色)</option><option value="低">低 (綠色)</option></select></div>
+
                     <div><label class="block text-sm font-bold mb-1">指定接收人</label>
+
                         <input list="dl_hoAssignee" id="hoAssignee" value="全員" placeholder="搜尋或選擇接收人..." class="w-full p-2 border rounded focus:ring-1 focus:ring-moSide">
+
                         <datalist id="dl_hoAssignee"><option value="全員"></option></datalist>
+
                     </div>
+
                 </div>
+
                 <div><label class="block text-sm font-bold mb-1">交接內容</label><textarea id="hoContent" rows="3" class="w-full p-2 border rounded focus:ring-1 focus:ring-moSide"></textarea></div>
+
                 <div><label class="block text-sm font-bold mb-1">附加照片 (可選)</label>
+
                     <input type="file" id="hoImage" accept="image/*" onchange="handleImageUpload(this)" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-gray-100 hover:file:bg-gray-200">
+
                     <div class="mt-2 flex justify-center bg-gray-50 rounded border border-dashed border-gray-300"><img id="hoImagePreview" class="hidden max-h-32 object-contain p-1 rounded" src=""></div>
+
                 </div>
+
             </div>
+
             <div class="p-4 border-t flex justify-end gap-3 bg-gray-50">
+
                 <button onclick="closeModal('handoverModal')" class="px-4 py-2 border hover:bg-gray-100 rounded">取消</button>
+
                 <button onclick="submitHandover(this)" class="px-4 py-2 bg-moSide hover:bg-gray-600 text-white rounded">新增發布</button>
+
             </div>
+
         </div>
+
     </div>
+
+
 
     <div id="restockModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4"><div class="bg-moCard rounded-lg w-full max-w-sm flex flex-col"><div class="p-4 border-b flex justify-between bg-blue-50"><h3 class="font-bold text-blue-700">執行補貨進貨</h3><button onclick="closeModal('restockModal')">&times;</button></div><div class="p-6 space-y-3"><input type="hidden" id="rsMatId"><p class="text-sm">進貨物料：<span id="rsMatName" class="font-bold text-black"></span></p>
+
     <div class="grid grid-cols-2 gap-2">
+
         <div><label class="block text-xs font-bold mb-1 text-gray-500">補貨單號 (鎖定)</label><input type="text" id="rsOrderId" readonly class="w-full p-2 border bg-gray-100 text-xs text-gray-500 cursor-not-allowed"></div>
+
         <div><label class="block text-xs font-bold mb-1">供應商</label><input list="dl_supplier" id="rsSupplier" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-300 text-xs"><datalist id="dl_supplier"></datalist></div>
+
     </div>
+
     <div><label class="block text-sm font-bold mb-1 text-red-600">廠商出貨單號 (必填)</label><input type="text" id="rsVendorShipId" class="w-full p-2 border border-red-300 rounded focus:ring-1 focus:ring-blue-300" placeholder="請輸入廠商單號"></div>
+
     <div class="grid grid-cols-2 gap-2">
+
         <div><label class="block text-sm font-bold mb-1">進貨數量 <span id="rsMaxLabel" class="text-xs text-red-500 font-normal"></span></label><input type="number" id="rsQty" class="w-full p-2 border rounded focus:ring-1 focus:ring-blue-300 font-bold text-blue-700"></div>
+
         <div><label class="block text-sm font-bold mb-1 text-green-700">該批進貨總金額</label><input type="number" id="rsAmount" class="w-full p-2 border border-green-300 rounded focus:ring-1 focus:ring-green-400 font-bold text-green-700" placeholder="計算平均單價用"></div>
+
     </div>
+
        </div><div class="p-4 border-t flex justify-end gap-3 bg-gray-50"><button onclick="closeModal('restockModal')" class="px-4 py-2 border hover:bg-gray-100 rounded">取消</button><button onclick="submitRestock(this)" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-bold shadow-sm">確認進貨並結算均價</button>
+
        </div>
+
        </div>
+
     </div>
+
     <div id="replenishModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4"><div class="bg-moCard rounded-lg w-full max-w-sm flex flex-col"><div class="p-4 border-b flex justify-between bg-yellow-50"><h3 class="font-bold text-yellow-700">建立補貨申請單</h3><button onclick="closeModal('replenishModal')">&times;</button></div><div class="p-6 space-y-4"><input type="hidden" id="replMatId"><input type="hidden" id="replSupplier"><p class="text-sm">補貨物料：<span id="replMatName" class="font-bold"></span></p><div><label class="block text-sm font-bold mb-1">預計申請數量</label><input type="number" id="replQty" class="w-full p-2 border rounded focus:ring-1 focus:ring-yellow-400"></div><div><label class="block text-sm font-bold mb-1 text-yellow-700">申請原因 (必填)</label><input type="text" id="replReason" class="w-full p-2 border border-yellow-300 rounded focus:ring-1 focus:ring-yellow-400" placeholder="請輸入補貨原因"></div></div><div class="p-4 border-t flex justify-end gap-3 bg-gray-50"><button onclick="closeModal('replenishModal')" class="px-4 py-2 border hover:bg-gray-100 rounded">取消</button><button onclick="submitReplenish(this)" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded shadow-sm">產生單號並下載 PDF</button></div></div></div>
 
+
+
     <div id="pdfWrapper" class="fixed top-0 left-0 w-full h-full -z-50 pointer-events-none opacity-0 overflow-hidden">
+
         <div id="pdfContent" class="bg-white text-black p-8" style="width: 190mm; font-family: '微軟正黑體', sans-serif;"></div>
+
     </div>
+
+
 
     <div id="matModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4">
+
         <div class="bg-white rounded-xl w-full max-w-2xl border border-gray-300 flex flex-col shadow-2xl overflow-hidden max-h-[90vh]">
+
             <div class="p-4 border-b bg-gray-50 font-bold text-moSide flex justify-between items-center">
+
                 <span id="matModalTitle">📐 訂單配料成本與商務估價</span>
+
                 <span id="matOrderId" class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-xs"></span>
+
             </div>
+
             <input type="hidden" id="matActionType">
+
             <div class="p-6 overflow-y-auto space-y-4 flex-1">
+
                 <div id="estTopBusinessGroup" class="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
+
                     <div><label class="block text-xs font-bold text-gray-500 mb-1">目標出貨量</label><input type="number" id="estTargetQty" value="1" min="1" oninput="calcMatCost()" class="w-full p-2 border rounded-lg text-sm font-bold text-indigo-700"></div>
+
                     <div><label class="block text-xs font-bold text-gray-500 mb-1">預估良率 (%)</label><input type="number" id="estYieldRate" value="100" min="1" max="100" oninput="calcMatCost()" class="w-full p-2 border rounded-lg text-sm font-bold text-orange-600"></div>
+
                     <div><label class="block text-xs font-bold text-gray-500 mb-1">實際投產量</label><input type="number" id="estQty" readonly class="w-full p-2 border bg-gray-100 text-gray-500 rounded-lg text-sm font-bold cursor-not-allowed"></div>
+
                     <div><label class="block text-xs font-bold text-gray-500 mb-1">運費成本</label><input type="number" id="estFreightCost" value="0" min="0" oninput="calcMatCost()" class="w-full p-2 border rounded-lg text-sm font-bold text-red-600"></div>
+
                     <div><label class="block text-xs font-bold text-gray-500 mb-1">運費報價</label><input type="number" id="estFreightPrice" value="0" min="0" oninput="calcMatCost()" class="w-full p-2 border rounded-lg text-sm font-bold text-green-700"></div>
+
                 </div>
+
+
 
                 <div class="flex justify-between items-center border-b pb-2"><h3 class="font-bold text-sm text-moSide">📋 生產物料配料清單</h3><button id="addMatBtn" onclick="addMatRow()" class="bg-moSide text-white text-xs px-3 py-1 rounded shadow hover:bg-gray-600 transition">+ 新增物料</button></div>
+
                 <div id="matList" class="space-y-2 max-h-48 overflow-y-auto"></div>
+
                 
+
                 <div class="p-4 bg-gray-50 rounded-lg flex flex-wrap justify-between items-center border text-sm gap-4">
+
                     <div class="flex flex-col">
+
                         <span>產品總價：<span class="font-bold text-blue-600 text-lg" id="estTotalProductSum">$ 0</span></span>
+
                         <span class="text-xs text-gray-500 mt-1">平均單價：<span id="estUnitPrice" class="font-bold text-blue-500 text-base">$ 0</span></span>
+
                     </div>
+
                     <div>總材料成本：<span class="font-bold text-red-500" id="matTotalCost">0</span></div>
+
                     <div class="border-l pl-4 font-bold text-moSide">估算總利潤：<br><span id="estEstProfit" class="text-green-600 text-xl leading-relaxed">$ 0</span></div>
+
                 </div>
+
+
 
                 <div>
+
                     <label class="block text-sm font-bold text-moSide mb-1">📝 訂單細項 / 摘要備註 (供您確認或微調)</label>
+
                     <textarea id="estFinalDetailsText" class="w-full flex-1 p-3 border rounded-xl text-sm focus:ring-1 focus:ring-moSide" style="min-height:100px; resize:vertical;"></textarea>
+
                 </div>
+
                 <div class="mt-3">
+
     <div class="flex justify-between items-center mb-1">
+
         <label class="block text-sm font-bold text-moSide">🖼️ 上傳估價示意圖 (最多2張，印於單據尾部)</label>
+
         <button type="button" onclick="clearEstImages()" class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded hover:bg-red-200 font-bold transition-colors">❌ 清除檔案</button>
+
     </div>
+
     <input type="file" id="estImages" accept="image/*" multiple max="2" onchange="handleEstImages(this)" class="w-full text-xs text-gray-500 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:bg-gray-200 hover:file:bg-gray-300">
+
     <div id="estImagePreviewContainer" class="flex gap-2 mt-2"></div>
+
 </div>
+
             </div>
+
             <div class="p-4 border-t flex justify-end gap-2 bg-gray-50">
+
                 <button onclick="closeModal('matModal')" class="px-4 py-2 text-xs border hover:bg-gray-100 rounded-lg">取消</button>
+
                 <button id="matSubmitBtn" onclick="submitMaterialCheck(this)" class="px-4 py-2 text-xs bg-moSide hover:bg-gray-600 text-white rounded-lg font-bold shadow">確認送出</button>
+
             </div>
+
         </div>
+
     </div>
+
     
+
     <div id="woModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4"><div class="bg-moCard rounded-lg w-full max-w-sm flex flex-col"><div class="p-4 border-b flex justify-between bg-gray-50"><h3 class="font-bold">排程派工</h3><button onclick="closeModal('woModal')">&times;</button></div><div class="p-6 space-y-4"><input type="hidden" id="woOrderId"><input type="hidden" id="woProdName"><div><label class="block text-sm font-bold mb-1">作業機台</label><select id="woMachine" class="w-full p-2 border rounded"></select></div><div><label class="block text-sm font-bold mb-1">員工姓名</label><select id="woEmp" class="w-full p-2 border rounded"></select></div><div><label class="block text-sm font-bold mb-1">預計完成日期</label><input type="date" id="woDate" class="w-full p-2 border rounded"></div></div><div class="p-4 border-t flex justify-end gap-3 bg-gray-50"><button onclick="closeModal('woModal')" class="px-4 py-2 border hover:bg-gray-100 rounded">取消</button><button onclick="submitWorkOrder(this)" class="px-4 py-2 bg-moSide hover:bg-gray-600 text-white rounded">確認開工</button></div></div></div>
+
     
+
     <div id="stopModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4">
+
         <div class="bg-moCard rounded-lg w-full max-w-lg flex flex-col max-h-[90vh]">
+
             <div class="p-4 border-b flex justify-between bg-red-50"><h3 class="font-bold text-red-600">機台停工與退料登記</h3><button onclick="closeModal('stopModal')">&times;</button></div>
+
             <div class="p-6 overflow-y-auto space-y-4">
+
                 <input type="hidden" id="stopWoId"><input type="hidden" id="stopOrderId"><input type="hidden" id="stopMachine">
+
                 <div class="grid grid-cols-2 gap-4">
+
                     <div><label class="block text-sm font-bold mb-1 text-red-600">停工原因 (必填)</label><input type="text" id="stopReason" class="w-full p-2 border border-red-300 rounded focus:ring-1 focus:ring-red-400"></div>
+
                     <div><label class="block text-sm font-bold mb-1">目前已產出量</label><input type="number" id="stopOutQty" class="w-full p-2 border rounded" placeholder="未填視為 0"></div>
+
                 </div>
+
                 <div class="border-t border-gray-200 pt-4 mt-2">
+
                     <p class="text-sm font-bold mb-2 text-moSide">清點並退回剩餘原料 (若無則留空)</p>
+
                     <div id="stopMatList" class="space-y-2"></div>
+
                 </div>
+
             </div>
+
             <div class="p-4 border-t flex justify-end gap-3 bg-gray-50">
+
                 <button onclick="closeModal('stopModal')" class="px-4 py-2 border hover:bg-gray-100 rounded">取消</button>
+
                 <button onclick="submitStopWo(this)" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded">確認停工並退料</button>
+
             </div>
+
         </div>
+
     </div>
+
+
 
     <div id="completeModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4">
+
         <div class="bg-moCard rounded-lg w-full max-w-lg flex flex-col max-h-[90vh]">
+
             <div class="p-4 border-b flex justify-between bg-blue-50"><h3 class="font-bold text-blue-700">工單完工與退料結算</h3><button onclick="closeModal('completeModal')">&times;</button></div>
+
             <div class="p-6 overflow-y-auto space-y-4">
+
                 <input type="hidden" id="compWoId"><input type="hidden" id="compOrderId"><input type="hidden" id="compMachine">
+
                 <div><label class="block text-sm font-bold mb-1 text-blue-600">本次完工實際產出量 (必填)</label><input type="number" id="compOutQty" class="w-full p-3 border border-blue-300 rounded focus:ring-1 focus:ring-blue-500 font-bold" placeholder="請輸入產出數量"></div>
+
                 <div class="border-t border-gray-200 pt-4 mt-2">
+
                     <p class="text-sm font-bold mb-2 text-moSide">清點並退回剩餘原料 (若無則留空)</p>
+
                     <div id="compMatList" class="space-y-2"></div>
+
                 </div>
+
             </div>
+
             <div class="p-4 border-t flex justify-end gap-3 bg-gray-50">
+
                 <button onclick="closeModal('completeModal')" class="px-4 py-2 border hover:bg-gray-100 rounded">取消</button>
+
                 <button onclick="submitCompleteWo(this)" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded shadow-sm">完成工序</button>
+
             </div>
+
         </div>
+
     </div>
+
+
 
     <div id="repairModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4"><div class="bg-moCard rounded-lg w-full max-w-sm flex flex-col"><div class="p-4 border-b flex justify-between bg-red-50"><h3 class="font-bold text-red-600">機台報修</h3><button onclick="closeModal('repairModal')">&times;</button></div><div class="p-6 space-y-4"><p class="text-sm">機台：<span id="repairMachine" class="font-bold"></span></p><div><label class="block text-sm font-bold mb-1">報修原因 / 內容</label><textarea id="repairReason" rows="3" class="w-full p-2 border rounded focus:ring-1 focus:ring-red-300"></textarea></div></div><div class="p-4 border-t flex justify-end gap-3 bg-gray-50"><button onclick="closeModal('repairModal')" class="px-4 py-2 border hover:bg-gray-100 rounded">取消</button><button onclick="submitRepair(this)" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded">送出報修</button></div></div></div>
+
     <div id="maintModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4"><div class="bg-moCard rounded-lg w-full max-w-sm flex flex-col"><div class="p-4 border-b flex justify-between bg-yellow-50"><h3 class="font-bold text-yellow-700">排定機台保養</h3><button onclick="closeModal('maintModal')">&times;</button></div><div class="p-6 space-y-4"><p class="text-sm">機台：<span id="maintMachine" class="font-bold"></span></p><div><label class="block text-sm font-bold mb-1">預計保養日期</label><input type="date" id="maintDate" class="w-full p-2 border rounded focus:ring-1 focus:ring-yellow-400"></div><p class="text-xs text-gray-500">＊如需改期，直接選擇新日期按確認即可。若要取消，請按左下角。</p></div><div class="p-4 border-t flex justify-end gap-3 bg-gray-50"><button onclick="submitCancelMaint(this)" class="px-4 py-2 bg-red-100 text-red-600 hover:bg-red-200 rounded mr-auto transition-colors">取消保養</button><button onclick="closeModal('maintModal')" class="px-4 py-2 border hover:bg-gray-100 rounded">關閉</button><button onclick="submitMaintenance(this)" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded">確認排定</button></div></div></div>
+
     <div id="eqsHistoryModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4">
+
         <div class="bg-moCard rounded-lg w-full max-w-2xl flex flex-col max-h-[90vh]">
+
             <div class="p-4 border-b flex justify-between bg-gray-50"><h3 class="font-bold">設備歷史追溯紀錄</h3><button onclick="closeModal('eqsHistoryModal')">&times;</button></div>
+
             <div class="p-6 overflow-y-auto flex-1 flex flex-col space-y-4">
+
                 <p class="text-sm font-bold">設備編號：<span id="histMachine" class="text-moSide text-lg"></span></p>
+
                 
+
                 <div class="flex border-b border-gray-200">
+
                     <button id="tabHistRepair" onclick="switchEqsHistTab('repair')" class="px-4 py-2 font-bold text-sm border-b-2 border-moSide text-moSide focus:outline-none">維修/保養紀錄</button>
+
                     <button id="tabHistProd" onclick="switchEqsHistTab('prod')" class="px-4 py-2 font-bold text-sm border-b-2 border-transparent text-gray-400 hover:text-moSide focus:outline-none">生產稼動紀錄</button>
+
                 </div>
+
                 
+
                 <div id="secHistRepair" class="overflow-x-auto flex-1">
+
                     <table class="w-full text-left text-xs border-collapse"><thead class="bg-gray-100"><tr class="border-b"><th class="p-2 border">紀錄時間</th><th class="p-2 border">當前狀態</th><th class="p-2 border">操作人員</th><th class="p-2 border">故障/保養原因/完修備註</th></tr></thead><tbody id="histTbody"></tbody></table>
+
                 </div>
+
                 
+
                 <div id="secHistProd" class="overflow-x-auto flex-1 hidden">
+
                     <table class="w-full text-left text-xs border-collapse"><thead class="bg-gray-100"><tr class="border-b"><th class="p-2 border">完工/停工日期</th><th class="p-2 border">關聯訂單</th><th class="p-2 border">產品名稱</th><th class="p-2 border">工單狀態</th><th class="p-2 border">花費工期</th></tr></thead><tbody id="prodHistTbody"></tbody></table>
+
                 </div>
+
             </div>
+
             <div class="p-4 border-t flex justify-end bg-gray-50"><button onclick="closeModal('eqsHistoryModal')" class="px-4 py-2 border rounded hover:bg-gray-100">關閉</button></div>
+
         </div>
+
     </div>
 
+
+
     <script>
+
         let currentSysName = ''; 
+
         let systemCache = {};
+
         let currentSheet = ''; 
+
         let currentHeaders = []; 
+
         let currentTableData = []; 
+
         let currentDropdowns = {};
+
         let currentHandovers = []; 
+
         let currentRestocks = []; 
+
         let currentEqsLogs = []; 
+
         let currentReplenish = []; 
+
         let currentAllWos = [];
+
         let currentDeductLogs = [];
-        let currentAnomalies = []; // 【新增】異常紀錄暫存陣列
+
+        let currentAnomalies = []; 
+
         let editingRowIndex = -1; 
+
         let userViewAuth = ''; 
+
         let userEditAuth = '';
+
         let userShowFinance = true;
-        let userOpAuth = ''; // 新增：全域操作權限暫存
+
+        let userOpAuth = ''; 
+
         let hoImageBase64 = ""; 
+
         let currentCallId = 0; 
 
+
+
         // ================= 【核心重構】Supabase 雲端資料庫強固驅動引擎 =================
+
         const SUPABASE_URL = "https://tfgtvtceiozvnujiiiqj.supabase.co";
+
         const SUPABASE_KEY = "sb_publishable_MIbXBy5UrRMMDwcYIaaQbA_1YWEleuK";
-        // 【關鍵修復】將自訂的連線物件改名為 sbClient，避免與官方全域變數 supabase 撞名死當
+
         const sbClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+
+
         // 全自動雙向中英文對照字典表 (嚴格對齊 16 張工作表與欄位順序)
+
         const schemaMaps = {
+
             '權限管理': { table: 'users_auth', pk: 'emp_id', fields: { '員工編號': 'emp_id', '員工姓名': 'emp_name', '密碼': 'password', '職稱': 'job_title', '可視系統': 'view_auth', '可操作系統': 'op_auth', '可編輯系統': 'edit_auth', '顯示': 'is_visible', '最近一次登入時間': 'last_login_at', '顯示財務金額': 'show_finance' }},
+
             '內部公告': { table: 'announcements', pk: 'title', fields: { '發布日期': 'publish_date', '公告類別': 'category', '標題': 'title', '內容': 'content', '發佈人': 'publisher' }},
+
             '交接清單': { table: 'handovers', pk: 'created_at', fields: { '交接事項': 'content', '優先級': 'priority', '建立人': 'creator', '接收人': 'assignee', '建立時間': 'created_at' }},
+
             '交接清單LOG': { table: 'handovers_log', pk: 'created_at', fields: { '時間': 'created_at', '動作': 'action', '內容': 'content', '操作人': 'operator_name' }},
+
             '客戶資料': { table: 'customers', pk: 'customer_id', fields: { '客戶編號': 'customer_id', '客戶名稱': 'customer_name', '統一編號': 'tax_id', '聯絡人': 'contact_person', '聯絡電話': 'phone', '手機': 'mobile', '聯絡地址': 'address', '常用盒型': 'box_type', '偏好材質': 'material_preference', '特殊要求備註': 'remark', '合作狀態': 'status', '銀行代碼': 'bank_code', '匯款帳號': 'bank_account', '傳真': 'fax' }},
+
             '供應商資料': { table: 'suppliers', pk: 'supplier_id', fields: { '供應商編號': 'supplier_id', '大類': 'category', '供應商名稱': 'supplier_name', '電話': 'phone', '手機': 'mobile', '窗口': 'contact_person', '統一編號': 'tax_id', '傳真': 'fax', '地址': 'address', '備註': 'remark', '銀行代碼': 'bank_code', '匯款帳號': 'bank_account' }},
+
             '訂單管理': { table: 'orders', pk: 'order_id', fields: { '急件': 'is_urgent', '訂單日期': 'order_date', '訂單編號': 'order_id', '訂單狀態': 'status', '產品名稱': 'product_name', '完成尺寸': 'finished_size', '單價': 'unit_price', '訂購數量': 'production_qty', '總金額': 'total_amount', '客戶名稱': 'customer_name', '訂單細項': 'details', '工序規劃紀錄': 'process_plan', '示意圖': 'images', '運費報價': 'freight_price', '運費備註': 'freight_remark', '預估成本': 'estimated_cost', '運費成本': 'freight_cost', '數量': 'quantity', '產出量': 'output_qty', '預估良率': 'yield_rate', '配料明細': 'bom_details', '貨運單號': 'tracking_id', '出貨時間': 'shipped_at' }},
+
             '生產工單': { table: 'work_orders', pk: 'wo_id', fields: { '急件': 'is_urgent', '完成日期': 'completed_at', '當前工序': 'current_process', '工單狀態': 'status', '工單編號': 'wo_id', '關聯訂單': 'order_id', '產品名稱': 'product_name', '作業機台': 'machine_id', '員工姓名': 'emp_name', '產出量': 'output_qty', '停工原因': 'stop_reason', '工序明細': 'process_details', '當前進度索引': 'current_step_index' }},
+
             '材料異常': { table: 'material_anomalies', pk: 'created_at', fields: { '時間': 'created_at', '物料編號': 'material_id', '品名': 'material_name', '供應商': 'supplier_name', '異常數量': 'quantity', '廠商出貨單號': 'vendor_invoice_id', '補貨單號': 'replenish_id', '異常說明': 'reason', '上傳照片': 'image_url', '操作人': 'operator_name' }},
+
             '設備狀態': { table: 'equipment_status', pk: 'machine_id', fields: { '工序編號': 'machine_id', '工序名稱': 'process_name', '當前狀態': 'status', '工單編號': 'wo_id', '客戶名稱': 'customer_name', '產品名稱': 'product_name', '預計交期': 'estimated_delivery_date', '報修內容': 'repair_remark', '訂單日期': 'order_date', '預計保養日期': 'next_maintenance_date' }},
+
             '設備狀態LOG': { table: 'equipment_logs', pk: 'created_at', fields: { '時間': 'created_at', '工序編號': 'machine_id', '設備狀態': 'status', '操作人': 'operator_name', '備註': 'remark' }},
-            '物料庫存': { table: 'materials', pk: 'material_id', fields: { '物料編號': 'material_id', '類別': 'category', '品名': 'material_name', '規格': 'material_spec', '尺寸': 'size_dimension', '單位': 'unit', '目前庫存': 'stock_qty', '安全庫存': 'safe_stock_qty', '存放位置': 'location', '供應商': 'supplier_name', '供應商編號': 'supplier_id', '內價': 'cost_price', '售價': 'sell_price' }},    
+
+            '物料庫存': { table: 'materials', pk: 'material_id', fields: { '物料編號': 'material_id', '類別': 'category', '品名': 'material_name', '規格': 'material_spec', '尺寸': 'size_dimension', '單位': 'unit', '目前庫存': 'stock_qty', '安全庫存': 'safe_stock_qty', '存放位置': 'location', '供應商': 'supplier_name', '供應商編號': 'supplier_id', '內價': 'cost_price', '售價': 'sell_price' }},   
+
             '領料紀錄LOG': { table: 'deduct_logs', pk: 'created_at', fields: { '時間': 'created_at', '訂單編號': 'order_id', '物料編號': 'material_id', '領料數量': 'quantity', '操作人': 'operator_name' }},
+
             '補貨申請LOG': { table: 'replenish_logs', pk: 'replenish_id', fields: { '補貨單號': 'replenish_id', '申請時間': 'created_at', '物料編號': 'material_id', '申請數量': 'required_qty', '已進數量': 'received_qty', '狀態': 'status', '供應商': 'supplier_name', '申請人': 'applicant_name', '申請原因': 'reason' }},
+
             '生產工單LOG': { table: 'work_orders_log', pk: 'wo_id', fields: { '工單狀態': 'status', '工單編號': 'wo_id', '關聯訂單': 'order_id', '產品名稱': 'product_name', '作業機台': 'machine_id', '員工姓名': 'emp_name', '產出量': 'output_qty', '停工原因': 'stop_reason', '工序明細': 'process_details', '當前進度索引': 'current_step_index' }},
+
             '進貨紀錄LOG': { table: 'restock_logs', pk: 'created_at', fields: { '時間': 'created_at', '物料編號': 'material_id', '進貨數量': 'quantity', '進貨總金額': 'total_amount', '供應商': 'supplier_name', '操作人': 'operator_name', '對應補貨單號': 'replenish_id', '廠商出貨單號': 'vendor_invoice_id' }},
+
             '設備選單維護': { table: 'equipment_list', pk: 'machine_id', fields: { '設備編號': 'machine_id', '設備名稱': 'machine_name', '購入日期': 'purchase_date', '廠商': 'vendor', '廠商電話': 'vendor_phone', '備註': 'remark', '產線容量': 'capacity' }}
+
         };
+
+
 
         // 雙向翻譯輔助器 (資料庫英文轉網頁中文)
+
         function toChineseRow(sheetName, dbRow) {
+
             let config = schemaMaps[sheetName]; if(!config) return dbRow;
+
             let chRow = {};
+
             for(let chKey in config.fields) {
+
                 let enKey = config.fields[chKey];
+
                 let val = dbRow[enKey];
-                // 自動處理 JSONB 欄位轉回前台物件
-                // 替換 toChineseRow 中的這一小段
-if(val && (enKey === 'process_plan' || enKey === 'images' || enKey === 'bom_details' || enKey === 'process_details')) {
-    try {
-        // 如果是字串，才執行 JSON.parse；如果已經是物件，直接傳入
-        val = typeof val === 'string' ? JSON.parse(val) : val;
-    } catch(e) { 
-        console.error("JSON 解析失敗:", enKey, val); 
-        val = []; // 給空陣列防止程式崩潰
-    }
-}
+
+                if(val !== null && typeof val === 'object' && (enKey === 'process_plan' || enKey === 'images' || enKey === 'bom_details' || enKey === 'process_details')) {
+
+                    val = JSON.stringify(val);
+
+                }
+
                 chRow[chKey] = val !== null && val !== undefined ? String(val) : '';
+
             }
+
             return chRow;
+
         }
+
+
 
         // 雙向翻譯輔助器 (網頁中文轉資料庫英文)
+
         function toEnglishRow(sheetName, chRow) {
+
             let config = schemaMaps[sheetName]; if(!config) return chRow;
+
             let dbRow = {};
+
             for(let chKey in config.fields) {
+
                 let enKey = config.fields[chKey];
+
                 let val = chRow[chKey];
+
+                if (val && (enKey === 'process_plan' || enKey === 'images' || enKey === 'bom_details' || enKey === 'process_details')) {
+
+                    try { val = typeof val === 'string' ? JSON.parse(val) : val; } catch(e){}
+
+                }
+
                 dbRow[enKey] = (val === undefined || val === '') ? null : val;
+
             }
+
             return dbRow;
+
         }
+
+
 
         // ================= 【完全體適配器】Supabase 全功能業務驅動引擎 =================
+
         window.google = {
+
             script: {
+
                 run: {
+
                     successHandler: null, failureHandler: null,
+
                     withSuccessHandler: function(cb) { this.successHandler = cb; return this; },
+
                     withFailureHandler: function(cb) { this.failureHandler = cb; return this; },
+
                     
+
                     // 1. 讀取人員清單
+
                     getAccountList: async function() {
+
                         let { data, error } = await sbClient.from('users_auth').select('emp_id, emp_name, is_visible');
+
                         if (error && this.failureHandler) return this.failureHandler(error.message);
+
                         let users = (data || []).filter(u => u.is_visible !== '否').map(u => ({ id: u.emp_id, name: u.emp_name }));
+
                         if(this.successHandler) this.successHandler(users);
+
                     },
+
                     // 2. 登入驗證
+
                     verifyLogin: async function(userId, pwd) {
+
                         let { data } = await sbClient.from('users_auth').select('*').eq('emp_id', userId).eq('password', pwd);
+
                         if (!data || data.length === 0) {
+
                             if(this.successHandler) this.successHandler({ success: false, msg: "密碼錯誤或員工編號不符" });
+
                             return;
+
                         }
+
                         let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+
                         await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', userId);
+
                         if(this.successHandler) this.successHandler({
+
                             success: true, name: data[0].emp_name + ' | ' + (data[0].job_title || '人員'),
+
                             viewAuth: data[0].view_auth || '', opAuth: data[0].op_auth || '', editAuth: data[0].edit_auth || '', showFinance: data[0].show_finance || '是'
+
                         });
+
                     },
+
                     // 3. 修改密碼
+
                     updateUserPassword: async function(userName, oldPwd, newPwd) {
+
                         let { data } = await sbClient.from('users_auth').select('*').eq('emp_name', userName).eq('password', oldPwd);
+
                         if (!data || data.length === 0) { return this.successHandler({ success: false, msg: "原密碼輸入錯誤！" }); }
+
                         await sbClient.from('users_auth').update({ password: newPwd }).eq('emp_name', userName);
+
                         this.successHandler({ success: true, msg: "密碼已修改成功，請用新密碼登入！" });
+
                     },
+
                     // 【分流加載版】getSheetData：根據當前系統模組只撈該模組的資料
-getSheetData: async function(sheetName) {
-    try {
-        let config = schemaMaps[sheetName];
-        // 只讀取當前主表資料
-        let { data: rawData, error } = await sbClient.from(config.table).select('*');
-        if (error) throw error;
-        
-        let translatedData = (rawData || []).map(r => toChineseRow(sheetName, r));
-        
-        // 為了效能，預設這些為空陣列，只有當切換到該系統時才去抓取
-        let result = {
-            headers: Object.keys(config.fields), 
-            data: translatedData, 
-            dropdowns: {}, 
-            handovers: [], restockLogs: [], replenishLogs: [], allWos: [], deductLogs: [], anomalyLogs: []
-        };
 
-        // 如果是特定模組，才去補齊該模組必要的下拉清單 (這能節省 90% 的初始讀取時間)
-        if (['OMS', 'MES', 'ERP'].includes(currentSysName)) {
-            let { data: matData } = await sbClient.from('materials').select('*');
-            result.dropdowns["物料編號"] = (matData || []).map(m => ({
-                id: m.material_id, 
-                name: m.material_id + " - " + (m.material_name || '') + " " + (m.material_spec || ''), 
-                price: parseFloat(m.cost_price) || 0
-            }));
-            
-            // 只有 ERP/MES 才會需要這些巨大的 log 表，不要在 OMS 或 EIP 載入
-            if (currentSysName === 'ERP' || currentSysName === 'MES') {
-                let { data: rData } = await sbClient.from('restock_logs').select('*');
-                let { data: woData } = await sbClient.from('work_orders').select('*');
-                result.restockLogs = (rData || []).map(x => toChineseRow('進貨紀錄LOG', x));
-                result.allWos = (woData || []).map(x => toChineseRow('生產工單', x));
-            }
-        }
+                    getSheetData: async function(sheetName) {
 
-        if(this.successHandler) this.successHandler(result);
-    } catch(err) { if(this.failureHandler) this.failureHandler(err.toString()); }
-},
-                    // 5. 標準新增資料
-                    addSheetData: async function(sheetName, rowDataObj, operatorName) {
-                        let config = schemaMaps[sheetName]; let dbRow = toEnglishRow(sheetName, rowDataObj);
-                        let dateStr = new Date().toISOString().slice(2,10).replace(/-/g,'');
-                        if (sheetName === '訂單管理') { dbRow.order_id = 'C' + dateStr + String(Math.floor(Math.random()*900)+100); dbRow.status = '估算中'; }
-                        if (sheetName === '補貨申請LOG') { dbRow.replenish_id = 'B' + dateStr + String(Math.floor(Math.random()*900)+100); dbRow.status = '處理中'; }
-                        await sbClient.from(config.table).insert([dbRow]);
-                        this.getSheetData(sheetName);
-                    },
-                    // 6. 標準更新資料
-                    updateSheetData: async function(sheetName, rowIndex, rowDataObj, operatorName) {
-                        let config = schemaMaps[sheetName]; let dbRow = toEnglishRow(sheetName, rowDataObj);
-                        await sbClient.from(config.table).update(dbRow).eq(config.pk, dbRow[config.pk]);
-                        this.getSheetData(sheetName);
-                    },
-                    // 7. 標準刪除資料
-                    deleteSheetData: async function(sheetName, rowIndex, operatorName) {
-                        let config = schemaMaps[sheetName]; let dbRow = toEnglishRow(sheetName, currentTableData[rowIndex]);
-                        await sbClient.from(config.table).delete().eq(config.pk, dbRow[config.pk]);
-                        this.getSheetData(sheetName);
-                    },
-                    
-                    // ================= 印刷廠專屬高級核心業務邏輯對接 =================
-                    
-                    // OMS 估價與實體扣料分離引擎
-                    checkAndDeductMaterials: async function(orderId, materialsArr, executeDeduct, actionType, imagesBase64Arr, operatorName, estParams) {
                         try {
-                            if (!executeDeduct && actionType === 'estimate') {
-                                // 重新估價與規劃存檔
-                                let { data } = await sbClient.from('orders').select('status').eq('order_id', orderId);
-                                let nextStatus = (data && data[0]?.status === '估算中') ? '待規劃' : (data ? data[0]?.status : '待規劃');
-                                await sbClient.from('orders').update({
-                                    status: nextStatus, quantity: estParams.targetQty, yield_rate: estParams.yieldRate,
-                                    production_qty: estParams.qty, unit_price: estParams.unitPrice, total_amount: estParams.totalAmount,
-                                    freight_cost: estParams.freightCost, freight_price: estParams.freightPrice, details: estParams.details,
-                                    bom_details: materialsArr, images: imagesBase64Arr || []
-                                }).eq('order_id', orderId);
-                                return this.successHandler({ success: true, msg: "📐 估算損益數據與雲端圖片已完整保存至 Supabase！" });
-                            }
+
+                            let config = schemaMaps[sheetName];
+
+                            let { data: rawData, error } = await sbClient.from(config.table).select('*');
+
+                            if (error) throw error;
+
                             
-                            // 執行實體扣料
-                            if (executeDeduct) {
-                                let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
-                                for(let m of materialsArr) {
-                                    let { data: mat } = await sbClient.from('materials').select('stock_qty').eq('material_id', m.id);
-                                    if(mat && mat[0]) {
-                                        let newStock = (parseFloat(mat[0].stock_qty) || 0) - parseFloat(m.qty);
-                                        await sbClient.from('materials').update({ stock_qty: newStock }).eq('material_id', m.id);
-                                        await sbClient.from('deduct_logs').insert([{ created_at: ts, order_id: orderId, material_id: m.id, quantity: m.qty, operator_name: operatorName }]);
-                                    }
-                                }
-                                await sbClient.from('orders').update({ status: '待生產' }).eq('order_id', orderId);
-                                return this.successHandler({ success: true, msg: "庫存扣料成功！訂單已推進至 [待生產]。" });
+
+                            let translatedData = (rawData || []).map(r => toChineseRow(sheetName, r));
+
+                            
+
+                            let result = {
+
+                                headers: Object.keys(config.fields), 
+
+                                data: translatedData, 
+
+                                dropdowns: {}, 
+
+                                handovers: [], restockLogs: [], replenishLogs: [], allWos: [], deductLogs: [], anomalyLogs: [], eqsLogs: []
+
+                            };
+
+
+
+                            if (sheetName === '內部公告' || currentSysName === 'EIP') {
+
+                                let { data: ho } = await sbClient.from('handovers').select('*');
+
+                                result.handovers = (ho || []).map(x => ({ time: x.created_at, content: x.content, priority: x.priority, creator: x.creator, assignee: x.assignee, image: x.image_url }));
+
                             }
-                        } catch(e) { alert(e.message); }
+
+
+
+                            let { data: users } = await sbClient.from('users_auth').select('emp_id, emp_name');
+
+                            result.dropdowns['員工姓名'] = (users || []).map(u => ({id: u.emp_id, name: u.emp_name}));
+
+
+
+                            let { data: macs } = await sbClient.from('equipment_list').select('machine_id, machine_name');
+
+                            result.dropdowns['作業機台'] = (macs || []).map(m => ({id: m.machine_id, name: m.machine_name}));
+
+
+
+                            let { data: sups } = await sbClient.from('suppliers').select('supplier_name, supplier_id');
+
+                            result.dropdowns['供應商'] = (sups || []).map(s => s.supplier_name);
+
+                            let supMap = {};
+
+                            (sups || []).forEach(s => supMap[s.supplier_name] = s.supplier_id);
+
+                            result.dropdowns['供應商Mapping'] = supMap;
+
+
+
+                            let { data: custs } = await sbClient.from('customers').select('customer_name');
+
+                            result.dropdowns['客戶名稱'] = (custs || []).map(c => c.customer_name);
+
+                            result.dropdowns['公司名稱'] = result.dropdowns['客戶名稱'];
+
+
+
+                            if (['OMS', 'MES', 'ERP', 'CRM', 'SUP', 'EQS'].includes(currentSysName)) {
+
+                                let { data: matData } = await sbClient.from('materials').select('*');
+
+                                result.dropdowns["物料編號"] = (matData || []).map(m => ({
+
+                                    id: m.material_id, 
+
+                                    name: m.material_id + " - " + (m.material_name || '') + " " + (m.material_spec || ''), 
+
+                                    price: parseFloat(m.cost_price) || 0,
+
+                                    sellPrice: parseFloat(m.sell_price) || 0
+
+                                }));
+
+                                
+
+                                if (['ERP', 'MES', 'OMS', 'CRM', 'SUP'].includes(currentSysName)) {
+
+                                    let { data: rData } = await sbClient.from('restock_logs').select('*');
+
+                                    let { data: woData } = await sbClient.from('work_orders').select('*');
+
+                                    let { data: repData } = await sbClient.from('replenish_logs').select('*');
+
+                                    let { data: dedData } = await sbClient.from('deduct_logs').select('*');
+
+                                    let { data: anomData } = await sbClient.from('material_anomalies').select('*');
+
+
+
+                                    result.restockLogs = (rData || []).map(x => ({ time: x.created_at, matId: x.material_id, qty: x.quantity, amount: x.total_amount, supplier: x.supplier_name, vendorShipId: x.vendor_invoice_id, repId: x.replenish_id }));
+
+                                    result.allWos = (woData || []).map(x => toChineseRow('生產工單', x));
+
+                                    result.replenishLogs = (repData || []).map(x => ({ repId: x.replenish_id, matId: x.material_id, reqQty: x.required_qty, inQty: x.received_qty, status: x.status, time: x.created_at, supplier: x.supplier_name, reason: x.reason }));
+
+                                    result.deductLogs = (dedData || []).map(x => ({ orderId: x.order_id, matId: x.material_id, qty: x.quantity, time: x.created_at }));
+
+                                    result.anomalyLogs = (anomData || []).map(x => ({ time: x.created_at, matId: x.material_id, supplier: x.supplier_name, vendorShipId: x.vendor_invoice_id, repId: x.replenish_id, qty: x.quantity, reason: x.reason, op: x.operator_name }));
+
+                                }
+
+                                
+
+                                if (currentSysName === 'EQS') {
+
+                                    let { data: eqsData } = await sbClient.from('equipment_logs').select('*');
+
+                                    result.eqsLogs = (eqsData || []).map(x => ({ time: x.created_at, mac: x.machine_id, state: x.status, op: x.operator_name, reason: x.remark }));
+
+                                    let { data: woData } = await sbClient.from('work_orders').select('*');
+
+                                    result.allWos = (woData || []).map(x => toChineseRow('生產工單', x));
+
+                                }
+
+                            }
+
+
+
+                            if(this.successHandler) this.successHandler(result);
+
+                        } catch(err) { if(this.failureHandler) this.failureHandler(err.toString()); }
+
                     },
+
+                    // 5. 標準新增資料
+
+                    addSheetData: async function(sheetName, rowDataObj, operatorName) {
+
+                        let config = schemaMaps[sheetName]; let dbRow = toEnglishRow(sheetName, rowDataObj);
+
+                        let dateStr = new Date().toISOString().slice(2,10).replace(/-/g,'');
+
+                        if (sheetName === '訂單管理') { dbRow.order_id = 'C' + dateStr + String(Math.floor(Math.random()*900)+100); dbRow.status = '估算中'; }
+
+                        if (sheetName === '補貨申請LOG') { dbRow.replenish_id = 'B' + dateStr + String(Math.floor(Math.random()*900)+100); dbRow.status = '處理中'; }
+
+                        await sbClient.from(config.table).insert([dbRow]);
+
+                        this.getSheetData(sheetName);
+
+                    },
+
+                    // 6. 標準更新資料
+
+                    updateSheetData: async function(sheetName, rowIndex, rowDataObj, operatorName) {
+
+                        let config = schemaMaps[sheetName]; let dbRow = toEnglishRow(sheetName, rowDataObj);
+
+                        await sbClient.from(config.table).update(dbRow).eq(config.pk, dbRow[config.pk]);
+
+                        this.getSheetData(sheetName);
+
+                    },
+
+                    // 7. 標準刪除資料
+
+                    deleteSheetData: async function(sheetName, rowIndex, operatorName) {
+
+                        let config = schemaMaps[sheetName]; let dbRow = toEnglishRow(sheetName, currentTableData[rowIndex]);
+
+                        await sbClient.from(config.table).delete().eq(config.pk, dbRow[config.pk]);
+
+                        this.getSheetData(sheetName);
+
+                    },
+
                     
-                    // OMS 工序規劃紀錄保存
-                    saveProcessPlan: async function(orderId, planSteps) {
-                        await sbClient.from('orders').update({ process_plan: planSteps, status: '待扣料' }).eq('order_id', orderId);
-                        this.successHandler({ success: true, msg: "📋 工序规划已儲存！訂單狀態已推進至 [待扣料]。" });
+
+                    // ================= 印刷廠專屬高級核心業務邏輯對接 =================
+
+                    
+
+                    // OMS 估價與實體扣料分離引擎
+
+                    checkAndDeductMaterials: async function(orderId, materialsArr, executeDeduct, actionType, imagesBase64Arr, operatorName, estParams) {
+
+                        try {
+
+                            if (!executeDeduct && actionType === 'estimate') {
+
+                                let { data } = await sbClient.from('orders').select('status').eq('order_id', orderId);
+
+                                let nextStatus = (data && data[0]?.status === '估算中') ? '待規劃' : (data ? data[0]?.status : '待規劃');
+
+                                await sbClient.from('orders').update({
+
+                                    status: nextStatus, quantity: estParams.targetQty, yield_rate: estParams.yieldRate,
+
+                                    production_qty: estParams.qty, unit_price: estParams.unitPrice, total_amount: estParams.totalAmount,
+
+                                    freight_cost: estParams.freightCost, freight_price: estParams.freightPrice, details: estParams.details,
+
+                                    bom_details: materialsArr, images: imagesBase64Arr || []
+
+                                }).eq('order_id', orderId);
+
+                                return this.successHandler({ success: true, msg: "📐 估算損益數據與雲端圖片已完整保存至 Supabase！" });
+
+                            }
+
+                            
+
+                            // 執行實體扣料
+
+                            if (executeDeduct) {
+
+                                let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+
+                                for(let m of materialsArr) {
+
+                                    let { data: mat } = await sbClient.from('materials').select('stock_qty').eq('material_id', m.id);
+
+                                    if(mat && mat[0]) {
+
+                                        let newStock = (parseFloat(mat[0].stock_qty) || 0) - parseFloat(m.qty);
+
+                                        await sbClient.from('materials').update({ stock_qty: newStock }).eq('material_id', m.id);
+
+                                        await sbClient.from('deduct_logs').insert([{ created_at: ts, order_id: orderId, material_id: m.id, quantity: m.qty, operator_name: operatorName }]);
+
+                                    }
+
+                                }
+
+                                await sbClient.from('orders').update({ status: '待生產' }).eq('order_id', orderId);
+
+                                return this.successHandler({ success: true, msg: "庫存扣料成功！訂單已推進至 [待生產]。" });
+
+                            }
+
+                        } catch(e) { alert(e.message); }
+
                     },
+
+                    
+
+                    // OMS 工序規劃紀錄保存
+
+                    saveProcessPlan: async function(orderId, planSteps) {
+
+                        await sbClient.from('orders').update({ process_plan: planSteps, status: '待扣料' }).eq('order_id', orderId);
+
+                        this.successHandler({ success: true, msg: "📋 工序规划已儲存！訂單狀態已推進至 [待扣料]。" });
+
+                    },
+
+
 
                     // OMS 啟動生產與 MES 工單自動流轉
+
                     startProductionWO: async function(orderId, operatorName) {
+
                         let { data: ord } = await sbClient.from('orders').select('*').eq('order_id', orderId);
+
                         if(!ord || ord.length===0) return alert("找不到此訂單");
+
                         let steps = ord[0].process_plan || [];
+
                         if(steps.length===0) return alert("此單尚未進行工序規劃！");
+
                         
+
                         let dateStr = new Date().toISOString().slice(2,10).replace(/-/g,'');
+
                         let woId = 'P' + dateStr + String(Math.floor(Math.random()*900)+100);
+
                         
+
                         // 寫入生產工單主表
+
                         await sbClient.from('work_orders').insert([{
+
                             wo_id: woId, order_id: orderId, product_name: ord[0].product_name, status: '生產中', is_urgent: ord[0].is_urgent,
+
                             current_process: steps[0].name, machine_id: steps[0].mac, emp_name: steps[0].emp, completed_at: steps[0].endDate,
+
                             process_details: steps, current_step_index: 0, output_qty: 0
+
                         }]);
+
                         
+
                         await sbClient.from('orders').update({ status: '生產中' }).eq('order_id', orderId);
+
                         this.successHandler({ success: true, msg: "🚀 產線核准！單一工單已啟動，正式投入生產。" });
+
                     },
+
+
 
                     // MES 工序完工進度推移與最終刷新
+
                     completeWorkOrder: async function(woId, orderId, outQty, returnMats, operatorName) {
+
                         let { data: wo } = await sbClient.from('work_orders').select('*').eq('wo_id', woId);
+
                         let steps = wo[0].process_details || [];
+
                         let currIdx = parseInt(wo[0].current_step_index) || 0;
+
                         let nextIdx = currIdx + 1;
+
                         steps[currIdx].outQty = outQty;
 
+
+
                         // 處理退料回庫
+
                         let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+
                         for(let rm of (returnMats || [])) {
+
                             let { data: m } = await sbClient.from('materials').select('stock_qty').eq('material_id', rm.id);
+
                             if(m && m[0]) {
+
                                 await sbClient.from('materials').update({ stock_qty: (parseFloat(m[0].stock_qty)||0) + parseFloat(rm.qty) }).eq('material_id', rm.id);
+
                                 await sbClient.from('restock_logs').insert([{ created_at: ts, material_id: rm.id, quantity: rm.qty, supplier_name: '廠內退料', operator_name: operatorName, replenish_id: orderId, vendor_invoice_id: '完工退料' }]);
+
                             }
+
                         }
+
+
 
                         if (nextIdx < steps.length) {
+
                             // 推進到下一道工序
+
                             await sbClient.from('work_orders').update({
+
                                 current_step_index: nextIdx, current_process: steps[nextIdx].name, machine_id: steps[nextIdx].mac,
+
                                 emp_name: steps[nextIdx].emp, completed_at: steps[nextIdx].endDate, process_details: steps
+
                             }).eq('wo_id', woId);
+
                             this.successHandler({ success: true, msg: "🏁 前段工序已完成！工單推進至下一工序 [" + steps[nextIdx].name + "]。" });
+
                         } else {
+
                             // 全工序完工，自動觸發結案搬移
+
                             await sbClient.from('work_orders').update({ status: '已完工', process_details: steps, output_qty: outQty }).eq('wo_id', woId);
+
                             await sbClient.from('orders').update({ status: '製作完成', output_qty: outQty }).eq('order_id', orderId);
+
                             this.successHandler({ success: true, msg: "🎉 此訂單所有排程工序皆已完成！工單正式結案轉交出貨。" });
+
                         }
+
                     },
 
-                    // OMS 結案與 MES 自動歷史封存抽離 (全面取代 Sheets 刪列)
+
+
+                    // OMS 結案與 MES 自動歷史封存抽離
+
                     closeOrderWO: async function(orderId, operatorName) {
+
                         await sbClient.from('orders').update({ status: '已結案' }).eq('order_id', orderId);
+
                         let { data: wos } = await sbClient.from('work_orders').select('*').eq('order_id', orderId);
+
                         if(wos && wos.length > 0) {
+
                             for(let wo of wos) {
+
                                 wo.status = '已結案';
-                                // 複製寫入 LOG 表
+
                                 await sbClient.from('work_orders_log').insert([wo]);
-                                // 從現役工單表中抽離刪除，保持主面板輕量極速
+
                                 await sbClient.from('work_orders').delete().eq('wo_id', wo.wo_id);
+
                             }
+
                         }
+
                         this.successHandler({ success: true, msg: "🔒 訂單已結案！相關工單已自動抽離並搬移至封存日誌。" });
+
                     },
+
+
 
                     // ERP 補貨申請單建立
+
                     addReplenish: async function(matId, qty, supplier, opName, reason) {
+
                         let dateStr = new Date().toISOString().slice(2,10).replace(/-/g,'');
+
                         let repId = 'B' + dateStr + String(Math.floor(Math.random()*900)+100);
+
                         let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+
                         await sbClient.from('replenish_logs').insert([{ replenish_id: repId, created_at: ts, material_id: matId, required_qty: qty, received_qty: 0, status: '處理中', supplier_name: supplier, applicant_name: opName, reason: reason }]);
+
                         this.successHandler({ success: true, msg: "補貨申請已送出！您可於待處理清單中執行印單與進貨。" });
+
                     },
+
+
 
                     // ERP 進貨數量結算與平均單價動態回填
+
                     addRestock: async function(matId, qty, amount, supplier, repId, vendorShipId, operatorName) {
+
                         let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+
                         if (repId) {
+
                             if (qty === 0) {
+
                                 await sbClient.from('replenish_logs').update({ status: '已結案' }).eq('replenish_id', repId);
+
                             } else {
+
                                 let { data: rep } = await sbClient.from('replenish_logs').select('received_qty, required_qty').eq('replenish_id', repId);
+
                                 if (rep && rep[0]) {
+
                                     let newRec = (parseFloat(rep[0].received_qty)||0) + qty;
+
                                     let status = newRec >= parseFloat(rep[0].required_qty) ? '已結案' : '處理中';
+
                                     await sbClient.from('replenish_logs').update({ received_qty: newRec, status: status }).eq('replenish_id', repId);
+
                                 }
+
                             }
+
                         }
+
                         
+
                         await sbClient.from('restock_logs').insert([{ created_at: ts, material_id: matId, quantity: qty, total_amount: amount, supplier_name: supplier, operator_name: operatorName, replenish_id: repId, vendor_invoice_id: qty===0 ? "[作廢] "+vendorShipId : vendorShipId }]);
+
                         
+
                         if (qty > 0) {
+
                             let { data: mat } = await sbClient.from('materials').select('stock_qty, cost_price').eq('material_id', matId);
+
                             if (mat && mat[0]) {
+
                                 let currStock = parseFloat(mat[0].stock_qty) || 0;
+
                                 let currAvg = parseFloat(mat[0].cost_price) || 0;
+
                                 let newStock = currStock + qty;
+
                                 let newAvgPrice = newStock > 0 ? Math.round(((currStock * currAvg) + amount) / newStock) : currAvg;
+
                                 await sbClient.from('materials').update({ stock_qty: newStock, cost_price: newAvgPrice }).eq('material_id', matId);
+
                             }
+
                         }
+
                         this.successHandler({ success: true, msg: "進貨與移動平均單價結算完成！" });
+
                     },
+
+
 
                     // RPT 報表中心歷史數據調用接口
+
                     getReportData: async function(targetSheet) {
+
                         let config = schemaMaps[targetSheet];
+
+                        if (!config) return this.successHandler({ success: false, msg: "報表目標不存在" });
+
                         let { data } = await sbClient.from(config.table).select('*');
+
                         let translated = (data || []).map(r => toChineseRow(targetSheet, r));
+
                         this.successHandler({ success: true, headers: Object.keys(config.fields), data: translated });
+
                     },
+
+
 
                     // EIP 專屬交接發布與刪除
+
                     addHandover: async function(content, priority, assignee, imageBase64, creator) {
+
                         let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+
                         await sbClient.from('handovers').insert([{ content: content, priority: priority, creator: creator, created_at: ts, image_url: imageBase64 || "", assignee: assignee }]);
+
                         this.successHandler({ success: true });
-                    },
-                    deleteHandover: async function(timeId, operatorName) {
-                        await sbClient.from('handovers').delete().eq('created_at', timeId);
-                        this.successHandler({ success: true });
+
                     },
 
-                    // 智慧防呆擴充對接口 (維持前台按鈕不崩潰)
-                    logEquipmentRepair: async function(m, isRep, r, op) {
-                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
-                        let st = isRep ? "報修中" : "待機中";
-                        await sbClient.from('equipment_status').update({ status: st, repair_remark: isRep ? r : "" }).eq('machine_id', m);
-                        await sbClient.from('equipment_logs').insert([{ created_at: ts, machine_id: m, status: st, operator_name: op, remark: r }]);
+                    deleteHandover: async function(timeId, operatorName) {
+
+                        await sbClient.from('handovers').delete().eq('created_at', timeId);
+
                         this.successHandler({ success: true });
+
                     },
-                    scheduleMaintenance: async function(m, d, op) {
-                        await sbClient.from('equipment_status').update({ next_maintenance_date: d }).eq('machine_id', m);
-                        this.successHandler({ success: true, msg: "已成功排定機台保養。" });
-                    },
-                    cancelMaintenance: async function(m, op) {
-                        await sbClient.from('equipment_status').update({ next_maintenance_date: "" }).eq('machine_id', m);
-                        this.successHandler({ success: true, msg: "已成功取消保養排程。" });
-                    },
-                    addMaterialAnomaly: async function(obj, op) {
+
+
+
+                    // 設備維修報修與保養
+
+                    logEquipmentRepair: async function(m, isRep, r, op) {
+
                         let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+
+                        let st = isRep ? "報修中" : "待機中";
+
+                        await sbClient.from('equipment_status').update({ status: st, repair_remark: isRep ? r : "" }).eq('machine_id', m);
+
+                        await sbClient.from('equipment_logs').insert([{ created_at: ts, machine_id: m, status: st, operator_name: op, remark: r }]);
+
+                        this.successHandler({ success: true });
+
+                    },
+
+                    scheduleMaintenance: async function(m, d, op) {
+
+                        await sbClient.from('equipment_status').update({ next_maintenance_date: d }).eq('machine_id', m);
+
+                        this.successHandler({ success: true, msg: "已成功排定機台保養。" });
+
+                    },
+
+                    cancelMaintenance: async function(m, op) {
+
+                        await sbClient.from('equipment_status').update({ next_maintenance_date: "" }).eq('machine_id', m);
+
+                        this.successHandler({ success: true, msg: "已成功取消保養排程。" });
+
+                    },
+
+
+
+                    // 異常通報與退料
+
+                    addMaterialAnomaly: async function(obj, op) {
+
+                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+
                         await sbClient.from('material_anomalies').insert([{ created_at: ts, material_id: obj.matId, material_name: obj.matName, supplier_name: obj.supplier, quantity: obj.qty, vendor_invoice_id: obj.vendorShipId, replenish_id: obj.repId, reason: obj.reason, operator_name: op }]);
+
                         this.successHandler({ success: true, msg: "⚠️ 材料異常通報紀錄已成功寫入雲端！" });
+
                     },
+
                     revertDeductionOrder: async function(orderId, op) {
+
                         let { data: ord } = await sbClient.from('orders').select('bom_details').eq('order_id', orderId);
+
                         let bom = ord[0]?.bom_details || [];
+
+                        try { bom = typeof bom === 'string' ? JSON.parse(bom) : bom; } catch(e){}
+
                         for(let b of bom) {
+
                             let { data: m } = await sbClient.from('materials').select('stock_qty').eq('material_id', b.id);
+
                             if(m && m[0]) await sbClient.from('materials').update({ stock_qty: (parseFloat(m[0].stock_qty)||0) + parseFloat(b.qty) }).eq('material_id', b.id);
+
                         }
+
                         await sbClient.from('orders').update({ status: '待扣料' }).eq('order_id', orderId);
+
                         this.successHandler({ success: true, msg: "🔄 退料成功！庫存已全數退回，狀態返回 [待扣料]。" });
+
                     },
+
                     deleteOmsOrderAndRefund: async function(orderId, op) {
+
                         await sbClient.from('orders').delete().eq('order_id', orderId);
+
                         this.successHandler({ success: true, msg: "🗑️ 訂單已成功刪除，相關預配庫存已自動回補！" });
+
+                    },
+
+
+
+                    // 出貨單號視窗與送出機制
+
+                    shipOrderAndWo: async function(woId, oId, trackId, op) {
+
+                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+
+                        await sbClient.from('orders').update({ tracking_id: trackId, shipped_at: ts, status: '已出貨待OMS結案' }).eq('order_id', oId);
+
+                        if (woId) {
+
+                            await sbClient.from('work_orders').update({ status: '已出貨' }).eq('wo_id', woId);
+
+                        }
+
+                        this.successHandler({ success: true, msg: "🚚 出貨銷帳完成！已更新物流單號。" });
+
+                    },
+
+
+
+                    // 10分鐘早會專用報告
+
+                    getMorningReportData: async function(currentHandovers) {
+
+                        let { data: ords } = await sbClient.from('orders').select('order_id, customer_name, product_name, status').in('status', ['生產中', '待規劃', '待排程', '待扣料', '待生產', '製作完成']);
+
+                        let { data: mats } = await sbClient.from('materials').select('material_id, material_name, stock_qty, safe_stock_qty');
+
+                        let { data: macs } = await sbClient.from('equipment_status').select('machine_id, repair_remark').in('status', ['報修中', '掛修']);
+
+
+
+                        let lowStock = [];
+
+                        (mats || []).forEach(m => {
+
+                            if((parseFloat(m.stock_qty)||0) < (parseFloat(m.safe_stock_qty)||0)) lowStock.push(m.material_id + " " + m.material_name);
+
+                        });
+
+
+
+                        let orders = (ords || []).map(o => ({ id: o.order_id, cust: o.customer_name, name: o.product_name, status: o.status }));
+
+                        let brokenMacs = (macs || []).map(m => m.machine_id + " - " + m.repair_remark);
+
+
+
+                        this.successHandler({ orders, lowStock, brokenMacs });
+
                     }
+
                 }
+
             }
+
         };
+
+
 
         // ================= 【修正 3】全域多向不限順序百分號模糊搜尋 =================
+
         function filterTable() {
+
             const q = document.getElementById('searchInput').value.toLowerCase();
+
             // 以 % 符號切割，過濾空白
+
             const keywords = q.split('%').map(k => k.trim()).filter(k => k !== '');
+
             const rows = document.querySelectorAll("#tableContainer tbody tr.erp-row");
+
             
+
             rows.forEach((row, idx) => {
+
                 let text = row.innerText.toLowerCase();
+
                 // 必須滿足所有被切割出來的關鍵字
+
                 let match = keywords.every(k => text.includes(k));
+
                 
+
                 row.style.display = match ? "" : "none";
+
                 
+
                 // 如果該列不符合搜尋條件，連同按鈕槽、查看細項、箭頭全部一體化強制收回隱藏
+
                 if(!match) {
+
                     let btnRow = document.getElementById('btn_row_' + idx); if(btnRow) btnRow.classList.add('hidden');
+
                     let detailRow = document.getElementById('detail_' + idx); if(detailRow) detailRow.classList.add('hidden');
+
                     let mainTr = row.closest('tr');
+
                     if(mainTr) {
+
                         let arrowCell = mainTr.querySelector('td');
+
                         if(arrowCell) arrowCell.innerText = '▶';
+
                     }
+
                 }
+
             });
+
         }
+
+
 
         // ================= 【修正】支援 % 號多重模糊搜尋 (修復料號重複出現) =================
+
         function filterMatOptions(inputEl, listId) {
+
             let q = inputEl.value.toLowerCase();
+
             let keywords = q.split('%').map(k => k.trim()).filter(k=>k);
+
             let dl = document.getElementById(listId);
+
             let html = ''; let count = 0;
+
             (currentDropdowns['物料編號'] || []).forEach(m => {
+
                 let text = m.name.toLowerCase(); 
+
                 let match = keywords.length === 0 ? true : keywords.every(k => text.includes(k));
+
                 if(match && count < 50) { 
+
                     // 後端傳來的 name 已經包含 ID，所以直接填入 name 即可，避免雙重複
+
                     html += `<option value="${m.name}" data-price="${m.price}" data-sell="${m.sellPrice}"></option>`; 
+
                     count++; 
+
                 }
+
             });
+
             dl.innerHTML = html;
+
         }
+
+
 
         // --- 網頁載入時自動抓取人員名單 ---
+
         window.onload = () => {
+
             google.script.run.withSuccessHandler(users => {
+
                 let opts = '';
+
                 users.forEach(u => opts += `<option value="${u.id}">${u.name}</option>`);
+
                 document.getElementById('dl_sysUser').innerHTML = opts;
+
                 document.getElementById('sysUser').placeholder = '請輸入或點擊選擇員工編號...';
+
             }).withFailureHandler(err => {
+
                 document.getElementById('sysUser').placeholder = '名單讀取失敗，請重新整理';
+
             }).getAccountList();
+
         };
 
+
+
         function loginSys() {
+
             const user = document.getElementById('sysUser').value;
+
             const pwd = document.getElementById('sysPwd').value;
+
             if (!user) { alert('請選擇登入人員'); return; }
+
             if (!pwd) return;
+
             const btn = document.querySelector('#loginScreen button');
+
             btn.innerHTML = '<span class="btn-spinner"></span>驗證中'; btn.disabled = true;
+
             google.script.run.withSuccessHandler(res => {
+
                 if (res.success) applyAuth(res.name, res.viewAuth, res.opAuth, res.editAuth);
+
                 else { document.getElementById('loginError').classList.remove('hidden'); btn.innerHTML = '系統登入'; btn.disabled = false; }
+
             }).withFailureHandler(err => { alert('系統異常：'+err); btn.innerHTML = '系統登入'; btn.disabled = false; }).verifyLogin(user, pwd);
+
         }
+
+
 
         function applyAuth(userName, viewAuth, opAuth, editAuth, showFinance) {
+
             document.getElementById('loginScreen').classList.add('hidden');
+
             document.getElementById('app').classList.remove('hidden');
+
             document.getElementById('userNameDisplay').innerText = userName;
+
             
+
             userEditAuth = editAuth || ''; 
+
             userOpAuth = (opAuth || '') + ',' + userEditAuth;   
+
             userViewAuth = (viewAuth || '') + ',' + userOpAuth; 
+
             userShowFinance = (showFinance !== '否'); // 只要不是否，就能看見金額
+
             
+
             const allSys = ['EIP', 'OMS', 'MES', 'ERP', 'CRM', 'SUP', 'EQS', 'EQM', 'RPT', 'SYS'];
+
             const sysMap = { 'EIP':'內部公告', 'CRM':'客戶資料', 'SUP':'供應商資料', 'ERP':'物料庫存', 'OMS':'訂單管理', 'MES':'生產工單', 'EQS':'設備狀態', 'EQM':'設備選單維護', 'RPT':'報表中心', 'SYS':'權限管理' };
+
             
+
             let firstSys = null; let navHtml = '';
+
             allSys.forEach(sys => {
+
                 if (userViewAuth.includes(sys)) {
+
                     navHtml += `<a href="#" id="menu_${sys}" onclick="loadSystem('${sys}', '${sysMap[sys]||''}')" class="px-6 py-3 nav-btn flex items-center gap-3"><span class="tracking-widest">${sys} ${sysMap[sys]||''}</span></a>`;
+
                     if(!firstSys && sys !== 'RPT') firstSys = sys;
+
                 }
+
             });
+
             document.getElementById('navMenu').innerHTML = navHtml;
+
             if(firstSys) loadSystem(firstSys, sysMap[firstSys]);
+
         }
+
+
 
         let prefetchQueue = []; let isPrefetching = false;
+
         function processPrefetch() {
+
             if(prefetchQueue.length === 0) { isPrefetching = false; return; }
+
             isPrefetching = true; let targetSheet = prefetchQueue.shift();
+
             if(!systemCache[targetSheet]) {
+
                 google.script.run.withSuccessHandler(res => {
+
                     systemCache[targetSheet] = res;
+
                     if(currentSheet === targetSheet) { 
+
                         document.getElementById('loadingIndicator').classList.add('hidden');
+
                         document.getElementById('loadingIndicator').classList.remove('flex');
+
                         currentHeaders = res.headers || []; currentDropdowns = res.dropdowns || {};
+
                         currentHandovers = res.handovers || []; currentRestocks = res.restockLogs || []; currentReplenish = res.replenishLogs || [];
+
                         currentEqsLogs = res.eqsLogs || []; currentAllWos = res.allWos || []; currentDeductLogs = res.deductLogs || []; currentAnomalies = res.anomalyLogs || [];
+
                         
+
                         // 【關鍵修復】補上正確的「操作」與「編輯」權限參數，編輯按鈕就不會消失了
+
                         renderTable(res.data || [], userOpAuth.includes(currentSysName), userEditAuth.includes(currentSysName));
+
                     }
+
                     processPrefetch();
+
                 }).withFailureHandler(err => { processPrefetch(); }).getSheetData(targetSheet);
+
             } else processPrefetch();
+
         }
+
+
 
         function toggleMenu() { 
+
           document.querySelector('.sidebar-bg').classList.toggle('hidden'); 
+
         }
+
+
 
         function refreshSystem() { 
+
           systemCache = {}; 
+
           if(currentSysName==='RPT') runReport(); 
+
           else if(currentSheet) loadSystem(currentSysName, currentSheet, true); 
+
         }
+
+
 
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); document.querySelectorAll(`#${id} input, #${id} select, #${id} textarea`).forEach(el => el.disabled = false); }
+
         
 
+
+
         function loadSystem(sysName, sheetName, forceRefresh = false) {
+
             systemCache = {};
+
             if(sysName === 'RPT') return loadReportSystem();
+
             document.getElementById('rptControlPanel').classList.add('hidden');
+
             currentCallId++; const thisCallId = currentCallId;
+
             currentSysName = sysName; currentSheet = sheetName;
+
             document.getElementById('sysTitle').innerText = `${sysName} - ${sheetName}`;
+
             document.getElementById('searchInput').value = ''; 
+
             
+
             document.getElementById('refreshBtn').classList.remove('hidden');
+
             if (sysName === 'EQS') document.getElementById('addBtn').classList.add('hidden');
+
             else document.getElementById('addBtn').classList.toggle('hidden', !userEditAuth.includes(sysName));
+
             if (window.innerWidth < 768) document.querySelector('.sidebar-bg').classList.add('hidden');
+
             
+
             // 智慧快取攔截點
+
             if (!forceRefresh && systemCache[sheetName]) {
+
                 const res = systemCache[sheetName];
+
                 document.getElementById('loadingIndicator').classList.add('hidden'); document.getElementById('loadingIndicator').classList.remove('flex');
+
                 currentHeaders = res.headers || []; currentDropdowns = res.dropdowns || {};
+
                 currentHandovers = res.handovers || []; currentRestocks = res.restockLogs || []; currentReplenish = res.replenishLogs || [];
+
                 currentEqsLogs = res.eqsLogs || []; currentAllWos = res.allWos || []; currentDeductLogs = res.deductLogs || []; currentAnomalies = res.anomalyLogs || [];
+
                 
+
                 // 【核心修正】精確傳入操作與編輯兩大獨立布林值判定
+
                 renderTable(res.data || [], userOpAuth.includes(currentSysName), userEditAuth.includes(currentSysName));
+
                 return;
+
             }
+
+
 
             document.getElementById('tableContainer').innerHTML = '';
+
             document.getElementById('loadingIndicator').classList.remove('hidden');
+
             document.getElementById('loadingIndicator').classList.add('flex');
 
+
+
             if(forceRefresh || !prefetchQueue.includes(sheetName)) {
+
                 google.script.run.withSuccessHandler(res => {
+
                     if (thisCallId !== currentCallId) return; 
+
                     systemCache[sheetName] = res; 
+
                     document.getElementById('loadingIndicator').classList.add('hidden'); document.getElementById('loadingIndicator').classList.remove('flex');
+
                     currentHeaders = res.headers || []; currentDropdowns = res.dropdowns || {};
+
                     currentHandovers = res.handovers || []; currentRestocks = res.restockLogs || []; currentReplenish = res.replenishLogs || [];
+
                     currentEqsLogs = res.eqsLogs || []; currentAllWos = res.allWos || []; currentDeductLogs = res.deductLogs || []; currentAnomalies = res.anomalyLogs || [];
+
                     
+
                     // 【核心修正】異步網絡讀取成功後，同樣精確傳入操作與編輯布林值
+
                     renderTable(res.data || [], userOpAuth.includes(currentSysName), userEditAuth.includes(currentSysName));
+
                 }).withFailureHandler(err => {
+
                     alert('讀取失敗：'+err); document.getElementById('loadingIndicator').classList.add('hidden'); document.getElementById('loadingIndicator').classList.remove('flex');
+
                 }).getSheetData(sheetName);
+
             }
+
         }
+
+
 
         // 全域排序狀態暫存
+
         let currentSortCol = ''; let currentSortDir = 'asc';
 
+
+
         // ================= 查看/收合按鈕強固切換引擎 (完美修復點不開) =================
+
         function toggleDetails(rowId) { 
+
             const row = document.getElementById(rowId); 
+
             const btn = document.querySelector(`button[onclick="toggleDetails('${rowId}')"]`);
+
             if(!row) return;
+
             
+
             row.classList.toggle('hidden');
+
             if(!btn) return;
+
             
+
             if(!row.classList.contains('hidden')) { 
+
                 btn.innerText = '收合 ▲'; 
+
                 btn.className = "w-20 bg-gray-300 border border-gray-300 text-gray-800 py-1 rounded font-bold shadow-inner transition-colors";
+
             } else { 
+
                 btn.innerText = '查看 ▼'; 
+
                 btn.className = "w-20 bg-gray-200 border border-gray-300 text-gray-700 py-1 rounded font-bold hover:bg-gray-300 transition-colors";
+
             }
+
         }
 
+
+
         // ================= 智慧隱藏展開、欄位下收收合面板、與狀態控制渲染器 =================
+
         function renderTable(data, hasOpAuth, hasEditAuth) {
+
             const container = document.getElementById('tableContainer');
+
             currentTableData = data || [];
+
             
+
             // ================= 【EIP 系統專屬排版 ─ 全面升級版】 =================
+
             if (currentSysName === 'EIP') {
+
                 let eipHtml = `<div class="p-6 bg-white border border-moBorder rounded-lg shadow-sm">
+
                     <div class="flex justify-between items-center mb-6">
+
                         <h2 class="text-xl font-bold text-moSide border-l-4 border-moSide pl-2">工作交接與早會看版</h2>
+
                         <div class="flex gap-2">`;
+
                 if(hasOpAuth) {
+
                     eipHtml += `<button onclick="generateMorningReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm shadow font-bold">📋 產生早會報告</button>`;
+
                 }
+
                 if(hasEditAuth) {
+
                     eipHtml += `<button onclick="openModal()" class="bg-gray-200 hover:bg-gray-300 text-moSide px-4 py-2 rounded text-sm shadow font-bold">＋ 內部公告</button>
+
                                 <button onclick="openHandoverModal()" class="bg-moSide hover:bg-gray-600 text-white px-4 py-2 rounded text-sm shadow font-bold">＋ 新增交接</button>`;
+
                 }
+
                 eipHtml += `</div></div>`;
 
+
+
                 // 1. 內部公告 ─ 完美置頂
+
                 if (currentTableData.length > 0) {
+
                      eipHtml += `<div class="mb-6 border border-blue-200 rounded-lg overflow-hidden shadow-sm">
+
                                     <div class="bg-blue-50 text-blue-800 font-bold p-3 border-b border-blue-200">📢 內部公告</div>
+
                                     <ul class="divide-y divide-gray-100 m-0 p-0">`;
+
                      currentTableData.forEach((row, idx) => {
+
                          let content = row['公告內容'] || row['內容'] || row['主旨'] || '';
+
                          let date = row['公告日期'] || row['日期'] || '';
+
                          let editBtnHtml = hasEditAuth ? `<button onclick="openModal(${idx})" class="text-moSide hover:text-black font-bold text-xs ml-3 border border-moBorder px-2 py-0.5 rounded bg-gray-50 shadow-sm transition-colors">📝 編輯</button>` : '';
+
                          
+
                          eipHtml += `<li class="p-3 bg-white hover:bg-blue-50 transition-colors flex justify-between items-center list-none">
+
                             <span class="text-gray-700 font-semibold">${content}</span>
+
                             <div class="flex items-center gap-1">
+
                                 <span class="text-xs text-gray-400 font-mono">${date}</span>
+
                                 ${editBtnHtml}
+
                             </div>
+
                          </li>`;
+
                      });
+
                      eipHtml += `</ul></div>`;
+
                 }
+
+
 
                 // 2. 當前掛載交接清單 (分級高優先，時間早優先)
+
                 eipHtml += `<h3 class="font-bold text-moSide mb-3 mt-4 border-b pb-2">交接清單 <span class="text-xs text-gray-500 font-normal ml-2">(依狀態持續掛載，直到刪除結案)</span></h3>`;
+
                 eipHtml += `<div class="flex flex-col space-y-2">`;
+
                 
+
                 if(!currentHandovers || currentHandovers.length === 0) {
+
                     eipHtml += `<p class="text-gray-400 text-center py-8 bg-gray-50 rounded-lg border border-dashed">目前無掛載交接事項</p>`;
+
                 } else {
+
                     const priorityWeight = { '高': 1, '中': 2, '低': 3 };
+
                     // 【修正 1】過濾重複的交接事項 (以時間與內容作為唯一值判斷)
+
                     let uniqueHandovers = Array.from(new Map(currentHandovers.map(item => [item.time + item.content, item])).values());
+
                     let sortedHandovers = [...uniqueHandovers].sort((a, b) => {
+
                         let pA = priorityWeight[a.priority] || 4;
+
                         let pB = priorityWeight[b.priority] || 4;
+
                         if (pA !== pB) return pA - pB;
+
                         let tA = new Date(a.time.replace(/-/g, '/')).getTime();
+
                         let tB = new Date(b.time.replace(/-/g, '/')).getTime();
+
                         return tA - tB;
+
                     });
+
+
 
                     sortedHandovers.forEach(ho => {
+
                         let bg = 'bg-white border-gray-200'; let badgeColor = 'bg-green-500';
+
                         if(ho.priority === '高') { bg = 'bg-red-50/40 border-red-200'; badgeColor = 'bg-red-500'; }
+
                         else if(ho.priority === '中') { bg = 'bg-yellow-50/40 border-yellow-200'; badgeColor = 'bg-yellow-500'; }
+
                         
+
                         let imgThumbnailHtml = ho.image ? `
+
                             <div class="flex-shrink-0 ml-3">
+
                                 <img src="${ho.image}" class="w-14 h-14 object-cover rounded border border-gray-300 cursor-pointer shadow-sm hover:opacity-80 transition-opacity" onclick="openImageModal(this.src)" title="點擊檢視完整交接照片">
+
                             </div>` : '';
+
                         
+
                         let delBtn = hasEditAuth ? `<button onclick="doDeleteHandover('${ho.time}', this)" class="text-gray-400 hover:text-red-500 font-bold text-xl leading-none ml-2 p-1 transition-colors" title="結案刪除">&times;</button>` : '';
 
+
+
                         eipHtml += `
+
                         <div class="p-3 rounded-lg border ${bg} flex items-center justify-between shadow-sm hover:shadow transition-shadow h-20 overflow-hidden">
+
                             <div class="flex items-center space-x-4 min-w-0 flex-1">
+
                                 <span class="px-2 py-1 rounded text-xs font-bold text-white ${badgeColor} flex-shrink-0 w-10 text-center">${ho.priority}</span>
+
                                 <div class="min-w-0 flex-1 flex flex-col justify-between h-14 py-0.5">
+
                                     <div class="flex items-center text-[11px] text-gray-400 space-x-2">
+
                                         <span class="font-bold text-moSide">發布：${ho.creator}</span>
+
                                         <span>➔</span>
+
                                         <span class="font-bold text-indigo-600">接收：${ho.assignee}</span>
+
                                         <span>|</span>
+
                                         <span class="font-mono">${ho.time}</span>
+
                                     </div>
+
                                     <p class="text-gray-700 text-xs font-medium truncate whitespace-nowrap mt-1" title="${ho.content}">${ho.content}</p>
+
                                 </div>
+
                             </div>
+
                             <div class="flex items-center flex-shrink-0">
+
                                 ${imgThumbnailHtml}
+
                                 ${delBtn}
+
                             </div>
+
                         </div>`;
+
                     });
+
                 }
+
                 eipHtml += `</div></div>`; 
+
                 container.innerHTML = eipHtml;
+
                 return; 
+
             }
+
+
+
+
 
 
 
             // --- 以下為非 EIP 模組（OMS, ERP, MES, CRM, SUP）的常態高密度表格排版邏輯 ---
+
             let tableHTML = `<div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead class="bg-gray-100 text-moSide border-b border-gray-300"><tr>`;
+
             let displayHeaders = (currentSheet === '權限管理' || currentSysName === 'SYS') 
+
                 ? currentHeaders.filter(h => h !== '可視系統' && h !== '可操作系統' && h !== '可編輯系統') 
+
                 : currentHeaders.filter(h => h !== '配料明細' && h !== '工序明細' && h !== '工序明細JSON');
 
+
+
             // 【需求 2】CRM 模組主要欄位精簡過濾 (隱藏的放入展開面板，剩下的自動顯示在外部)
+
             const crmHideHeaders = ['常用盒型', '偏好材質', '特殊要求備註', '客戶代號', '統一編號', '聯絡地址','傳真', '地址', '備註', '銀行代碼', '匯款帳號'];
+
             if (currentSysName === 'CRM') { displayHeaders = displayHeaders.filter(h => !crmHideHeaders.includes(h)); }
 
+
+
             // 【需求 1】SUP 模組過濾 (只留大類、供應商名稱、電話、窗口在外面)
+
             const supHideHeaders = ['供應商編號', '統一編號', '地址', '傳真', '備註', '銀行代碼', '匯款帳號'];
+
             if (currentSysName === 'SUP') { displayHeaders = displayHeaders.filter(h => !supHideHeaders.includes(h)); }
 
+
+
             const omsHideHeaders = ['數量', '預估良率', '產出量', '預估成本', '運費成本', '運費報價', '運費備註', '工序規劃紀錄', '示意圖', '貨運單號', '出貨時間'];
+
             if (currentSysName === 'OMS') { displayHeaders = displayHeaders.filter(h => !omsHideHeaders.includes(h)); }
 
+
+
             tableHTML += `<th class="p-3 w-10 text-center select-none"></th>`;
+
             displayHeaders.forEach(h => {
+
                 let arrow = currentSortCol === h ? (currentSortDir === 'asc' ? ' ▲' : ' ▼') : ' ↕';
+
                 tableHTML += `<th onclick="sortTableByHeader('${h}')" class="p-3 font-semibold text-sm tracking-wider cursor-pointer hover:bg-gray-200 select-none transition-colors">${h}<span class="text-xs text-gray-400">${arrow}</span></th>`;
+
             });
+
             tableHTML += `</tr></thead><tbody class="divide-y text-sm">`;
 
 
 
+
+
+
+
             if (currentTableData.length === 0) {
+
                 tableHTML += `<tr><td colspan="15" class="p-10 text-center text-gray-400 tracking-wider">目前尚無資料。</td></tr>`;
+
             } else {
+
                 currentTableData.forEach((row, index) => {
+
     // 【新增防護】若為 MES 系統且對應的 OMS 訂單已結案，則直接跳過不渲染該列
+
     if (currentSysName === 'MES') {
+
         let linkedOms = (systemCache['訂單管理']?.data || []).find(o => o['訂單編號'] === row['關聯訂單']);
+
         if (linkedOms && linkedOms['訂單狀態'] === '已結案') return;
+
     }
 
+
+
     const bgClass = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+
                     let isLowStock = false; let isRestocking = false; let restockQty = 0;
+
                     
+
                     if(currentSysName === 'ERP') {
+
                         let stock = parseFloat(row['目前庫存']) || 0; let safe = parseFloat(row['安全庫存']) || 0;
+
                         if(stock < safe) isLowStock = true;
+
                         let reps = currentReplenish.filter(l => l.matId === row['物料編號'] && l.status !== '已結案');
+
                         reps.forEach(r => { isRestocking = true; restockQty += (parseFloat(r.reqQty) || 0) - (parseFloat(r.inQty) || 0); });
+
                     }
+
+
 
                     // 智慧判定高亮行屬性 (快篩過濾對齊)
+
                     let dataLowAttr = isLowStock ? 'data-low="true"' : 'data-low="false"';
+
                     let dataResAttr = (isRestocking && restockQty > 0) ? 'data-res="true"' : 'data-res="false"';
 
+
+
                     tableHTML += `<tr class="${bgClass} hover:bg-gray-50 transition-colors erp-row" data-index="${index}" ${dataLowAttr} ${dataResAttr}>`;
+
                     tableHTML += `<td onclick="toggleRowButtons(${index}, this)" class="p-3 text-center cursor-pointer text-moSide font-bold text-sm select-none hover:text-black">▶</td>`;
+
                     
+
                     let detailsHTML = '';
+
                     displayHeaders.forEach(key => {
+
                         let val = row[key] || '';
+
                         
+
                         // 【需求 2 修復】攔截並格式化帶有 T 和 Z 的原生 ISO 時間字串
+
                         if (typeof val === 'string' && val.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
+
                             let d = new Date(val);
+
                             if (!isNaN(d)) {
+
                                 val = d.getFullYear() + '/' + 
+
                                       String(d.getMonth()+1).padStart(2,'0') + '/' + 
+
                                       String(d.getDate()).padStart(2,'0') + ' ' + 
+
                                       String(d.getHours()).padStart(2,'0') + ':' + 
+
                                       String(d.getMinutes()).padStart(2,'0') + ':' + 
+
                                       String(d.getSeconds()).padStart(2,'0');
+
                             }
+
                         }
+
+
 
                         let isFinanceField = key.includes('成本') || key.includes('報價') || key.includes('單價') || key.includes('售價') || key.includes('金額');
+
                         if (!userShowFinance && isFinanceField && val !== '') {
+
                             val = `<span class="text-gray-400 italic">🔒 無權限</span>`;
+
                         } else {
+
                             if(key === '急件' && val === '是') val = `<span class="bg-red-600 text-white px-2 py-1 rounded text-xs font-bold animate-pulse shadow-sm">急件</span>`;
+
                             else if(key.includes('狀態') || key === '當前狀態' || key === '工單狀態') {
+
                                 let badgeClass = 'status-gray'; let pulseClass = '';  
+
                                 if(val === '原料不足' || val === '報修中' || val === '待修中' || val === '掛修') badgeClass = 'status-red';
+
                                 else if(val === '估算中') badgeClass = 'bg-purple-100 text-purple-700 border border-purple-200 font-bold';
+
                                 else if(val === '待規劃') badgeClass = 'bg-purple-100 text-purple-700 border border-purple-400 font-bold'; // 加深邊框顯色
+
                                 else if(val === '待排程') badgeClass = 'bg-yellow-100 text-yellow-700 border border-yellow-300 font-bold';
+
                                 else if(val === '待扣料') badgeClass = 'bg-yellow-100 text-yellow-800 border border-yellow-300 font-bold';
+
                                 else if(val === '待生產') badgeClass = 'bg-green-100 text-green-700 border border-green-400 font-bold'; // 優化正綠色醒目文字
+
                                 else if(val === '備料中') badgeClass = 'status-yellow';
+
                                 else if(val === '生產中' || val === '已接單') { badgeClass = 'status-blue'; pulseClass = ' animate-pulse shadow-sm'; }
+
                                 else if(val === '製作完成' || val === '已完工' || val === '已出貨') badgeClass = 'bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold';
+
                                 val = `<span class="status-badge ${badgeClass}${pulseClass}">${val}</span>`;
+
                             }
+
                             else if(currentSysName === 'ERP' && key === '目前庫存') {
+
                                 let stock = parseFloat(val) || 0; let safe = parseFloat(row['安全庫存']) || 0; let displayVal = val;
+
                                 if(stock < safe) displayVal = `<span class="text-red-600 font-bold">${val}</span>`; else if(stock > safe) displayVal = `<span class="text-green-600 font-bold">${val}</span>`; else displayVal = `<span class="text-orange-500 font-bold">${val}</span>`;
+
                                 if (isRestocking && restockQty > 0) displayVal += `<span class="ml-2 bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded text-[10px] font-bold border border-yellow-300 shadow-sm webkit-nowrap">⏳補貨中: ${restockQty}</span>`;
+
                                 val = displayVal;
+
                             }
+
                         }
+
                         if (key.includes('備註') || key.includes('細項') || key.includes('簡述') || key.includes('報修內容') || key === '內容') {
+
                             const safeText = String(val).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
                             if(safeText.trim() !== '') detailsHTML += `<strong class="text-moSide">${key}:</strong> <br/> <p class="mt-1 mb-3 text-gray-600">${safeText.replace(/\n/g, '<br/>')}</p>`;
+
                             tableHTML += `<td class="p-3">${val}</td>`;
+
                         } else { tableHTML += `<td class="p-3">${val}</td>`; }
+
                     });
+
                     tableHTML += `</tr>`;
 
+
+
                     // ================= 各模組智慧下收與大數據反查引擎 =================
+
                     
+
                     // 【需求 5 & 6】CRM 展開面板：下收常用參數、瀏覽近期10筆訂單與歷程匯出
+
                     // 【需求 2】CRM 展開面板：下收欄位、瀏覽近期10筆訂單與歷程匯出
+
                 if (currentSysName === 'CRM') {
+
                     detailsHTML += `<div class="bg-gray-50 p-4 rounded-lg border space-y-3 mb-2">`;
+
                     detailsHTML += `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs pb-2 border-b border-gray-200">`;
+
                     crmHideHeaders.forEach(k => { detailsHTML += `<div><span class="text-gray-400 block">${k}</span><span class="font-bold text-moText">${row[k]||'未註記'}</span></div>`; });
+
                     detailsHTML += `</div>`;
+
                     
+
                     let cName = row['客戶名稱'] || row['公司名稱'] || '';
+
                     let matchedOms = (systemCache['訂單管理']?.data || []).filter(o => o['客戶名稱'] === cName).slice(0, 10);
+
                     detailsHTML += `<div class="mt-3"><span class="font-bold text-xs text-moSide block mb-1">📋 近期跑單紀錄 (最新10筆)</span><table class="w-full text-left text-[11px] bg-white border"><thead><tr class="bg-gray-100"><th>訂單編號</th><th>產品名稱</th><th>訂單狀態</th><th>總金額</th></tr></thead><tbody>`;
+
                     matchedOms.forEach(mo => {           
+
                         detailsHTML += `<tr><td>${mo['訂單編號']}</td><td class="font-bold">${mo['產品名稱']}</td><td>${mo['訂單狀態']}</td><td class="text-green-600 font-bold">$ ${parseFloat(mo['總金額']||0).toLocaleString()}</td></tr>`;
+
                     });
+
                     if(matchedOms.length===0) detailsHTML += `<tr><td colspan="4" class="text-center text-gray-400">尚無跑單歷史</td></tr>`;
+
                     detailsHTML += `</tbody></table></div>`;
+
                     detailsHTML += `<button onclick="exportCustomerHistory('${cName}')" class="mt-2 bg-green-600 text-white text-xs px-3 py-1.5 rounded font-bold shadow-sm hover:bg-green-700 transition-colors">📥 匯出該客完整製作細節與報價 P&L</button>`;
+
                     detailsHTML += `</div>`;
+
                 }
+
+
 
                 
+
                  
+
                 if (currentSysName === 'ERP') {
+
                     let mId = row['物料編號'];
+
                     detailsHTML += `<div class="bg-gray-50 p-4 rounded-lg border space-y-3 mb-2 text-xs">`;
+
                     detailsHTML += `<div class="grid grid-cols-3 md:grid-cols-6 gap-3">`;
+
                     let fields = ['安全庫存', '單位', '供應商', '內價', '售價', '安全水位備註'];
+
                     fields.forEach(f => { detailsHTML += `<div><span class="text-gray-400 block text-[11px]">${f}</span><span class="font-bold text-gray-800">${row[f]||'無'}</span></div>`; });
+
                     detailsHTML += `</div>`;
+
                     
+
                     // 【需求 6 修復】ERP 印單按鈕與進貨總金額顯示
+
                     let mReplenish = currentReplenish.filter(r => r.matId === mId && r.status !== '已結案');
+
                     let replHtml = mReplenish.map(r => {
+
     let formattedTime = r.time.replace('T', ' ').substring(0, 19);
+
     // 使用網址安全編碼包裝原因欄位，徹底防止因為特殊引號或換行字元導致印單按鈕卡死
+
     let safeReason = encodeURIComponent(r.reason || '');
+
     return `<tr><td class="p-1 border">${formattedTime}</td><td class="p-1 border font-mono">${r.repId}</td><td class="p-1 border text-orange-600 font-bold">${r.reqQty}</td><td class="p-1 border text-blue-600 font-bold">${r.inQty}</td>
+
     <td class="p-1 border text-center w-28">
+
         <button onclick="generateReplenishPDF('${r.repId}', '${r.reqQty}', '${r.matId}', '${r.supplier}', decodeURIComponent('${safeReason}'))" class="bg-gray-600 text-white px-2 py-0.5 rounded text-[10px] hover:bg-gray-700 shadow-sm mr-1">🖨️ 印單</button>
+
                             <button onclick="openRestockFromRepl('${r.repId}', '${r.matId}', '${encodeURIComponent(row['品名'] + ' ' + row['規格']||'')}', '${row['供應商']||''}', ${r.reqQty - r.inQty})" class="bg-blue-600 text-white px-2 py-0.5 rounded text-[10px] hover:bg-blue-700 transition-colors shadow-sm">📦 進貨</button>
+
                         </td></tr>`;
+
                     }).join('');
+
                     
+
                     if(replHtml) {
+
                         detailsHTML += `<div class="mt-3"><span class="font-bold text-orange-600 block mb-1">⏳ 待處理的補貨申請單 (可執行進貨)</span>
+
                         <table class="w-full text-[11px] bg-white border border-orange-200 border-collapse text-left">
+
                             <thead class="bg-orange-50 text-orange-700"><tr><th class="p-1 border border-orange-200">申請時間</th><th class="p-1 border border-orange-200">補貨單號</th><th class="p-1 border border-orange-200">申請數量</th><th class="p-1 border border-orange-200">已進數量</th><th class="p-1 border border-orange-200 text-center">操作</th></tr></thead>
+
                             <tbody>${replHtml}</tbody>
+
                         </table></div>`;
+
                     }
+
+
 
                     let mRestocks = currentRestocks.filter(r => r.matId === mId).slice(0, 10);
+
                     let rsHtml = mRestocks.map(r => `<tr><td class="p-1 border">${r.time.replace('T', ' ').substring(0, 19)}</td><td class="p-1 border text-blue-600 font-bold">${r.qty}</td><td class="p-1 border text-green-600 font-bold">$${parseFloat(r.amount||0).toLocaleString()}</td><td class="p-1 border">${r.supplier}</td><td class="p-1 border">${r.vendorShipId||'-'}</td></tr>`).join('');
+
                     if(!rsHtml) rsHtml = `<tr><td colspan="5" class="p-1 border text-center text-gray-400">尚無進貨紀錄</td></tr>`;
+
                     
+
                     let mDeducts = currentDeductLogs.filter(d => d.matId === mId).slice(0, 10);
+
                     let ddHtml = mDeducts.map(d => `<tr><td class="p-1 border">${d.orderId}</td><td class="p-1 border text-red-600 font-bold">${d.qty}</td></tr>`).join('');
+
                     if(!ddHtml) ddHtml = `<tr><td colspan="2" class="p-1 border text-center text-gray-400">尚無耗用紀錄</td></tr>`;
 
+
+
                     detailsHTML += `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 pt-3 border-t border-gray-200">
+
                         <div>
+
                             <div class="flex justify-between items-center mb-1">
+
                                 <span class="font-bold text-moSide block">🚚 近期進貨紀錄 (最新10筆)</span>
+
                                 <button onclick="openAnomalyModal('${row['物料編號']}', '${encodeURIComponent(row['品名'] + ' ' + row['規格']||'')}', '${row['供應商']||''}')" class="bg-red-500 text-white px-2 py-0.5 rounded text-[10px] font-bold hover:bg-red-600 transition-colors shadow-sm">⚠️ 登錄供貨異常</button>
+
                             </div>
+
                             <table class="w-full text-[11px] bg-white border border-collapse text-left">
+
                                 <thead class="bg-gray-100"><tr><th class="p-1 border">時間</th><th class="p-1 border">數量</th><th class="p-1 border">金額</th><th class="p-1 border">供應商</th><th class="p-1 border">出貨單號</th></tr></thead>
+
                                 <tbody>${rsHtml}</tbody>
+
                             </table>
+
                         </div>
+
                         <div>
+
                             <span class="font-bold text-moSide block mb-1">📉 近期耗用/扣料紀錄 (最新10筆)</span>
+
                             <table class="w-full text-[11px] bg-white border border-collapse text-left">
+
                                 <thead class="bg-gray-100"><tr><th class="p-1 border">關聯單號</th><th class="p-1 border">扣料數量</th></tr></thead>
+
                                 <tbody>${ddHtml}</tbody>
+
                             </table>
+
                         </div>
+
                     </div></div>`;
+
                 }
+
+
 
                 // 【需求 7 修復】SUP 面板過濾字串對齊
+
                 if (currentSysName === 'SUP') {
+
                     let sName = row['供應商名稱'] || '';
+
                     let matchedRestocks = currentRestocks.filter(r => String(r.supplier).trim() === String(sName).trim()).slice(0, 20);
+
                     let matchedAnomalies = typeof currentAnomalies !== 'undefined' ? currentAnomalies.filter(a => String(a.supplier).trim() === String(sName).trim()) : [];
 
+
+
                     detailsHTML += `<div class="bg-gray-50 p-4 rounded-lg border text-xs mb-2 space-y-4">`;
+
                     
+
                     detailsHTML += `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 pb-2 border-b border-gray-200">`;
+
                     supHideHeaders.forEach(k => { detailsHTML += `<div><span class="text-gray-400 block">${k}</span><span class="font-bold text-gray-800">${row[k]||'未註記'}</span></div>`; });
+
                     detailsHTML += `</div>`;
+
                     
+
                     detailsHTML += `<div><span class="font-bold text-moSide block mb-1">🚚 近 20 筆實體進貨履歷清單</span><table class="w-full text-[11px] bg-white border border-collapse text-left mb-1"><thead><tr class="bg-gray-100"><th class="p-1 border">時間</th><th class="p-1 border">物料編號</th><th class="p-1 border">數量</th><th class="p-1 border">金額</th><th class="p-1 border">廠商出貨單</th></tr></thead><tbody>`;
+
                     matchedRestocks.forEach(mr => { detailsHTML += `<tr><td class="p-1 border">${mr.time.replace('T', ' ').substring(0, 19)}</td><td class="p-1 border">${mr.matId}</td><td class="p-1 border text-blue-600 font-bold">${mr.qty}</td><td class="p-1 border text-green-600 font-bold">$${parseFloat(mr.amount||0).toLocaleString()}</td><td class="p-1 border">${mr.vendorShipId||'-'}</td></tr>`; });
+
                     if(matchedRestocks.length===0) detailsHTML += `<tr><td colspan="5" class="p-1 border text-center text-gray-400">目前尚無進貨紀錄</td></tr>`;
+
                     detailsHTML += `</tbody></table></div>`;
 
+
+
                     if(matchedAnomalies.length > 0) {
+
     detailsHTML += `<div><span class="font-bold text-red-600 block mb-1">⚠️ 歷史供貨異常紀錄</span><table class="w-full text-[11px] bg-white border border-red-200 border-collapse text-left"><thead><tr class="bg-red-50 text-red-700"><th class="p-1 border border-red-200">時間</th><th class="p-1 border border-red-200">物料</th><th class="p-1 border border-red-200">廠商出貨單號</th><th class="p-1 border border-red-200">補貨單號</th><th class="p-1 border border-red-200">異常量</th><th class="p-1 border border-red-200">異常說明</th><th class="p-1 border border-red-200">登記人</th></tr></thead><tbody>`;
+
     matchedAnomalies.forEach(ma => { detailsHTML += `<tr><td class="p-1 border border-red-100">${ma.time.replace('T', ' ').substring(0, 19)}</td><td class="p-1 border border-red-100">${ma.matId}</td><td class="p-1 border border-red-100">${ma.vendorShipId || '-'}</td><td class="p-1 border border-red-100">${ma.repId || '-'}</td><td class="p-1 border border-red-100 text-red-600 font-bold">${ma.qty}</td><td class="p-1 border border-red-100">${ma.reason}</td><td class="p-1 border border-red-100">${ma.op}</td></tr>`; });
+
     detailsHTML += `</tbody></table></div>`;
+
 } 
+
                     else {
+
                         detailsHTML += `<p class="text-green-600 font-bold bg-green-50 p-2 rounded border border-green-200">✅ 該供應商目前無任何供貨異常紀錄</p>`;
+
                     }
+
                     detailsHTML += `<button onclick="exportSupplierHistory('${sName}')" class="bg-indigo-600 text-white text-xs px-3 py-1.5 rounded font-bold shadow-sm hover:bg-indigo-700 transition-colors">📥 匯出供貨商品全生命週期明細</button>`;
+
                     detailsHTML += `</div>`;
+
                 }
 
+
+
                     if (currentSysName === 'OMS' && row['配料明細']) {
+
                         try {
+
                             let bom = JSON.parse(row['配料明細']);
+
                             if(bom.length > 0) {
+
                                 let bomRows = bom.map(m => {
+
                                     let matObj = (currentDropdowns['物料編號']||[]).find(opt => opt.id === m.id);
+
                                     let noteStr = m.note ? `<span class="text-blue-600 font-bold">[${m.note}]</span> ` : '';
+
                                     return `<tr><td class="p-1 border border-gray-300 text-xs w-[80px]">${m.id}</td><td class="p-1 border border-gray-300 text-xs">${noteStr}${matObj ? matObj.name.replace(m.id+' - ', '') : ''}</td><td class="p-1 border border-gray-300 text-center text-xs text-red-600 font-bold w-16">${m.qty}</td></tr>`;
+
                                 }).join('');
+
                                 detailsHTML += `<strong class="text-moSide font-bold text-xs block mt-2">📦 紀錄配料明細:</strong><table class="w-full text-xs text-left border-collapse border border-gray-300 mt-1 mb-3"><thead><tr class="bg-gray-100"><th class="p-1 border border-gray-300 w-[80px]">物料編號</th><th class="p-1 border border-gray-300">品名與加工備註</th><th class="p-1 border border-gray-300 text-center w-16">用量</th></tr></thead><tbody>${bomRows}</tbody></table>`;
+
                             }
+
                         } catch(e){}
+
                     }
+
+
 
                     if (currentSysName === 'OMS') {
+
                         let bizHtml = `<div class="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-purple-50 rounded-xl border border-purple-100 mb-4 text-xs font-bold text-gray-700 shadow-inner">`;
+
                         const targetKeys = ['數量', '預估良率', '產出量', '運費成本', '運費報價', '運費備註', '貨運單號', '出貨時間'];
+
                         targetKeys.forEach(k => {
+
                             let v = row[k] || '0'; let isFin = k.includes('成本') || k.includes('報價') || k.includes('金額');
+
                             if (!userShowFinance && isFin) { v = `<span class="text-gray-400 italic">🔒 鎖定</span>`; } 
+
                             else if (isFin && !isNaN(v) && v !== '') { v = `$ ` + parseFloat(v).toLocaleString(); } 
+
                             else if (k === '預估良率' && v !== '' && !v.toString().includes('%')) { v = v + ` %`; }
+
                             bizHtml += `<div><span class="text-gray-400 block mb-0.5 text-[11px]">${k}</span><span class="text-moSide text-sm font-extrabold truncate block">${v}</span></div>`;
+
                         });
+
                         bizHtml += `</div>`; detailsHTML = bizHtml + detailsHTML;
+
                         // 【需求 3】把工序規劃紀錄在「查看」面板內以小表格呈現
+
                         if (row['工序規劃紀錄']) {
+
                             try {
+
                                 let planSteps = JSON.parse(row['工序規劃紀錄']);
+
                                 if (planSteps.length > 0) {
+
                                     let stepHtml = planSteps.map(s => `<tr><td class="p-1.5 border border-gray-300 text-center">${s.seq}</td><td class="p-1.5 border border-gray-300">${s.name} <span class="text-gray-500 text-[10px]">(${s.mac})</span></td><td class="p-1.5 border border-gray-300">${s.emp}</td><td class="p-1.5 border border-gray-300 text-[10px] font-mono">${s.startDate} ~ <br>${s.endDate}</td><td class="p-1.5 border border-gray-300 text-[10px]">${s.requiredMats.join(', ')}</td></tr>`).join('');
+
                                     detailsHTML += `<strong class="text-moSide font-bold text-xs block mt-2">📋 工序規劃指示:</strong><table class="w-full text-xs text-left border-collapse border border-gray-300 mt-1 mb-3"><thead><tr class="bg-gray-100"><th class="p-1 border border-gray-300 w-10 text-center">順序</th><th class="p-1 border border-gray-300">工序與機台</th><th class="p-1 border border-gray-300 w-16">人員</th><th class="p-1 border border-gray-300 w-32">起訖時間</th><th class="p-1 border border-gray-300">用料提示</th></tr></thead><tbody>${stepHtml}</tbody></table>`;
+
                                 }
+
                             } catch(e){}
+
                         }
+
+
 
                         // 示意圖強固型解析與網頁渲染
+
                         if (row['示意圖'] && String(row['示意圖']).trim() !== '') {
+
                             try {
+
                                 let imgs = typeof row['示意圖'] === 'string' ? JSON.parse(row['示意圖']) : row['示意圖'];
+
                                 if(Array.isArray(imgs) && imgs.length > 0) {
+
                                     let imgHtml = imgs.map(src => `<img src="${src}" onclick="openImageModal(this.src)" class="h-16 w-16 object-cover rounded border border-gray-300 cursor-pointer hover:opacity-80">`).join('');
+
                                     detailsHTML += `<strong class="text-moSide font-bold text-xs block mt-2">🖼️ 估價示意圖 (點擊可看大圖):</strong><div class="flex gap-2 mt-1 mb-3">${imgHtml}</div>`;
+
                                 }
+
                             } catch(e){ console.error("示意圖解析失敗:", e); }
+
                         }
+
+
 
                         // ================= 【一單到底：JSON工序明細深度解析追蹤】 =================
+
                         let woLogs = currentAllWos.filter(w => w['關聯訂單'] === row['訂單編號']);
+
                         if(woLogs.length > 0) {
+
                             let woRows = '';
+
                             woLogs.forEach(w => {
+
                                 var steps = []; try { steps = JSON.parse(w['工序明細'] || "[]"); } catch(e){}
+
                                 let currentIdx = parseInt(w['當前進度索引']) || 0;
+
                                 let globalWoStatus = w['工單狀態'];
+
                                 if (steps.length > 0) {
+
                                     steps.forEach((s, idx) => {
+
                                         let stepStatus = '等待中';
+
                                         if (globalWoStatus === '已完工' || globalWoStatus === '已出貨' || idx < currentIdx) stepStatus = '已完工';
+
                                         else if (idx === currentIdx && globalWoStatus === '生產中') stepStatus = '生產中';
+
                                         else if (idx === currentIdx && globalWoStatus === '已停工') stepStatus = '已停工';
+
                                         let statusColor = stepStatus === '已完工' ? 'text-green-600 font-bold' : (stepStatus === '生產中' ? 'text-blue-600 font-bold animate-pulse' : (stepStatus === '已停工' ? 'text-red-600 font-bold' : 'text-gray-400'));
+
                                         
+
                                         woRows += `<tr class="hover:bg-indigo-50 transition-colors">
+
                                             <td class="p-2 border-b border-gray-200 text-center font-bold text-gray-500">${idx + 1}</td>
+
                                             <td class="p-2 border-b border-gray-200 font-bold text-moSide">${s.name} <br><span class="text-[10px] font-normal text-gray-400">工序機台: ${s.mac}</span></td>
+
                                             <td class="p-2 border-b border-gray-200 text-center">${s.emp}</td>
+
                                             <td class="p-2 border-b border-gray-200 text-center ${statusColor}">${stepStatus}</td>
+
                                             <td class="p-2 border-b border-gray-200 text-center text-xs text-gray-500 font-mono">${s.date}</td>
+
                                         </tr>`;
+
                                     });
+
                                 }
+
                             });
+
                             if (woRows !== '') {
+
                                 detailsHTML += `
+
                                     <strong class="text-moSide block mt-4 mb-2 font-bold text-xs">🏭 單一工單流線追蹤與工序進度:</strong>
+
                                     <table class="w-full text-xs text-left border-collapse border border-gray-300 mb-3 bg-white shadow-sm rounded overflow-hidden">
+
                                         <thead>
+
                                             <tr class="bg-indigo-50 text-indigo-800 border-b border-indigo-200">
+
                                                 <th class="p-2 w-10 text-center">順序</th>
+
                                                 <th class="p-2">執行工序與對應機台</th>
+
                                                 <th class="p-2 w-20 text-center">操作人員</th>
+
                                                 <th class="p-2 w-20 text-center">當前狀態</th>
+
                                                 <th class="p-2 w-24 text-center">排程/完工日</th>
+
                                             </tr>
+
                                         </thead>
+
                                         <tbody>${woRows}</tbody>
+
                                     </table>`;
+
                             }
+
                         }
+
                     }
+
+
 
                     const totalColSpan = displayHeaders.length + 1;
+
                     tableHTML += `<tr id="btn_row_${index}" class="hidden bg-gray-50 border-b border-gray-200"><td colspan="${totalColSpan}" class="p-2 pl-12"><div class="flex flex-wrap items-center gap-4 text-xs">`;
+
                     
+
                     if (detailsHTML !== '') { 
+
                         tableHTML += `<button id="btn_detail_${index}" onclick="toggleDetails('detail_${index}')" class="w-20 bg-gray-200 border border-gray-300 text-gray-700 py-1 rounded font-bold hover:bg-gray-300 transition-colors">查看 ▼</button>`; 
+
                     }
 
+
+
                     let btnSlot1 = `<div class="w-20 text-gray-300">─</div>`; 
+
                     let btnSlot2 = `<div class="w-20 text-gray-300">─</div>`; 
+
                     let btnSlot3 = `<div class="w-20 text-gray-300">─</div>`; 
+
                     let btnSlot4 = `<div class="w-20 text-gray-300">─</div>`;
+
                     
+
                     if (hasOpAuth) {
+
                         if (currentSysName === 'OMS') {
+
                             const status = row['訂單狀態']; const oId = row['訂單編號'];
+
                             // 採用彈性流線串接，徹底防止按鈕槽互相擠壓消失
+
                             let htmlStr = `<button onclick="cloneOrder(${index})" class="w-20 bg-gray-800 text-white py-1 rounded font-bold shadow-sm">📋 複製</button>`;
+
                             
+
                             // 【關鍵修復】估價KEY完（即狀態非估算中且未結案），估價單與毛利按鈕全面持續開放顯示
+
                             if (userShowFinance && status !== '估算中' && status !== '已結案') {
+
                                 htmlStr += `<button onclick="printQuotation(${index})" class="w-20 bg-blue-500 text-white py-1 rounded font-bold shadow">📄 估價單</button>`;
+
                                 htmlStr += `<button onclick="printMarginReport(${index})" class="w-20 bg-purple-600 text-white py-1 rounded font-bold shadow">📈 毛利</button>`;
+
                             }
+
                             
+
                             // 根據當前單據狀態，動態追加主操作按鈕
+
                             if (status === '估算中') { 
+
                                 htmlStr += `<button onclick="openMatModal('${oId}', 'estimate')" class="w-20 bg-indigo-500 text-white py-1 rounded font-bold shadow animate-pulse">📐 配料估價</button>`; 
+
                             } else if (status === '待規劃') { 
+
                                 htmlStr += `<button onclick="openMatModal('${oId}', 'estimate')" class="w-20 bg-gray-500 text-white py-1 rounded font-bold shadow">重新估價</button>`;
+
                                 htmlStr += `<button onclick="openPlanModal('${oId}')" class="w-20 bg-purple-600 text-white py-1 rounded font-bold shadow animate-pulse">📋 工序規劃</button>`; 
+
                             } else if (status === '待扣料') { 
+
                                 htmlStr += `<button onclick="openMatModal('${oId}', 'estimate')" class="w-20 bg-gray-500 text-white py-1 rounded font-bold shadow">重新估價</button>`;
+
                                 htmlStr += `<button onclick="openMatModal('${oId}', 'normal')" class="w-20 bg-yellow-500 text-white py-1 rounded font-bold shadow animate-pulse">📦 執行扣料</button>`; 
+
                             } else if (status === '原料不足') { 
+
                                 htmlStr += `<button onclick="openReplenishModal('', '', '')" class="w-20 bg-red-100 text-red-700 border border-red-300 py-1 rounded font-bold shadow">🛒 補貨</button>`;
+
                                 htmlStr += `<button onclick="openMatModal('${oId}', 'normal')" class="w-20 bg-yellow-500 text-white py-1 rounded font-bold shadow animate-pulse">📦 再次扣料</button>`; 
+
                             } else if (status === '待生產') { 
+
                                 htmlStr += `<button onclick="generateWoPDF('${oId}')" class="w-20 bg-gray-600 text-white py-1 rounded font-bold shadow">🖨️ 印工單</button>`;
+
                                 htmlStr += `<button onclick="revertOmsDeduction('${oId}')" class="w-20 bg-red-400 text-white py-1 rounded font-bold shadow">🔙 退料</button>`; 
+
                                 htmlStr += `<button onclick="startProduction('${oId}')" class="w-20 bg-green-600 text-white py-1 rounded font-bold shadow animate-pulse">🚀 開始生產</button>`; 
+
                             } else if (status === '生產中') {
+
                                 htmlStr += `<button onclick="generateWoPDF('${oId}')" class="w-20 bg-gray-600 text-white py-1 rounded font-bold shadow">🖨️ 印工單</button>`;
+
                                 htmlStr += `<button onclick="openMatModal('${oId}', 'addon')" class="w-20 bg-orange-500 text-white py-1 rounded hover:bg-orange-600 font-bold shadow">➕ 追加耗損</button>`;
+
                             } else if (status === '製作完成') { 
+
                                 htmlStr += `<button onclick="generateWoPDF('${oId}')" class="w-20 bg-gray-600 text-white py-1 rounded font-bold shadow">🖨️ 印工單</button>`;
+
                                 htmlStr += `<button onclick="printDeliveryNote(this, '${oId}')" class="w-20 bg-blue-600 text-white py-1 rounded hover:bg-blue-700 font-bold shadow animate-pulse">📄 印出貨單</button>`; 
+
                             } else if (status === '已出貨待OMS結案' || status === '已出貨') { 
+
                                 htmlStr += `<button onclick="generateWoPDF('${oId}')" class="w-20 bg-gray-600 text-white py-1 rounded font-bold shadow">🖨️ 印工單</button>`;
+
                                 htmlStr += `<button onclick="printDeliveryNote(this, '${oId}')" class="w-20 bg-blue-600 text-white py-1 rounded font-bold shadow">📄 印出貨單</button>`; 
+
                                 htmlStr += `<button onclick="closeOrder('${oId}')" class="w-20 bg-red-700 text-white py-1 rounded font-bold shadow animate-pulse">🔒 結案</button>`;
+
                             }
+
                             // 將串接完的按鈕群填入 Slot 1，並將其餘槽位釋放清空，防止前端渲染崩潰
+
                             btnSlot1 = htmlStr; btnSlot2 = ''; btnSlot3 = ''; btnSlot4 = '';
+
                         } else if (currentSysName === 'MES') {
+
                             const status = row['工單狀態']; const mac = row['作業機台']; const woId = row['工單編號']; const oId = row['關聯訂單'];
                             if (status === '生產中') {
                                 btnSlot1 = `<button onclick="openStopModal('${woId}', '${oId}', '${mac}')" class="w-20 bg-red-600 text-white py-1 rounded font-bold shadow">🛑 停工</button>`;
@@ -1692,12 +3155,6 @@ getSheetData: async function(sheetName) {
                     </div>
                 </div>`;
             execHTML2PDF(html, `派工單_${orderId}.pdf`);
-        }
-
-        function execHTML2PDF(htmlContent, filename) {
-            const element = document.getElementById('pdfContent'); element.innerHTML = htmlContent; document.getElementById('pdfWrapper').classList.remove('hidden'); 
-            const opt = { margin: 10, filename: filename, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
-            html2pdf().set(opt).from(element).save().then(() => { document.getElementById('pdfWrapper').classList.add('hidden'); });
         }
 
         function openReplenishModal(matId, pNameEncoded, supplier) {
@@ -3351,64 +4808,64 @@ console.log("正在送出的配料明細:", matArr);
 
         window.estImagesData = []; // 全域暫存陣列
 
-// 1. 支援分次上傳：累加圖片直到 2 張上限
-function handleEstImages(input) {
-    let files = Array.from(input.files);
-    
-    
-    files.forEach(file => {
-        // 檢查是否已達 2 張上限
-        if (window.estImagesData.length >= 2) {
-            alert("⚠️ 最多只能上傳 2 張示意圖！");
-            return;
-        }
+    // 1. 支援分次上傳：累加圖片直到 2 張上限
+    function handleEstImages(input) {
+        let files = Array.from(input.files);
         
-        compressImage(file, 800, 800, 0.7, function(base64) {
-            // 非同步再次防禦檢查
-            if (window.estImagesData.length < 2) {
-                window.estImagesData.push(base64); // 累加寫入，不再清空舊資料
-                renderEstImagesPreview(false); //  <-- 這裡改為固定傳入 false
-                calcMatCost();                   // 連動精算金額
+        
+        files.forEach(file => {
+            // 檢查是否已達 2 張上限
+            if (window.estImagesData.length >= 2) {
+                alert("⚠️ 最多只能上傳 2 張示意圖！");
+                return;
             }
+            
+            compressImage(file, 800, 800, 0.7, function(base64) {
+                // 非同步再次防禦檢查
+                if (window.estImagesData.length < 2) {
+                    window.estImagesData.push(base64); // 累加寫入，不再清空舊資料
+                    renderEstImagesPreview(false); //  <-- 這裡改為固定傳入 false
+                    calcMatCost();                   // 連動精算金額
+                }
+            });
         });
-    });
-    
-    // 【關鍵防呆】清空 input 的選取值，這樣下一次點擊才能重複觸發 onchange 選擇第二張
-    input.value = '';
-}
-
-// 預覽渲染器：依據唯讀狀態，動態決定要不要出現個別刪除 ❌ 按鈕
-function renderEstImagesPreview(isReadOnly = false) {
-    let container = document.getElementById('estImagePreviewContainer');
-    container.innerHTML = '';
-    
-    window.estImagesData.forEach((base64, index) => {
-        // 如果是唯讀(例如扣料階段)，就不顯示刪除叉叉
-        let delBtn = isReadOnly ? '' : `<button type="button" onclick="removeEstImage(${index})" class="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold shadow-md hover:bg-red-600 transition-colors">&times;</button>`;
         
-        container.innerHTML += `
-            <div class="relative inline-block h-16 w-16 mt-1 mr-2">
-                <img src="${base64}" onclick="openImageModal(this.src)" class="h-16 w-16 object-cover rounded border border-gray-300 cursor-pointer hover:opacity-80">
-                ${delBtn}
-            </div>
-        `;
-    });
-}
+        // 【關鍵防呆】清空 input 的選取值，這樣下一次點擊才能重複觸發 onchange 選擇第二張
+        input.value = '';
+    }
 
-// 移除單張圖片
-function removeEstImage(index) {
-    window.estImagesData.splice(index, 1);
-    renderEstImagesPreview(false); // 移除後重新渲染（維持編輯模式）
-    calcMatCost();
-}
+    // 預覽渲染器：依據唯讀狀態，動態決定要不要出現個別刪除 ❌ 按鈕
+    function renderEstImagesPreview(isReadOnly = false) {
+        let container = document.getElementById('estImagePreviewContainer');
+        container.innerHTML = '';
+        
+        window.estImagesData.forEach((base64, index) => {
+            // 如果是唯讀(例如扣料階段)，就不顯示刪除叉叉
+            let delBtn = isReadOnly ? '' : `<button type="button" onclick="removeEstImage(${index})" class="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold shadow-md hover:bg-red-600 transition-colors">&times;</button>`;
+            
+            container.innerHTML += `
+                <div class="relative inline-block h-16 w-16 mt-1 mr-2">
+                    <img src="${base64}" onclick="openImageModal(this.src)" class="h-16 w-16 object-cover rounded border border-gray-300 cursor-pointer hover:opacity-80">
+                    ${delBtn}
+                </div>
+            `;
+        });
+    }
 
-// 一鍵清空圖片
-function clearEstImages() {
-    document.getElementById('estImages').value = '';
-    window.estImagesData = [];
-    renderEstImagesPreview(false);
-    calcMatCost();
-}
+    // 移除單張圖片
+    function removeEstImage(index) {
+        window.estImagesData.splice(index, 1);
+        renderEstImagesPreview(false); // 移除後重新渲染（維持編輯模式）
+        calcMatCost();
+    }
+
+    // 一鍵清空圖片
+    function clearEstImages() {
+        document.getElementById('estImages').value = '';
+        window.estImagesData = [];
+        renderEstImagesPreview(false);
+        calcMatCost();
+    }
         
         // 在 submitMaterialCheck 中加入圖片陣列：
         // 修改原有的 `checkAndDeductMaterials(orderId, matArr, ...)` 傳參，把 window.estImagesData 塞進去。
