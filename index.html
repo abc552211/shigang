@@ -1199,6 +1199,7 @@ if(mat && mat[0]) {
                     },
 
                     // MES 機台停工與退料登記
+// MES 機台停工與退料登記
 stopWorkOrder: async function(woId, orderId, machine, reason, outQty, returnMats, operatorName) {
     let d = new Date(); let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
     
@@ -1219,6 +1220,9 @@ stopWorkOrder: async function(woId, orderId, machine, reason, outQty, returnMats
     if (steps[currIdx]) steps[currIdx].outQty = outQty;
 
     await sbClient.from('work_orders').update({ status: '已停工', stop_reason: reason, output_qty: outQty, process_details: JSON.stringify(steps) }).eq('wo_id', woId);
+    
+    // 【關鍵修復】同步更新 OMS 主訂單狀態為「已停工」
+    await sbClient.from('orders').update({ status: '已停工' }).eq('order_id', orderId);
     
     // 3. 更新機台狀態與 Log
     await sbClient.from('equipment_status').update({ status: '掛修', repair_remark: reason }).eq('machine_id', machine);
@@ -2298,7 +2302,7 @@ if(currentSysName === 'ERP') {
                             if(key === '急件' && val === '是') val = `<span class="bg-red-600 text-white px-2 py-1 rounded text-xs font-bold animate-pulse shadow-sm">急件</span>`;
                             else if(key.includes('狀態') || key === '當前狀態' || key === '工單狀態') {
                                 let badgeClass = 'status-gray'; let pulseClass = '';  
-                                if(val === '原料不足' || val === '報修中' || val === '待修中' || val === '掛修') badgeClass = 'status-red';
+                                if(val === '原料不足' || val === '報修中' || val === '待修中' || val === '掛修' || val === '已停工') badgeClass = 'status-red';
                                 else if(val === '估算中') badgeClass = 'bg-purple-100 text-purple-700 border border-purple-200 font-bold';
                                 else if(val === '待規劃') badgeClass = 'bg-purple-100 text-purple-700 border border-purple-400 font-bold'; 
                                 else if(val === '待排程') badgeClass = 'bg-yellow-100 text-yellow-700 border border-yellow-300 font-bold';
@@ -2819,6 +2823,11 @@ if(currentSysName === 'ERP') {
 
                                 htmlStr += `<button onclick="closeOrder('${oId}')" class="w-20 bg-red-700 text-white py-1 rounded font-bold shadow animate-pulse">🔒 結案</button>`;
 
+                            }
+                            // 【新增】當遇到「已停工」時，提供退回重工或強制結案的選項
+                            else if (status === '已停工') {
+                                htmlStr += `<button onclick="generateWoPDF('${oId}')" class="w-20 bg-gray-600 text-white py-1 rounded font-bold shadow">🖨️ 印工單</button>`;
+                                htmlStr += `<button onclick="closeOrder('${oId}')" class="w-20 bg-red-700 text-white py-1 rounded font-bold shadow animate-pulse">🔒 異常結案</button>`;
                             }
 
                             // 將串接完的按鈕群填入 Slot 1，並將其餘槽位釋放清空，防止前端渲染崩潰
