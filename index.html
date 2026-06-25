@@ -180,6 +180,8 @@
 
                 <div class="flex items-center gap-2 w-full md:w-auto" id="headerActions">
 
+                    <label class="flex items-center gap-1 text-xs font-bold text-gray-500"><input type="checkbox" id="hideClosedOrder" checked onchange="renderTable(currentTableData, userOpAuth.includes(currentSysName), userEditAuth.includes(currentSysName))"> 隱藏已結案 </label>
+                    
                     <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="輸入關鍵字模糊搜尋..." class="w-full md:w-48 p-2 border border-moBorder rounded text-sm focus:outline-none focus:ring-1 focus:ring-moSide transition-all">
 
                     <button id="refreshBtn" onclick="refreshSystem()" class="hidden bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded text-sm transition-colors whitespace-nowrap">↻ 刷新</button>
@@ -688,7 +690,7 @@
 
             '設備狀態LOG': { table: 'equipment_logs', pk: 'created_at', fields: { '時間': 'created_at', '工序編號': 'machine_id', '設備狀態': 'status', '操作人': 'operator_name', '備註': 'remark' }},
 
-            '物料庫存': { table: 'materials', pk: 'material_id', fields: { '物料編號': 'material_id', '類別': 'category', '品名': 'material_name', '規格': 'material_spec', '尺寸': 'size_dimension', '單位': 'unit', '目前庫存': 'stock_qty', '安全庫存': 'safe_stock_qty', '存放位置': 'location', '供應商': 'supplier_name', '供應商編號': 'supplier_id', '內價': 'cost_price', '售價': 'sell_price' }},   
+            '物料庫存': { table: 'materials', pk: 'material_id', fields: { '物料編號': 'material_id', '類別': 'category', '品名': 'material_name', '規格': 'material_spec', '供應商': 'supplier_name', '供應商編號': 'supplier_id', '尺寸': 'size_dimension', '單位': 'unit', '目前庫存': 'stock_qty', '安全庫存': 'safe_stock_qty', '存放位置': 'location', '內價': 'cost_price', '售價': 'sell_price' }},   
 
             '領料紀錄LOG': { table: 'deduct_logs', pk: 'created_at', fields: { '時間': 'created_at', '訂單編號': 'order_id', '物料編號': 'material_id', '領料數量': 'quantity', '操作人': 'operator_name' }},
 
@@ -1897,8 +1899,12 @@
         function renderTable(data, hasOpAuth, hasEditAuth) {
 
             const container = document.getElementById('tableContainer');
+            const hideClosed = document.getElementById('hideClosedOrder')?.checked;
 
-            currentTableData = data || [];
+            currentTableData = (data || []).filter(row => {
+            if (hideClosed && row['訂單狀態'] === '已結案') return false;
+            return true;
+            });
 
             
 
