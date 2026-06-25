@@ -1001,22 +1001,35 @@
                     },
 
                     // 5. 標準新增資料
-
-                    addSheetData: async function(sheetName, rowDataObj, operatorName) {
-
-                        let config = schemaMaps[sheetName]; let dbRow = toEnglishRow(sheetName, rowDataObj);
-
-                        let dateStr = new Date().toISOString().slice(2,10).replace(/-/g,'');
-
-                        if (sheetName === '訂單管理') { dbRow.order_id = 'C' + dateStr + String(Math.floor(Math.random()*900)+100); dbRow.status = '估算中'; }
-
-                        if (sheetName === '補貨申請LOG') { dbRow.replenish_id = 'B' + dateStr + String(Math.floor(Math.random()*900)+100); dbRow.status = '處理中'; }
-
-                        await sbClient.from(config.table).insert([dbRow]);
-
-                        this.getSheetData(sheetName);
-
-                    },
+addSheetData: async function(sheetName, rowDataObj, operatorName) {
+    let config = schemaMaps[sheetName]; let dbRow = toEnglishRow(sheetName, rowDataObj);
+    let dateStr = new Date().toISOString().slice(2,10).replace(/-/g,'');
+    
+    // 【修復】動態向資料庫查詢當日最大流水號，不再使用亂數
+    if (sheetName === '訂單管理') { 
+        let { data: ords } = await sbClient.from('orders').select('order_id').like('order_id', `C${dateStr}%`);
+        let nextSeq = 1;
+        if (ords && ords.length > 0) {
+            let maxSeq = Math.max(...ords.map(o => parseInt(o.order_id.replace('C'+dateStr, ''), 10) || 0));
+            nextSeq = maxSeq + 1;
+        }
+        dbRow.order_id = 'C' + dateStr + String(nextSeq).padStart(3, '0');
+        dbRow.status = '估算中'; 
+    }
+    if (sheetName === '補貨申請LOG') { 
+        let { data: reps } = await sbClient.from('replenish_logs').select('replenish_id').like('replenish_id', `B${dateStr}%`);
+        let nextSeq = 1;
+        if (reps && reps.length > 0) {
+            let maxSeq = Math.max(...reps.map(o => parseInt(o.replenish_id.replace('B'+dateStr, ''), 10) || 0));
+            nextSeq = maxSeq + 1;
+        }
+        dbRow.replenish_id = 'B' + dateStr + String(nextSeq).padStart(3, '0');
+        dbRow.status = '處理中'; 
+    }
+    
+    await sbClient.from(config.table).insert([dbRow]);
+    this.getSheetData(sheetName);
+},
 
                     // 6. 標準更新資料
 
@@ -1184,6 +1197,35 @@ if(mat && mat[0]) {
                             this.successHandler({ success: true, msg: "🎉 此訂單所有排程工序皆已完成！工單正式結案轉交出貨。" });
                         }
                     },
+
+                    // MES 機台停工與退料登記
+stopWorkOrder: async function(woId, orderId, machine, reason, outQty, returnMats, operatorName) {
+    let d = new Date(); let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
+    
+    // 1. 處理退料回庫 (有退料才執行)
+    for(let rm of (returnMats || [])) {
+        let { data: m } = await sbClient.from('materials').select('stock_qty').eq('material_id', rm.id);
+        if(m && m[0]) {
+            await sbClient.from('materials').update({ stock_qty: (parseFloat(m[0].stock_qty)||0) + parseFloat(rm.qty) }).eq('material_id', rm.id);
+            await sbClient.from('restock_logs').insert([{ created_at: ts, material_id: rm.id, quantity: rm.qty, supplier_name: '停工退料', operator_name: operatorName, replenish_id: orderId, vendor_invoice_id: '停工退料' }]);
+        }
+    }
+
+    // 2. 更新工單狀態與產出量
+    let { data: wo } = await sbClient.from('work_orders').select('process_details, current_step_index').eq('wo_id', woId);
+    let steps = wo[0]?.process_details || [];
+    if (typeof steps === 'string') { try { steps = JSON.parse(steps); } catch(e) { steps = []; } }
+    let currIdx = parseInt(wo[0]?.current_step_index) || 0;
+    if (steps[currIdx]) steps[currIdx].outQty = outQty;
+
+    await sbClient.from('work_orders').update({ status: '已停工', stop_reason: reason, output_qty: outQty, process_details: JSON.stringify(steps) }).eq('wo_id', woId);
+    
+    // 3. 更新機台狀態與 Log
+    await sbClient.from('equipment_status').update({ status: '掛修', repair_remark: reason }).eq('machine_id', machine);
+    await sbClient.from('equipment_logs').insert([{ created_at: ts, machine_id: machine, status: '停工/掛修', operator_name: operatorName, remark: reason }]);
+
+    this.successHandler({ success: true });
+},
 
 
 
@@ -3542,19 +3584,24 @@ console.log("正在送出的配料明細:", matArr);
         }
 
         // 自動帶入 ERP 價格引擎
-        window.autoFillPrice = function(inputEl) {
-            let val = inputEl.value;
-            let matId = val.split(' - ')[0];
-            let matData = (currentDropdowns['物料編號'] || []).find(m => m.id === matId);
-            if(matData) {
-                let row = inputEl.closest('.mat-row');
-                let costInput = row.querySelector('.mat-cost');
-                let sellInput = row.querySelector('.mat-sell');
-                // 只有在空的時候才自動填入，避免蓋掉你手動修改的價格
-                if(costInput.value === '') costInput.value = matData.price;
-                if(sellInput.value === '') sellInput.value = matData.sellPrice;
-            }
-        };
+window.autoFillPrice = function(inputEl) {
+    let val = inputEl.value;
+    let matId = val.split(' - ')[0];
+    let matData = (currentDropdowns['物料編號'] || []).find(m => m.id === matId);
+    if(matData) {
+        let row = inputEl.closest('.mat-row');
+        let costInput = row.querySelector('.mat-cost');
+        let sellInput = row.querySelector('.mat-sell');
+        
+        // 只有在空的時候才自動填入，且如果價格是 0 就保持空白
+        if(costInput.value === '') {
+            costInput.value = (matData.price && matData.price !== 0) ? matData.price : '';
+        }
+        if(sellInput.value === '') {
+            sellInput.value = (matData.sellPrice && matData.sellPrice !== 0) ? matData.sellPrice : '';
+        }
+    }
+};
 
         // ================= 新增配料行 (加入實際需扣量與動態價格輸入) =================
         function addMatRow(matId = '', baseQty = '', matName = '', note = '', cost = '', sell = '') {
