@@ -1363,22 +1363,24 @@ if(mat && mat[0]) {
                     // EIP 專屬交接發布與刪除
 
                     addHandover: async function(content, priority, assignee, imageBase64, creator) {
+    let ts = new Date().toISOString(); // 強烈建議用 ISO 字串格式，Supabase 對此支援度最高
+    
+    // 檢查欄位與 schemaMaps 定義
+    const { data, error } = await sbClient.from('handovers').insert([{ 
+        content: content, 
+        priority: priority, 
+        creator: creator, 
+        created_at: ts, 
+        image_url: imageBase64 || "", // 確認這裡是空字串而非 null
+        assignee: assignee 
+    }]);
 
-                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
-
-                        await sbClient.from('handovers').insert([{ content: content, priority: priority, creator: creator, created_at: ts, image_url: imageBase64 || "", assignee: assignee }]);
-
-                        this.successHandler({ success: true });
-
-                    },
-
-                    deleteHandover: async function(timeId, operatorName) {
-
-                        await sbClient.from('handovers').delete().eq('created_at', timeId);
-
-                        this.successHandler({ success: true });
-
-                    },
+    if (error) {
+        console.error("Supabase 寫入錯誤:", error);
+        // 這會告訴你錯誤細節 (例如: column "image_url" does not exist)
+    }
+    this.successHandler({ success: !error });
+},
 
 
 
