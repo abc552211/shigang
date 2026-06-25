@@ -374,11 +374,9 @@
 
 
 
-    <div id="pdfWrapper" class="fixed top-0 left-0 w-full h-full -z-50 pointer-events-none opacity-0 overflow-hidden">
-
-        <div id="pdfContent" class="bg-white text-black p-8" style="width: 190mm; font-family: '微軟正黑體', sans-serif;"></div>
-
-    </div>
+    <div id="pdfWrapper" style="position: fixed; top: 0; left: -10000px; width: 190mm; z-index: -9999; pointer-events: none;">
+    <div id="pdfContent" class="bg-white text-black p-8" style="width: 190mm; font-family: '微軟正黑體', sans-serif;"></div>
+</div>
 
 
 
@@ -5020,6 +5018,42 @@ function compressImage(file, maxWidth, maxHeight, quality, callback) {
         img.src = e.target.result;
     };
     reader.readAsDataURL(file);
+}
+
+        function execHTML2PDF(htmlContent, filename) {
+    const element = document.getElementById('pdfContent');
+    element.innerHTML = htmlContent;
+    
+    // 1. 建立視覺提示，避免使用者以為當機重複點擊
+    let loadingEl = document.createElement('div');
+    loadingEl.id = 'pdfLoadingToast';
+    loadingEl.className = 'fixed top-10 left-1/2 transform -translate-x-1/2 bg-moSide text-white px-6 py-3 rounded-lg shadow-2xl z-[9999] flex items-center gap-3 font-bold tracking-wider';
+    loadingEl.innerHTML = '<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> 正在生成 PDF，請稍候...';
+    document.body.appendChild(loadingEl);
+
+    // 2. 設定參數，開啟 useCORS 允許 Supabase 跨域圖片渲染
+    const opt = { 
+        margin: 10, 
+        filename: filename, 
+        image: { type: 'jpeg', quality: 0.98 }, 
+        html2canvas: { 
+            scale: 2, 
+            useCORS: true, // 解除跨域圖片限制的核心銀彈
+            logging: false
+        }, 
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
+    };
+
+    // 3. 執行輸出並確實捕捉潛在錯誤
+    html2pdf().set(opt).from(element).save().then(() => {
+        const toast = document.getElementById('pdfLoadingToast');
+        if(toast) toast.remove();
+    }).catch(err => {
+        console.error("PDF 輸出錯誤:", err);
+        alert("PDF 生成失敗，請確認網路狀態或稍後再試：" + err);
+        const toast = document.getElementById('pdfLoadingToast');
+        if(toast) toast.remove();
+    });
 }
     </script>
     <div id="changePwdModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4">
