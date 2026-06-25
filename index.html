@@ -1362,24 +1362,35 @@ if(mat && mat[0]) {
 
                     // EIP 專屬交接發布與刪除
 
-                    addHandover: async function(content, priority, assignee, imageBase64, creator) {
-    let ts = new Date().toISOString(); // 強烈建議用 ISO 字串格式，Supabase 對此支援度最高
+                    // 修改後的 addHandover 函數
+addHandover: async function(content, priority, assignee, imageBase64, creator) {
+    let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
     
-    // 檢查欄位與 schemaMaps 定義
-    const { data, error } = await sbClient.from('handovers').insert([{ 
+    // 1. 寫入主交接表
+    const { error: mainError } = await sbClient.from('handovers').insert([{ 
         content: content, 
         priority: priority, 
         creator: creator, 
         created_at: ts, 
-        image_url: imageBase64 || "", // 確認這裡是空字串而非 null
+        image_url: imageBase64 || "", 
         assignee: assignee 
     }]);
 
-    if (error) {
-        console.error("Supabase 寫入錯誤:", error);
-        // 這會告訴你錯誤細節 (例如: column "image_url" does not exist)
+    // 2. 如果主表寫入成功，立即寫入 LOG 表
+    if (!mainError) {
+        const { error: logError } = await sbClient.from('handovers_log').insert([{ 
+            created_at: ts, 
+            action: '新增交接', 
+            content: content, 
+            operator_name: creator 
+        }]);
+        
+        if (logError) console.error("LOG 寫入失敗:", logError);
+    } else {
+        console.error("主表寫入失敗:", mainError);
     }
-    this.successHandler({ success: !error });
+
+    this.successHandler({ success: !mainError });
 },
 
 
