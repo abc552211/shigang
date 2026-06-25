@@ -3449,26 +3449,26 @@ if(currentSysName === 'ERP') {
             let matArr = [];
             // 這裡必須正確抓取每一行的 input 元素
             document.querySelectorAll('.mat-row').forEach(row => {
-    let input = row.querySelector('.mat-sel-input');
-    let qtyInput = row.querySelector('.mat-qty');
-    let noteInput = row.querySelector('.mat-note');
+            let input = row.querySelector('.mat-sel-input');
+            let qtyInput = row.querySelector('.mat-qty');
+            let noteInput = row.querySelector('.mat-note');
     
-    // 【關鍵檢查】這兩行必須要在這個 {} 內被宣告，且 row 對象是正確的
-    let costInput = row.querySelector('.mat-cost');
-    let sellInput = row.querySelector('.mat-sell');
+        // 【關鍵檢查】這兩行必須要在這個 {} 內被宣告，且 row 對象是正確的
+            let costInput = row.querySelector('.mat-cost');
+            let sellInput = row.querySelector('.mat-sell');
     
-    if(input && qtyInput && costInput && sellInput) {
-        matArr.push({ 
-            id: input.value.split(' - ')[0],
-            qty: row.getAttribute('data-actual-qty') || '0', 
-            baseQty: qtyInput.value || '0', 
-            note: noteInput ? noteInput.value : '',
-            cost: parseFloat(costInput.value) || 0,
-            sell: parseFloat(sellInput.value) || 0,
-            customName: input.value
-        });
-    }
-});
+            if(input && qtyInput && costInput && sellInput) {
+                matArr.push({ 
+                    id: input.value.split(' - ')[0],
+                    qty: row.getAttribute('data-actual-qty') || '0', 
+                    baseQty: qtyInput.value || '0', 
+                    note: noteInput ? noteInput.value : '',
+                    cost: parseFloat(costInput.value) || 0,
+                    sell: parseFloat(sellInput.value) || 0,
+                    customName: input.value
+                    });
+                }
+            });
 
 
 // 送出前檢查
