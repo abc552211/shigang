@@ -2011,43 +2011,29 @@ deleteHandover: async function(id, operatorName) {
 
 
                 // 1. 內部公告 ─ 完美置頂
-
                 if (currentTableData.length > 0) {
-
                      eipHtml += `<div class="mb-6 border border-blue-200 rounded-lg overflow-hidden shadow-sm">
-
                                     <div class="bg-blue-50 text-blue-800 font-bold p-3 border-b border-blue-200">📢 內部公告</div>
-
                                     <ul class="divide-y divide-gray-100 m-0 p-0">`;
-
                      currentTableData.forEach((row, idx) => {
-
-                         let content = row['公告內容'] || row['內容'] || row['主旨'] || '';
-
-                         let date = row['公告日期'] || row['日期'] || '';
-
+                         // 【修正】精準抓取標題與內容
+                         let title = row['標題'] || '';
+                         let content = row['內容'] || row['公告內容'] || row['主旨'] || '';
+                         let date = row['發布日期'] || row['公告日期'] || row['日期'] || '';
                          let editBtnHtml = hasEditAuth ? `<button onclick="openModal(${idx})" class="text-moSide hover:text-black font-bold text-xs ml-3 border border-moBorder px-2 py-0.5 rounded bg-gray-50 shadow-sm transition-colors">📝 編輯</button>` : '';
-
                          
+                         // 【關鍵新增】將標題用 [] 包覆，並加上藍色粗體強調
+                         let displayTitle = title ? `<span class="text-blue-700 font-bold tracking-wider">[${title}]</span> ` : '';
 
                          eipHtml += `<li class="p-3 bg-white hover:bg-blue-50 transition-colors flex justify-between items-center list-none">
-
-                            <span class="text-gray-700 font-semibold">${content}</span>
-
-                            <div class="flex items-center gap-1">
-
+                            <span class="text-gray-700 font-medium leading-relaxed">${displayTitle}${content}</span>
+                            <div class="flex items-center gap-1 flex-shrink-0 ml-4">
                                 <span class="text-xs text-gray-400 font-mono">${date}</span>
-
                                 ${editBtnHtml}
-
                             </div>
-
                          </li>`;
-
                      });
-
                      eipHtml += `</ul></div>`;
-
                 }
 
 
