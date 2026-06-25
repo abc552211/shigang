@@ -3371,7 +3371,7 @@ if(currentSysName === 'ERP') {
         // 綁定全域暫存變數以回傳後端累加總金額
         window.currentMatTotalSell = 0;
 
-        // ================= 動態價格與智慧金額自動精算 =================
+        // ================= 智慧金額自動精算 (全數取至小數點第二位) =================
         const originalCalcMatCost = calcMatCost;
         calcMatCost = function() {
             let targetQty = parseFloat(document.getElementById('estTargetQty').value) || 1;
@@ -3379,7 +3379,9 @@ if(currentSysName === 'ERP') {
             let prodQty = Math.ceil(targetQty / (yieldRate / 100));
             document.getElementById('estQty').value = prodQty;
 
-            let matTotalCost = 0; let matTotalSell = 0;
+            let matTotalCost = 0; 
+            let matTotalSell = 0;
+
             document.querySelectorAll('.mat-row').forEach(row => {
                 const input = row.querySelector('.mat-sel-input'); 
                 const qtyInput = row.querySelector('.mat-qty');
@@ -3393,22 +3395,24 @@ if(currentSysName === 'ERP') {
                     if(displayQty) displayQty.innerText = actualQ;
                     row.setAttribute('data-actual-qty', actualQ);
 
-                    let price = parseFloat(costInput.value) || 0;
+                    let costPrice = parseFloat(costInput.value) || 0;
                     let sellPrice = parseFloat(sellInput.value) || 0;
                     
-                    matTotalCost += (price * actualQ); 
+                    // 使用 Math.round(val * 100) / 100 來確保兩位小數
+                    matTotalCost += (costPrice * actualQ); 
                     matTotalSell += (sellPrice * actualQ);
                 } else {
                     if(displayQty) displayQty.innerText = '0';
                     row.removeAttribute('data-actual-qty');
                 }
             });
-            window.currentMatTotalSell = matTotalSell;
-            document.getElementById('matTotalCost').innerText = matTotalCost.toLocaleString();
+
+            // 更新介面顯示 (使用 .toFixed(2) 強制格式化)
+            document.getElementById('matTotalCost').innerText = matTotalCost.toFixed(2);
             
-            let autoUnitPrice = Math.round(matTotalSell / targetQty) || 0;
+            let autoUnitPrice = targetQty > 0 ? (matTotalSell / targetQty) : 0;
             if(document.getElementById('matActionType').value === 'estimate') {
-                document.getElementById('estUnitPrice').innerText = "$ " + autoUnitPrice.toLocaleString();
+                document.getElementById('estUnitPrice').innerText = "$ " + autoUnitPrice.toFixed(2);
             }
             
             let currentUnitPrice = parseFloat(document.getElementById('estUnitPrice').innerText.replace(/[^0-9.-]+/g,"")) || autoUnitPrice;
@@ -3420,10 +3424,16 @@ if(currentSysName === 'ERP') {
             let totalCost = matTotalCost + fCost;
             let netProfit = totalRevenue - totalCost;
 
-            document.getElementById('estTotalProductSum').innerText = "$ " + productSum.toLocaleString();
+            // 最終總計顯示保留兩位小數
+            document.getElementById('estTotalProductSum').innerText = "$ " + productSum.toFixed(2);
             let profitEl = document.getElementById('estEstProfit');
-            profitEl.innerText = "$ " + netProfit.toLocaleString();
+            profitEl.innerText = "$ " + netProfit.toFixed(2);
+            
+            // 處理樣式
             profitEl.className = netProfit >= 0 ? "text-green-600 font-bold text-xl leading-relaxed" : "text-red-600 font-bold text-xl leading-relaxed";
+            
+            // 寫入全域變數供結算使用
+            window.currentMatTotalSell = matTotalSell;
         };
 
         // 升級送出數據封裝
