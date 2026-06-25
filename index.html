@@ -1362,31 +1362,23 @@ if(mat && mat[0]) {
 
                     // EIP 專屬交接發布與刪除
 
-                    // 請確保這是最新的 addHandover 邏輯
-addHandover: async function(content, priority, assignee, imageBase64, creator) {
-    let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
-    
-    // 寫入主表
-    const { error: mainError } = await sbClient.from('handovers').insert([{ 
-        content: content, 
-        priority: priority, 
-        creator: creator, 
-        created_at: ts, 
-        image_url: imageBase64 || "", 
-        assignee: assignee 
-    }]);
+                    addHandover: async function(content, priority, assignee, imageBase64, creator) {
 
-    if (!mainError) {
-        // 寫入 LOG 表，明確寫入「新增」動作
-        await sbClient.from('handovers_log').insert([{ 
-            created_at: ts, 
-            action: '新增', 
-            content: content, 
-            operator_name: creator 
-        }]);
-    }
-    this.successHandler({ success: !mainError });
-},
+                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+
+                        await sbClient.from('handovers').insert([{ content: content, priority: priority, creator: creator, created_at: ts, image_url: imageBase64 || "", assignee: assignee }]);
+
+                        this.successHandler({ success: true });
+
+                    },
+
+                    deleteHandover: async function(timeId, operatorName) {
+
+                        await sbClient.from('handovers').delete().eq('created_at', timeId);
+
+                        this.successHandler({ success: true });
+
+                    },
 
 
 
@@ -3272,34 +3264,12 @@ if(currentSysName === 'ERP') {
             btn.innerHTML = '<span class="btn-spinner"></span>發布中'; btn.disabled = true;
             google.script.run.withSuccessHandler(res => { closeModal('handoverModal'); refreshSystem(); btn.innerHTML = '新增發布'; btn.disabled = false; }).withFailureHandler(err => { alert('系統異常：'+err); btn.innerHTML = '新增發布'; btn.disabled = false; }).addHandover(content, prio, assignee, hoImageBase64, op); 
         }
-        async function doDeleteHandover(timeId, btn) {
-    if(!confirm("確定要刪除這筆交接嗎？")) return;
-    const op = document.getElementById('userNameDisplay').innerText;
-    
-    btn.disabled = true;
-    btn.innerHTML = '<span class="btn-spinner-red"></span>';
-
-    // 直接改為使用 Supabase 呼叫
-    const { error } = await sbClient
-        .from('handovers')
-        .delete()
-        .eq('created_at', timeId);
-
-    if (error) {
-        alert('刪除失敗：' + error.message);
-        btn.innerHTML = '&times;';
-        btn.disabled = false;
-    } else {
-        // 同時寫入 LOG (呼叫我們剛修好的 LOG 邏輯)
-        await sbClient.from('handovers_log').insert([{ 
-            created_at: new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }), 
-            action: '刪除', 
-            content: '已刪除紀錄', 
-            operator_name: op 
-        }]);
-        refreshSystem();
-    }
-}
+        function doDeleteHandover(timeId, btn) {
+            if(!confirm("確定要刪除這筆交接嗎？")) return;
+            const op = document.getElementById('userNameDisplay').innerText;
+            const originText = btn.innerHTML; btn.innerHTML = '<span class="btn-spinner-red"></span>'; btn.disabled = true;
+            google.script.run.withSuccessHandler(res => { refreshSystem(); }).withFailureHandler(err => { alert('系統異常：'+err); btn.innerHTML = originText; btn.disabled = false; }).deleteHandover(timeId, op);
+        }
 
         function buildReturnMatList(containerId, orderId) {
             const container = document.getElementById(containerId); container.innerHTML = '';
@@ -3479,26 +3449,26 @@ if(currentSysName === 'ERP') {
             let matArr = [];
             // 這裡必須正確抓取每一行的 input 元素
             document.querySelectorAll('.mat-row').forEach(row => {
-            let input = row.querySelector('.mat-sel-input');
-            let qtyInput = row.querySelector('.mat-qty');
-            let noteInput = row.querySelector('.mat-note');
+    let input = row.querySelector('.mat-sel-input');
+    let qtyInput = row.querySelector('.mat-qty');
+    let noteInput = row.querySelector('.mat-note');
     
-        // 【關鍵檢查】這兩行必須要在這個 {} 內被宣告，且 row 對象是正確的
-            let costInput = row.querySelector('.mat-cost');
-            let sellInput = row.querySelector('.mat-sell');
+    // 【關鍵檢查】這兩行必須要在這個 {} 內被宣告，且 row 對象是正確的
+    let costInput = row.querySelector('.mat-cost');
+    let sellInput = row.querySelector('.mat-sell');
     
-            if(input && qtyInput && costInput && sellInput) {
-                matArr.push({ 
-                    id: input.value.split(' - ')[0],
-                    qty: row.getAttribute('data-actual-qty') || '0', 
-                    baseQty: qtyInput.value || '0', 
-                    note: noteInput ? noteInput.value : '',
-                    cost: parseFloat(costInput.value) || 0,
-                    sell: parseFloat(sellInput.value) || 0,
-                    customName: input.value
-                    });
-                }
-            });
+    if(input && qtyInput && costInput && sellInput) {
+        matArr.push({ 
+            id: input.value.split(' - ')[0],
+            qty: row.getAttribute('data-actual-qty') || '0', 
+            baseQty: qtyInput.value || '0', 
+            note: noteInput ? noteInput.value : '',
+            cost: parseFloat(costInput.value) || 0,
+            sell: parseFloat(sellInput.value) || 0,
+            customName: input.value
+        });
+    }
+});
 
 
 // 送出前檢查
