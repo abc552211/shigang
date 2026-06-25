@@ -1361,16 +1361,58 @@ if(mat && mat[0]) {
 
 
                     // EIP 專屬交接發布與刪除
+addHandover: async function(content, priority, assignee, imageBase64, creator) {
+    // 【修正 1】轉換為標準 ISO 時間格式 (YYYY-MM-DD HH:mm:ss)，徹底避免 400 Bad Request
+    let d = new Date();
+    let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
 
-                    addHandover: async function(content, priority, assignee, imageBase64, creator) {
+    // 寫入主表
+    let { error } = await sbClient.from('handovers').insert([{ 
+        content: content, 
+        priority: priority, 
+        creator: creator, 
+        created_at: ts, 
+        image_url: imageBase64 || "", 
+        assignee: assignee 
+    }]);
 
-                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+    if (error) {
+        console.error("交接新增失敗:", error);
+        return this.failureHandler(error.message);
+    }
 
-                        await sbClient.from('handovers').insert([{ content: content, priority: priority, creator: creator, created_at: ts, image_url: imageBase64 || "", assignee: assignee }]);
+    // 【修正 2】同步寫入 LOG 表紀錄
+    await sbClient.from('handovers_log').insert([{
+        created_at: ts,
+        action: '新增',
+        content: `發布給[${assignee}]: ${content.substring(0, 20)}...`,
+        operator_name: creator
+    }]);
 
-                        this.successHandler({ success: true });
+    this.successHandler({ success: true });
+},
 
-                    },
+deleteHandover: async function(timeId, operatorName) {
+    // 為了 LOG 完整性，先撈出這筆交接的內容
+    let { data: ho } = await sbClient.from('handovers').select('content').eq('created_at', timeId);
+    let contentStr = (ho && ho.length > 0) ? ho[0].content : '未知內容';
+
+    // 執行刪除主表
+    await sbClient.from('handovers').delete().eq('created_at', timeId);
+
+    // 【修正 2】同步寫入 LOG 表紀錄
+    let d = new Date();
+    let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
+
+    await sbClient.from('handovers_log').insert([{
+        created_at: ts,
+        action: '刪除',
+        content: `刪除交接 (原發布時間: ${timeId}): ${contentStr.substring(0, 20)}...`,
+        operator_name: operatorName
+    }]);
+
+    this.successHandler({ success: true });
+},
 
                     deleteHandover: async function(timeId, operatorName) {
 
