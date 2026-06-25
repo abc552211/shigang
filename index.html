@@ -1116,121 +1116,75 @@ if(mat && mat[0]) {
 
                     // OMS 工序規劃紀錄保存
 
+                    // OMS 工序規劃紀錄保存
                     saveProcessPlan: async function(orderId, planSteps) {
-
-                        await sbClient.from('orders').update({ process_plan: planSteps, status: '待扣料' }).eq('order_id', orderId);
-
+                        // 【修正】強制轉為 JSON 字串存入
+                        await sbClient.from('orders').update({ process_plan: JSON.stringify(planSteps), status: '待扣料' }).eq('order_id', orderId);
                         this.successHandler({ success: true, msg: "📋 工序规划已儲存！訂單狀態已推進至 [待扣料]。" });
-
                     },
-
-
 
                     // OMS 啟動生產與 MES 工單自動流轉
-
                     startProductionWO: async function(orderId, operatorName) {
-
                         let { data: ord } = await sbClient.from('orders').select('*').eq('order_id', orderId);
-
                         if(!ord || ord.length===0) return alert("找不到此訂單");
-
+                        
+                        // 【修正】安全地解開 JSON 字串，確保 steps 絕對是個陣列
                         let steps = ord[0].process_plan || [];
-
+                        if (typeof steps === 'string') { try { steps = JSON.parse(steps); } catch(e) { steps = []; } }
+                        
                         if(steps.length===0) return alert("此單尚未進行工序規劃！");
-
                         
-
                         let dateStr = new Date().toISOString().slice(2,10).replace(/-/g,'');
-
                         let woId = 'P' + dateStr + String(Math.floor(Math.random()*900)+100);
-
                         
-
-                        // 寫入生產工單主表
-
+                        // 【修正】寫入 process_details 時也要強制轉回 JSON 字串
                         await sbClient.from('work_orders').insert([{
-
                             wo_id: woId, order_id: orderId, product_name: ord[0].product_name, status: '生產中', is_urgent: ord[0].is_urgent,
-
                             current_process: steps[0].name, machine_id: steps[0].mac, emp_name: steps[0].emp, completed_at: steps[0].endDate,
-
-                            process_details: steps, current_step_index: 0, output_qty: 0
-
+                            process_details: JSON.stringify(steps), current_step_index: 0, output_qty: 0
                         }]);
-
                         
-
                         await sbClient.from('orders').update({ status: '生產中' }).eq('order_id', orderId);
-
                         this.successHandler({ success: true, msg: "🚀 產線核准！單一工單已啟動，正式投入生產。" });
-
                     },
-
-
 
                     // MES 工序完工進度推移與最終刷新
-
                     completeWorkOrder: async function(woId, orderId, outQty, returnMats, operatorName) {
-
                         let { data: wo } = await sbClient.from('work_orders').select('*').eq('wo_id', woId);
-
+                        
+                        // 【修正】安全解開陣列
                         let steps = wo[0].process_details || [];
-
+                        if (typeof steps === 'string') { try { steps = JSON.parse(steps); } catch(e) { steps = []; } }
+                        
                         let currIdx = parseInt(wo[0].current_step_index) || 0;
-
                         let nextIdx = currIdx + 1;
-
-                        steps[currIdx].outQty = outQty;
-
-
+                        if(steps[currIdx]) steps[currIdx].outQty = outQty;
 
                         // 處理退料回庫
-
                         let d = new Date(); let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
-
                         for(let rm of (returnMats || [])) {
-
                             let { data: m } = await sbClient.from('materials').select('stock_qty').eq('material_id', rm.id);
-
                             if(m && m[0]) {
-
                                 await sbClient.from('materials').update({ stock_qty: (parseFloat(m[0].stock_qty)||0) + parseFloat(rm.qty) }).eq('material_id', rm.id);
-
                                 await sbClient.from('restock_logs').insert([{ created_at: ts, material_id: rm.id, quantity: rm.qty, supplier_name: '廠內退料', operator_name: operatorName, replenish_id: orderId, vendor_invoice_id: '完工退料' }]);
-
                             }
-
                         }
-
-
 
                         if (nextIdx < steps.length) {
-
-                            // 推進到下一道工序
-
+                            // 推進到下一道工序，寫回轉 JSON
                             await sbClient.from('work_orders').update({
-
                                 current_step_index: nextIdx, current_process: steps[nextIdx].name, machine_id: steps[nextIdx].mac,
-
-                                emp_name: steps[nextIdx].emp, completed_at: steps[nextIdx].endDate, process_details: steps
-
+                                emp_name: steps[nextIdx].emp, completed_at: steps[nextIdx].endDate, process_details: JSON.stringify(steps)
                             }).eq('wo_id', woId);
-
                             this.successHandler({ success: true, msg: "🏁 前段工序已完成！工單推進至下一工序 [" + steps[nextIdx].name + "]。" });
-
                         } else {
-
-                            // 全工序完工，自動觸發結案搬移
-
-                            await sbClient.from('work_orders').update({ status: '已完工', process_details: steps, output_qty: outQty }).eq('wo_id', woId);
-
+                            // 全工序完工，寫回轉 JSON
+                            await sbClient.from('work_orders').update({ status: '已完工', process_details: JSON.stringify(steps), output_qty: outQty }).eq('wo_id', woId);
                             await sbClient.from('orders').update({ status: '製作完成', output_qty: outQty }).eq('order_id', orderId);
-
                             this.successHandler({ success: true, msg: "🎉 此訂單所有排程工序皆已完成！工單正式結案轉交出貨。" });
-
                         }
-
                     },
+
 
 
 
@@ -2656,56 +2610,34 @@ if(currentSysName === 'ERP') {
 
 
                         // ================= 【一單到底：JSON工序明細深度解析追蹤】 =================
-
-                        let woLogs = currentAllWos.filter(w => w['關聯訂單'] === row['訂單編號']);
-
-                        if(woLogs.length > 0) {
-
-                            let woRows = '';
-
-                            woLogs.forEach(w => {
-
-                                var steps = []; try { steps = JSON.parse(w['工序明細'] || "[]"); } catch(e){}
-
-                                let currentIdx = parseInt(w['當前進度索引']) || 0;
-
-                                let globalWoStatus = w['工單狀態'];
-
-                                if (steps.length > 0) {
-
-                                    steps.forEach((s, idx) => {
-
-                                        let stepStatus = '等待中';
-
-                                        if (globalWoStatus === '已完工' || globalWoStatus === '已出貨' || idx < currentIdx) stepStatus = '已完工';
-
-                                        else if (idx === currentIdx && globalWoStatus === '生產中') stepStatus = '生產中';
-
-                                        else if (idx === currentIdx && globalWoStatus === '已停工') stepStatus = '已停工';
-
-                                        let statusColor = stepStatus === '已完工' ? 'text-green-600 font-bold' : (stepStatus === '生產中' ? 'text-blue-600 font-bold animate-pulse' : (stepStatus === '已停工' ? 'text-red-600 font-bold' : 'text-gray-400'));
-
-                                        
-
-                                        woRows += `<tr class="hover:bg-indigo-50 transition-colors">
-
-                                            <td class="p-2 border-b border-gray-200 text-center font-bold text-gray-500">${idx + 1}</td>
-
-                                            <td class="p-2 border-b border-gray-200 font-bold text-moSide">${s.name} <br><span class="text-[10px] font-normal text-gray-400">工序機台: ${s.mac}</span></td>
-
-                                            <td class="p-2 border-b border-gray-200 text-center">${s.emp}</td>
-
-                                            <td class="p-2 border-b border-gray-200 text-center ${statusColor}">${stepStatus}</td>
-
-                                            <td class="p-2 border-b border-gray-200 text-center text-xs text-gray-500 font-mono">${s.date}</td>
-
-                                        </tr>`;
-
-                                    });
-
-                                }
-
-                            });
+        let woLogs = currentAllWos.filter(w => w['關聯訂單'] === row['訂單編號']);
+        if(woLogs.length > 0) {
+            let woRows = '';
+            woLogs.forEach(w => {
+                var steps = []; try { steps = JSON.parse(w['工序明細'] || "[]"); } catch(e){}
+                let currentIdx = parseInt(w['當前進度索引']) || 0;
+                let globalWoStatus = w['工單狀態'];
+                if (steps.length > 0) {
+                    steps.forEach((s, idx) => {
+                        let stepStatus = '等待中';
+                        if (globalWoStatus === '已完工' || globalWoStatus === '已出貨' || idx < currentIdx) stepStatus = '已完工';
+                        else if (idx === currentIdx && globalWoStatus === '生產中') stepStatus = '生產中';
+                        else if (idx === currentIdx && globalWoStatus === '已停工') stepStatus = '已停工';
+                        let statusColor = stepStatus === '已完工' ? 'text-green-600 font-bold' : (stepStatus === '生產中' ? 'text-blue-600 font-bold animate-pulse' : (stepStatus === '已停工' ? 'text-red-600 font-bold' : 'text-gray-400'));
+                        
+                        // 【修正】適配瀑布流的新變數 startDate 與 endDate，並美化排版
+                        let showDate = s.endDate ? `${s.startDate.substring(5,16)}<br>~ ${s.endDate.substring(5,16)}` : (s.date || '未設定');
+                        
+                        woRows += `<tr class="hover:bg-indigo-50 transition-colors">
+                            <td class="p-2 border-b border-gray-200 text-center font-bold text-gray-500">${idx + 1}</td>
+                            <td class="p-2 border-b border-gray-200 font-bold text-moSide">${s.name} <br><span class="text-[10px] font-normal text-gray-400">工序機台: ${s.mac}</span></td>
+                            <td class="p-2 border-b border-gray-200 text-center">${s.emp}</td>
+                            <td class="p-2 border-b border-gray-200 text-center ${statusColor}">${stepStatus}</td>
+                            <td class="p-2 border-b border-gray-200 text-center text-[10px] text-gray-500 font-mono leading-tight">${showDate}</td>
+                        </tr>`;
+                    });
+                }
+            });
 
                             if (woRows !== '') {
 
