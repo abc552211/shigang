@@ -690,7 +690,7 @@
 
             '設備狀態LOG': { table: 'equipment_logs', pk: 'created_at', fields: { '時間': 'created_at', '工序編號': 'machine_id', '設備狀態': 'status', '操作人': 'operator_name', '備註': 'remark' }},
 
-            '物料庫存': { table: 'materials', pk: 'material_id', fields: { '物料編號': 'material_id', '類別': 'category', '品名': 'material_name', '規格': 'material_spec', '供應商': 'supplier_name', '供應商編號': 'supplier_id', '尺寸': 'size_dimension', '單位': 'unit', '目前庫存': 'stock_qty', '安全庫存': 'safe_stock_qty', '存放位置': 'location', '內價': 'cost_price', '售價': 'sell_price' }},   
+            '物料庫存': { table: 'materials', pk: 'material_id', fields: { '物料編號': 'material_id', '類別': 'category', '品名': 'material_name', '規格': 'material_spec',  '尺寸': 'size_dimension', '單位': 'unit', '目前庫存': 'stock_qty', '安全庫存': 'safe_stock_qty', '存放位置': 'location', '內價': 'cost_price', '售價': 'sell_price','供應商': 'supplier_name', '供應商編號': 'supplier_id' }},   
 
             '領料紀錄LOG': { table: 'deduct_logs', pk: 'created_at', fields: { '時間': 'created_at', '訂單編號': 'order_id', '物料編號': 'material_id', '領料數量': 'quantity', '操作人': 'operator_name' }},
 
