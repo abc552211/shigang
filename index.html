@@ -3104,7 +3104,6 @@ if(currentSysName === 'ERP') {
         }
 
         function generateReplenishPDF(repId, qty, matId, supplier, reason) {
-    // 【修復】從快取字典精準反查品名，解決從明細面板點擊時抓不到名稱的問題
     let matObj = (currentDropdowns['物料編號'] || []).find(m => m.id === matId);
     let pName = matObj ? matObj.name.replace(matId + ' - ', '') : '未知物料';
     
@@ -3114,8 +3113,7 @@ if(currentSysName === 'ERP') {
     let opName = document.getElementById('userNameDisplay').innerText;
     
     let html = `
-        <!-- 第一聯：內部補貨申請單 (含預估成本) -->
-        <div class="p-6 font-sans bg-white max-w-[210mm] mx-auto text-gray-800" style="min-height: 297mm;">
+        <div class="p-6 font-sans bg-white max-w-[210mm] mx-auto text-gray-800">
             <h1 class="text-3xl font-bold text-center mb-8 border-b-2 border-black pb-4">仕罡印刷 - 內部補貨申請單<br><span class="text-sm text-gray-500 font-normal mt-2 block">(第一聯：內部留存)</span></h1>
             <div class="flex justify-between mb-6 text-sm">
                 <p><strong>申請日期：</strong> ${twDate}</p>
@@ -3150,18 +3148,16 @@ if(currentSysName === 'ERP') {
                     <strong>補貨原因 / 備註：</strong><br><span class="text-gray-700 mt-1 block">${reason}</span>
                 </div>
             </div>
-            <div class="mt-24 flex justify-end px-10">
+            <div class="mt-24 flex justify-end px-10 mb-8">
                 <div class="w-48 text-center border-t border-black pt-2">
                     <p class="font-bold tracking-widest">主管簽核</p>
                 </div>
             </div>
         </div>
 
-        <!-- 這是換頁符號，讓 html2pdf 自動切分到第二張 A4 -->
         <div class="html2pdf__page-break"></div>
 
-        <!-- 第二聯：廠商請購單 (隱藏金額) -->
-        <div class="p-6 font-sans bg-white max-w-[210mm] mx-auto text-gray-800" style="min-height: 297mm;">
+        <div class="p-6 font-sans bg-white max-w-[210mm] mx-auto text-gray-800">
             <h1 class="text-3xl font-bold text-center mb-8 border-b-2 border-black pb-4">仕罡印刷 - 採購單 (Purchase Order)<br><span class="text-sm text-gray-500 font-normal mt-2 block">(第二聯：廠商憑證)</span></h1>
             
             <div class="flex justify-between items-end mb-6 border-b border-gray-300 pb-4">
