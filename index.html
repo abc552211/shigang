@@ -1362,11 +1362,11 @@ if(mat && mat[0]) {
 
                     // EIP 專屬交接發布與刪除
 
-                    // 修改後的 addHandover 函數
+                    // 請確保這是最新的 addHandover 邏輯
 addHandover: async function(content, priority, assignee, imageBase64, creator) {
     let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
     
-    // 1. 寫入主交接表
+    // 寫入主表
     const { error: mainError } = await sbClient.from('handovers').insert([{ 
         content: content, 
         priority: priority, 
@@ -1376,20 +1376,15 @@ addHandover: async function(content, priority, assignee, imageBase64, creator) {
         assignee: assignee 
     }]);
 
-    // 2. 如果主表寫入成功，立即寫入 LOG 表
     if (!mainError) {
-        const { error: logError } = await sbClient.from('handovers_log').insert([{ 
+        // 寫入 LOG 表，明確寫入「新增」動作
+        await sbClient.from('handovers_log').insert([{ 
             created_at: ts, 
-            action: '新增交接', 
+            action: '新增', 
             content: content, 
             operator_name: creator 
         }]);
-        
-        if (logError) console.error("LOG 寫入失敗:", logError);
-    } else {
-        console.error("主表寫入失敗:", mainError);
     }
-
     this.successHandler({ success: !mainError });
 },
 
@@ -3277,12 +3272,34 @@ if(currentSysName === 'ERP') {
             btn.innerHTML = '<span class="btn-spinner"></span>發布中'; btn.disabled = true;
             google.script.run.withSuccessHandler(res => { closeModal('handoverModal'); refreshSystem(); btn.innerHTML = '新增發布'; btn.disabled = false; }).withFailureHandler(err => { alert('系統異常：'+err); btn.innerHTML = '新增發布'; btn.disabled = false; }).addHandover(content, prio, assignee, hoImageBase64, op); 
         }
-        function doDeleteHandover(timeId, btn) {
-            if(!confirm("確定要刪除這筆交接嗎？")) return;
-            const op = document.getElementById('userNameDisplay').innerText;
-            const originText = btn.innerHTML; btn.innerHTML = '<span class="btn-spinner-red"></span>'; btn.disabled = true;
-            google.script.run.withSuccessHandler(res => { refreshSystem(); }).withFailureHandler(err => { alert('系統異常：'+err); btn.innerHTML = originText; btn.disabled = false; }).deleteHandover(timeId, op);
-        }
+        async function doDeleteHandover(timeId, btn) {
+    if(!confirm("確定要刪除這筆交接嗎？")) return;
+    const op = document.getElementById('userNameDisplay').innerText;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="btn-spinner-red"></span>';
+
+    // 直接改為使用 Supabase 呼叫
+    const { error } = await sbClient
+        .from('handovers')
+        .delete()
+        .eq('created_at', timeId);
+
+    if (error) {
+        alert('刪除失敗：' + error.message);
+        btn.innerHTML = '&times;';
+        btn.disabled = false;
+    } else {
+        // 同時寫入 LOG (呼叫我們剛修好的 LOG 邏輯)
+        await sbClient.from('handovers_log').insert([{ 
+            created_at: new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }), 
+            action: '刪除', 
+            content: '已刪除紀錄', 
+            operator_name: op 
+        }]);
+        refreshSystem();
+    }
+}
 
         function buildReturnMatList(containerId, orderId) {
             const container = document.getElementById(containerId); container.innerHTML = '';
