@@ -3410,9 +3410,11 @@ if(currentSysName === 'ERP') {
             // 更新介面顯示 (使用 .toFixed(2) 強制格式化)
             document.getElementById('matTotalCost').innerText = matTotalCost.toFixed(2);
             
+            // 客單價精算，並使用 Number.parseFloat().toFixed(2) 強制格式化顯示
             let autoUnitPrice = targetQty > 0 ? (matTotalSell / targetQty) : 0;
             if(document.getElementById('matActionType').value === 'estimate') {
-                document.getElementById('estUnitPrice').innerText = "$ " + autoUnitPrice.toFixed(2);
+                // 這裡我們轉成數字後再格式化，確保 1 變成 "1.00"
+                document.getElementById('estUnitPrice').innerText = "$ " + (Math.round(autoUnitPrice * 100) / 100).toFixed(2);
             }
             
             let currentUnitPrice = parseFloat(document.getElementById('estUnitPrice').innerText.replace(/[^0-9.-]+/g,"")) || autoUnitPrice;
