@@ -1263,20 +1263,33 @@ if(mat && mat[0]) {
 
 
                     // ERP 補貨申請單建立
+addReplenish: async function(matId, qty, supplier, opName, reason) {
+    let dateStr = new Date().toISOString().slice(2,10).replace(/-/g,'');
+    let repId = 'B' + dateStr + String(Math.floor(Math.random()*900)+100);
+    
+    // 【修正】改用標準 SQL 時間格式，徹底消滅 400 Bad Request
+    let d = new Date();
+    let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
+    
+    let { error } = await sbClient.from('replenish_logs').insert([{ 
+        replenish_id: repId, 
+        created_at: ts, 
+        material_id: matId, 
+        required_qty: qty, 
+        received_qty: 0, 
+        status: '處理中', 
+        supplier_name: supplier, 
+        applicant_name: opName, 
+        reason: reason 
+    }]);
 
-                    addReplenish: async function(matId, qty, supplier, opName, reason) {
+    if (error) {
+        console.error("補貨申請失敗:", error);
+        return this.failureHandler(error.message);
+    }
 
-                        let dateStr = new Date().toISOString().slice(2,10).replace(/-/g,'');
-
-                        let repId = 'B' + dateStr + String(Math.floor(Math.random()*900)+100);
-
-                        let ts = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
-
-                        await sbClient.from('replenish_logs').insert([{ replenish_id: repId, created_at: ts, material_id: matId, required_qty: qty, received_qty: 0, status: '處理中', supplier_name: supplier, applicant_name: opName, reason: reason }]);
-
-                        this.successHandler({ success: true, msg: "補貨申請已送出！您可於待處理清單中執行印單與進貨。" });
-
-                    },
+    this.successHandler({ success: true, msg: "補貨申請已送出！您可於待處理清單中執行印單與進貨。" });
+},
 
 
 
