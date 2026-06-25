@@ -2813,7 +2813,8 @@ if(currentSysName === 'ERP') {
 
                                 htmlStr += `<button onclick="generateWoPDF('${oId}')" class="w-20 bg-gray-600 text-white py-1 rounded font-bold shadow">🖨️ 印工單</button>`;
 
-                                htmlStr += `<button onclick="printDeliveryNote(this, '${oId}')" class="w-20 bg-blue-600 text-white py-1 rounded hover:bg-blue-700 font-bold shadow animate-pulse">📄 印出貨單</button>`; 
+                                htmlStr += `<button onclick="printDeliveryNote(this, '${oId}')" class="w-20 bg-blue-600 text-white py-1 rounded hover:bg-blue-700 font-bold shadow animate-pulse">📄 印出貨單</button>`;
+                                htmlStr += `<button onclick="openShippingModal('', '${oId}')" class="w-20 bg-emerald-600 text-white py-1 rounded hover:bg-emerald-700 font-bold shadow animate-pulse">🚚 登記出貨</button>`;
 
                             } else if (status === '已出貨待OMS結案' || status === '已出貨') { 
 
