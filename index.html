@@ -97,6 +97,15 @@
         .status-yellow { background: #FEF3C7; color: #D97706; border: 1px solid #FCD34D; }
 
         button { user-select: none; }
+        /* 隱藏 number 類型輸入框的上下微調箭頭 */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield; /* 針對 Firefox 瀏覽器 */
+        }
 
     </style>
 
@@ -414,9 +423,20 @@
 
 
 
-                <div class="flex justify-between items-center border-b pb-2"><h3 class="font-bold text-sm text-moSide">📋 生產物料配料清單</h3><button id="addMatBtn" onclick="addMatRow()" class="bg-moSide text-white text-xs px-3 py-1 rounded shadow hover:bg-gray-600 transition">+ 新增物料</button></div>
-
-                <div id="matList" class="space-y-2 max-h-48 overflow-y-auto"></div>
+                <div class="flex justify-between items-center border-b pb-2 mt-2">
+    <h3 class="font-bold text-sm text-moSide">📋 生產物料與加工配料清單</h3>
+    <button id="addMatBtn" onclick="addMatRow()" class="bg-moSide text-white text-xs px-3 py-1 rounded shadow hover:bg-gray-600 transition">+ 新增物料</button>
+</div>
+<div class="flex gap-2 items-center px-1 pt-3 pb-1 text-[11px] font-bold text-gray-500 tracking-widest border-b border-gray-100">
+    <div class="w-20 text-center">加工備註</div>
+    <div class="flex-1 pl-1">料號 / 自填外包服務名稱</div>
+    <div class="w-16 text-center text-red-500">內價成本</div>
+    <div class="w-16 text-center text-green-600">外價報價</div>
+    <div class="w-16 text-center">基準量</div>
+    <div class="w-12 text-center">實際需扣</div>
+    <div class="w-6"></div>
+</div>
+<div id="matList" class="space-y-1 max-h-48 overflow-y-auto pt-1"></div>
 
                 
 
@@ -3486,26 +3506,19 @@ console.log("正在送出的配料明細:", matArr);
             let listId = 'dl_mat_' + Date.now() + '_' + rowCount;
             let initVal = matId ? `${matId} - ${matName}` : '';
             
-            const div = document.createElement('div'); div.className = 'flex gap-2 mat-row items-center border-b border-gray-100 pb-2 mb-2';
+            const div = document.createElement('div'); 
+            div.className = 'flex gap-2 mat-row items-center border-b border-gray-100 pb-2 mb-2 px-1 hover:bg-gray-50 transition-colors';
             div.innerHTML = `
-                <input type="text" value="${note}" class="mat-note w-20 p-2 border rounded focus:ring-1 focus:ring-moSide text-xs" placeholder="加工備註">
+                <input type="text" value="${note}" class="mat-note w-20 p-2 border border-gray-300 rounded focus:ring-1 focus:ring-moSide text-xs text-center" placeholder="備註">
                 <div class="flex-1 relative">
-                    <input list="${listId}" value="${initVal}" class="mat-sel-input w-full p-2 border rounded focus:ring-1 focus:ring-moSide text-sm font-bold text-gray-700" placeholder="搜尋料號或自填外包名稱..." onfocus="filterMatOptions(this, '${listId}')" oninput="filterMatOptions(this, '${listId}'); autoFillPrice(this); calcMatCost();" onchange="calcMatCost()">
+                    <input list="${listId}" value="${initVal}" class="mat-sel-input w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-moSide text-sm font-bold text-gray-700 tracking-wide" placeholder="搜尋料號或自訂名稱..." onfocus="filterMatOptions(this, '${listId}')" oninput="filterMatOptions(this, '${listId}'); autoFillPrice(this); calcMatCost();" onchange="calcMatCost()">
                     <datalist id="${listId}"></datalist>
                 </div>
-                <div class="flex flex-col items-center">
-                    <input type="number" value="${cost}" class="mat-cost w-16 p-2 border border-red-200 rounded focus:ring-1 focus:ring-red-400 text-sm text-red-600 font-bold bg-red-50" placeholder="內價" oninput="calcMatCost()" title="單件成本 (內部看)">
-                </div>
-                <div class="flex flex-col items-center">
-                    <input type="number" value="${sell}" class="mat-sell w-16 p-2 border border-green-200 rounded focus:ring-1 focus:ring-green-400 text-sm text-green-700 font-bold bg-green-50" placeholder="外價" oninput="calcMatCost()" title="單件售價 (對客收)">
-                </div>
-                <div class="flex flex-col items-center relative group">
-                    <input type="number" value="${baseQty}" class="mat-qty w-16 p-2 border border-gray-300 rounded focus:ring-1 focus:ring-moSide text-sm font-bold" placeholder="用量" onkeyup="calcMatCost()" onchange="calcMatCost()" min="0">
-                </div>
-                <div class="w-12 text-center text-[10px] text-gray-400 font-bold leading-tight border-l border-gray-200 pl-1">
-                    需扣量<br><span class="actual-qty-display text-gray-700 text-sm">0</span>
-                </div>
-                <button onclick="this.closest('.mat-row').remove(); calcMatCost();" class="text-red-400 font-bold px-1 hover:text-red-600 text-lg">&times;</button>
+                <input type="number" value="${cost}" class="mat-cost w-16 p-2 border border-red-200 rounded focus:ring-1 focus:ring-red-400 text-sm text-red-600 text-center font-bold bg-red-50" placeholder="0" oninput="calcMatCost()">
+                <input type="number" value="${sell}" class="mat-sell w-16 p-2 border border-green-200 rounded focus:ring-1 focus:ring-green-400 text-sm text-green-700 text-center font-bold bg-green-50" placeholder="0" oninput="calcMatCost()">
+                <input type="number" value="${baseQty}" class="mat-qty w-16 p-2 border border-gray-300 rounded focus:ring-1 focus:ring-moSide text-sm text-center font-bold" placeholder="0" onkeyup="calcMatCost()" onchange="calcMatCost()" min="0">
+                <div class="w-12 text-center actual-qty-display text-gray-800 font-bold text-sm">0</div>
+                <button onclick="this.closest('.mat-row').remove(); calcMatCost();" class="w-6 text-gray-300 hover:text-red-500 font-bold text-xl leading-none transition-colors" title="移除此項目">&times;</button>
             `;
             document.getElementById('matList').appendChild(div);
             if(initVal) filterMatOptions(div.querySelector('.mat-sel-input'), listId);
