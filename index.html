@@ -3104,55 +3104,116 @@ if(currentSysName === 'ERP') {
         }
 
         function generateReplenishPDF(repId, qty, matId, supplier, reason) {
-            let rawName = document.getElementById('replMatName').innerText;
-            let pName = rawName.includes('(') ? rawName.substring(rawName.indexOf('(')+1, rawName.lastIndexOf(')')) : rawName;
-            const twDate = new Date(new Date().getTime() + 8*60*60*1000).toISOString().split('T')[0];
-            
-            let matObj = (currentDropdowns['物料編號'] || []).find(m => m.id === matId);
-            let price = matObj ? (parseFloat(matObj.price) || 0) : 0;
-            let estCost = price * parseFloat(qty);
-            
-            let html = `
-                <h1 class="text-3xl font-bold text-center mb-8 border-b-2 border-black pb-4">仕罡印刷 - 補貨申請單</h1>
-                <div class="flex justify-between mb-6 text-sm">
-                    <p><strong>申請日期：</strong> ${twDate}</p>
-                    <p><strong>申請單號：</strong> <span class="text-red-600 font-bold">${repId}</span></p>
-                    <p><strong>申請人：</strong> ${document.getElementById('userNameDisplay').innerText}</p>
+    // 【修復】從快取字典精準反查品名，解決從明細面板點擊時抓不到名稱的問題
+    let matObj = (currentDropdowns['物料編號'] || []).find(m => m.id === matId);
+    let pName = matObj ? matObj.name.replace(matId + ' - ', '') : '未知物料';
+    
+    const twDate = new Date(new Date().getTime() + 8*60*60*1000).toISOString().split('T')[0];
+    let price = matObj ? (parseFloat(matObj.price) || 0) : 0;
+    let estCost = price * parseFloat(qty);
+    let opName = document.getElementById('userNameDisplay').innerText;
+    
+    let html = `
+        <!-- 第一聯：內部補貨申請單 (含預估成本) -->
+        <div class="p-6 font-sans bg-white max-w-[210mm] mx-auto text-gray-800" style="min-height: 297mm;">
+            <h1 class="text-3xl font-bold text-center mb-8 border-b-2 border-black pb-4">仕罡印刷 - 內部補貨申請單<br><span class="text-sm text-gray-500 font-normal mt-2 block">(第一聯：內部留存)</span></h1>
+            <div class="flex justify-between mb-6 text-sm">
+                <p><strong>申請日期：</strong> ${twDate}</p>
+                <p><strong>申請單號：</strong> <span class="text-red-600 font-bold tracking-wider">${repId}</span></p>
+                <p><strong>申請人：</strong> ${opName}</p>
+            </div>
+            <table class="w-full text-left border-collapse border border-gray-800 mb-6 text-sm">
+                <thead class="bg-gray-200">
+                    <tr class="border-b border-gray-800">
+                        <th class="p-3 border-r border-gray-800 w-1/5">物料編號</th>
+                        <th class="p-3 border-r border-gray-800">品名與規格</th>
+                        <th class="p-3 border-r border-gray-800 w-1/6 text-center">申請數量</th>
+                        <th class="p-3 border-r border-gray-800 w-1/6 text-right">單價</th>
+                        <th class="p-3 w-1/5 text-right">預估總成本</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="p-3 border-r border-gray-800 font-bold">${matId}</td>
+                        <td class="p-3 border-r border-gray-800 font-bold">${pName}</td>
+                        <td class="p-3 border-r border-gray-800 font-bold text-lg text-center tracking-widest text-moSide">${qty}</td>
+                        <td class="p-3 border-r border-gray-800 text-right">$ ${price.toLocaleString()}</td>
+                        <td class="p-3 font-bold text-lg text-red-700 text-right">$ ${estCost.toLocaleString()}</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="flex gap-4 text-sm mb-10">
+                <div class="w-1/3 border border-gray-800 p-3 bg-gray-50 rounded-sm">
+                    <strong>目標供應商：</strong><br><span class="text-gray-700 mt-1 block">${supplier || '未指定'}</span>
                 </div>
-                <table class="w-full text-left border-collapse border border-gray-800 mb-6">
-                    <thead class="bg-gray-200">
-                        <tr class="border-b border-gray-800">
-                            <th class="p-3 border-r border-gray-800">物料編號</th>
-                            <th class="p-3 border-r border-gray-800">品名與規格</th>
-                            <th class="p-3 border-r border-gray-800">供應商</th>
-                            <th class="p-3 border-r border-gray-800">單價</th>
-                            <th class="p-3 border-r border-gray-800">申請數量</th>
-                            <th class="p-3">預估成本</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="p-3 border-r border-gray-800 font-bold">${matId}</td>
-                            <td class="p-3 border-r border-gray-800">${pName}</td>
-                            <td class="p-3 border-r border-gray-800">${supplier || '未指定'}</td>
-                            <td class="p-3 border-r border-gray-800">$ ${price.toLocaleString()}</td>
-                            <td class="p-3 border-r border-gray-800 font-bold text-lg text-gray-700">${qty}</td>
-                            <td class="p-3 font-bold text-lg text-red-700">$ ${estCost.toLocaleString()}</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <div class="p-4 border border-gray-400 bg-gray-50 rounded mb-10 text-sm">
-                    <strong>補貨原因：</strong> <span class="text-gray-700">${reason}</span>
+                <div class="w-2/3 border border-gray-800 p-3 bg-gray-50 rounded-sm">
+                    <strong>補貨原因 / 備註：</strong><br><span class="text-gray-700 mt-1 block">${reason}</span>
                 </div>
-                <div class="mt-20 flex justify-end">
-                    <div class="w-48 text-center border-t border-black pt-2">
-                        <p>主管簽核</p>
-                    </div>
+            </div>
+            <div class="mt-24 flex justify-end px-10">
+                <div class="w-48 text-center border-t border-black pt-2">
+                    <p class="font-bold tracking-widest">主管簽核</p>
                 </div>
-            `;
+            </div>
+        </div>
+
+        <!-- 這是換頁符號，讓 html2pdf 自動切分到第二張 A4 -->
+        <div class="html2pdf__page-break"></div>
+
+        <!-- 第二聯：廠商請購單 (隱藏金額) -->
+        <div class="p-6 font-sans bg-white max-w-[210mm] mx-auto text-gray-800" style="min-height: 297mm;">
+            <h1 class="text-3xl font-bold text-center mb-8 border-b-2 border-black pb-4">仕罡印刷 - 採購單 (Purchase Order)<br><span class="text-sm text-gray-500 font-normal mt-2 block">(第二聯：廠商憑證)</span></h1>
             
-            execHTML2PDF(html, `補貨申請單_${repId}.pdf`);
-        }
+            <div class="flex justify-between items-end mb-6 border-b border-gray-300 pb-4">
+                <div class="text-sm leading-relaxed">
+                    <p class="text-lg mb-2"><strong>致 供應商：</strong> <span class="font-bold text-blue-800 border-b border-blue-200 pb-1">${supplier || '未指定廠商'}</span> 御中</p>
+                    <p class="text-gray-600">煩請貴司依據以下明細安排出貨事宜，謝謝配合。</p>
+                </div>
+                <div class="text-sm text-right leading-relaxed">
+                    <p><strong>請購日期：</strong> ${twDate}</p>
+                    <p><strong>採購單號：</strong> <span class="text-blue-700 font-bold tracking-wider">${repId}</span></p>
+                    <p><strong>採購窗口：</strong> ${opName}</p>
+                </div>
+            </div>
+
+            <table class="w-full text-left border-collapse border border-gray-800 mb-6 mt-4">
+                <thead class="bg-blue-50">
+                    <tr class="border-b border-gray-800 text-blue-900">
+                        <th class="p-3 border-r border-gray-800 w-1/4">物料編號</th>
+                        <th class="p-3 border-r border-gray-800 w-1/2">請購品名與規格</th>
+                        <th class="p-3 text-center w-1/4">採購數量</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="p-4 border-r border-gray-800 font-mono text-gray-600">${matId}</td>
+                        <td class="p-4 border-r border-gray-800 font-bold text-lg text-moText">${pName}</td>
+                        <td class="p-4 font-bold text-3xl text-center text-blue-700 tracking-wider">${qty}</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="p-4 border border-dashed border-gray-400 bg-gray-50 rounded-sm mb-10 text-sm text-gray-600 leading-relaxed">
+                <strong class="text-gray-800">廠商出貨備註：</strong>
+                <ol class="list-decimal ml-5 mt-1">
+                    <li>請務必於送貨單 (Packing List) 或發票上註明本單號 <strong class="text-blue-700">${repId}</strong>，以便廠內庫房核對點收。</li>
+                    <li>若有缺貨、停產或交期延遲狀況，請盡速與採購窗口聯繫。</li>
+                </ol>
+            </div>
+
+            <div class="mt-28 flex justify-between px-10 text-sm">
+                <div class="w-48 text-center border-t border-gray-800 pt-2">
+                    <p class="font-bold tracking-widest text-gray-700">採購方簽章 (仕罡印刷)</p>
+                </div>
+                <div class="w-48 text-center border-t border-gray-800 pt-2">
+                    <p class="font-bold tracking-widest text-gray-700">供應商接單確認簽章</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    execHTML2PDF(html, `補貨申請_${repId}.pdf`);
+}
 
         // ================= 派工單 (Req 7, 8) =================
         function generateWoPDF(orderId) {
