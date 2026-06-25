@@ -2212,104 +2212,62 @@ if(currentSysName === 'ERP') {
                     
 
                     let detailsHTML = '';
-
                     displayHeaders.forEach(key => {
-
                         let val = row[key] || '';
-
                         
-
                         // 【需求 2 修復】攔截並格式化帶有 T 和 Z 的原生 ISO 時間字串
-
                         if (typeof val === 'string' && val.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
-
                             let d = new Date(val);
-
                             if (!isNaN(d)) {
-
                                 val = d.getFullYear() + '/' + 
-
                                       String(d.getMonth()+1).padStart(2,'0') + '/' + 
-
                                       String(d.getDate()).padStart(2,'0') + ' ' + 
-
                                       String(d.getHours()).padStart(2,'0') + ':' + 
-
                                       String(d.getMinutes()).padStart(2,'0') + ':' + 
-
                                       String(d.getSeconds()).padStart(2,'0');
-
                             }
-
                         }
 
-
-
                         let isFinanceField = key.includes('成本') || key.includes('報價') || key.includes('單價') || key.includes('售價') || key.includes('金額');
-
                         if (!userShowFinance && isFinanceField && val !== '') {
-
                             val = `<span class="text-gray-400 italic">🔒 無權限</span>`;
-
                         } else {
-
                             if(key === '急件' && val === '是') val = `<span class="bg-red-600 text-white px-2 py-1 rounded text-xs font-bold animate-pulse shadow-sm">急件</span>`;
-
                             else if(key.includes('狀態') || key === '當前狀態' || key === '工單狀態') {
-
                                 let badgeClass = 'status-gray'; let pulseClass = '';  
-
                                 if(val === '原料不足' || val === '報修中' || val === '待修中' || val === '掛修') badgeClass = 'status-red';
-
                                 else if(val === '估算中') badgeClass = 'bg-purple-100 text-purple-700 border border-purple-200 font-bold';
-
-                                else if(val === '待規劃') badgeClass = 'bg-purple-100 text-purple-700 border border-purple-400 font-bold'; // 加深邊框顯色
-
+                                else if(val === '待規劃') badgeClass = 'bg-purple-100 text-purple-700 border border-purple-400 font-bold'; 
                                 else if(val === '待排程') badgeClass = 'bg-yellow-100 text-yellow-700 border border-yellow-300 font-bold';
-
                                 else if(val === '待扣料') badgeClass = 'bg-yellow-100 text-yellow-800 border border-yellow-300 font-bold';
-
-                                else if(val === '待生產') badgeClass = 'bg-green-100 text-green-700 border border-green-400 font-bold'; // 優化正綠色醒目文字
-
+                                else if(val === '待生產') badgeClass = 'bg-green-100 text-green-700 border border-green-400 font-bold'; 
                                 else if(val === '備料中') badgeClass = 'status-yellow';
-
                                 else if(val === '生產中' || val === '已接單') { badgeClass = 'status-blue'; pulseClass = ' animate-pulse shadow-sm'; }
-
                                 else if(val === '製作完成' || val === '已完工' || val === '已出貨') badgeClass = 'bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold';
-
                                 val = `<span class="status-badge ${badgeClass}${pulseClass}">${val}</span>`;
-
                             }
-
                             else if(currentSysName === 'ERP' && key === '目前庫存') {
-    let displayVal = val;
-    if (isServiceItem) {
-        // 無形資產專屬顯示介面
-        displayVal = `<span class="text-indigo-500 font-bold bg-indigo-50 px-2 py-0.5 rounded text-xs">∞ 不計庫存</span>`;
-    } else {
-        let stock = parseFloat(val) || 0; let safe = parseFloat(row['安全庫存']) || 0;
-        if(stock < safe) displayVal = `<span class="text-red-600 font-bold">${val}</span>`; else if(stock > safe) displayVal = `<span class="text-green-600 font-bold">${val}</span>`; else displayVal = `<span class="text-orange-500 font-bold">${val}</span>`;
-    }
-    if (isRestocking && restockQty > 0) displayVal += `<span class="ml-2 bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded text-[10px] font-bold border border-yellow-300 shadow-sm webkit-nowrap">⏳外包/補貨中: ${restockQty}</span>`;
-    val = displayVal;
-}
-
-
-
-                        
+                                let displayVal = val;
+                                if (isServiceItem) {
+                                    // 無形資產專屬顯示介面
+                                    displayVal = `<span class="text-indigo-500 font-bold bg-indigo-50 px-2 py-0.5 rounded text-xs">∞ 不計庫存</span>`;
+                                } else {
+                                    let stock = parseFloat(val) || 0; let safe = parseFloat(row['安全庫存']) || 0;
+                                    if(stock < safe) displayVal = `<span class="text-red-600 font-bold">${val}</span>`; else if(stock > safe) displayVal = `<span class="text-green-600 font-bold">${val}</span>`; else displayVal = `<span class="text-orange-500 font-bold">${val}</span>`;
+                                }
+                                if (isRestocking && restockQty > 0) displayVal += `<span class="ml-2 bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded text-[10px] font-bold border border-yellow-300 shadow-sm webkit-nowrap">⏳外包/補貨中: ${restockQty}</span>`;
+                                val = displayVal;
+                            }
+                        } // <--- 剛才就是這裡少了一個結束括號！
 
                         if (key.includes('備註') || key.includes('細項') || key.includes('簡述') || key.includes('報修內容') || key === '內容') {
-
                             const safeText = String(val).replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
                             if(safeText.trim() !== '') detailsHTML += `<strong class="text-moSide">${key}:</strong> <br/> <p class="mt-1 mb-3 text-gray-600">${safeText.replace(/\n/g, '<br/>')}</p>`;
-
                             tableHTML += `<td class="p-3">${val}</td>`;
-
-                        } else { tableHTML += `<td class="p-3">${val}</td>`; }
-
+                        } else { 
+                            tableHTML += `<td class="p-3">${val}</td>`; 
+                        }
                     });
-
                     tableHTML += `</tr>`;
 
 
