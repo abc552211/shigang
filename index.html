@@ -946,7 +946,7 @@
                                     id: m.material_id, 
 
                                     // 【更新】直接在單行內擷取供應商前兩字元與類別
-                                    name:  (m.supplier_name || '未知').substring(0, 2) + " " + (m.category || '無類別') + " | " + (m.material_name || '') + " " + (m.material_spec || '') + "]",
+                                    name:  "["+(m.supplier_name || '未知')+"]".substring(0, 2) + " " + (m.category || '無類別') + " | " + (m.material_name || '') + " " + (m.material_spec || '') ,
 
                                     price: parseFloat(m.cost_price) || 0,
 
