@@ -2859,7 +2859,7 @@ if(currentSysName === 'ERP') {
         btnSlot4 = `<button onclick="openCompleteModal('${woId}', '${oId}', '${mac}')" class="w-20 bg-blue-600 text-white py-1 rounded font-bold shadow animate-pulse">🏁 完工</button>`;
     }
                     }
-                        } } else if (currentSysName === 'EQS') {
+                        else if (currentSysName === 'EQS') {
             // 精準抓取機台狀態與報修原因 (自動相容不同欄位命名)
             let status = (row['當前狀態'] || row['狀態'] || row['設備狀態'] || '').trim();
             let mac = (row['設備編號'] || row['機台編號'] || row['machine_id'] || '').trim();
