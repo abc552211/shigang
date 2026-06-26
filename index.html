@@ -2294,7 +2294,8 @@ if(currentSysName === 'ERP') {
                         } else {
                             if(key === '急件' && val === '是') val = `<span class="bg-red-600 text-white px-2 py-1 rounded text-xs font-bold animate-pulse shadow-sm">急件</span>`;
                             else if(key.includes('狀態') || key === '當前狀態' || key === '工單狀態') {
-                                let badgeClass = 'status-gray'; let pulseClass = '';  
+                                let badgeClass = 'status-gray'; let pulseClass = '';
+                                let extraBadge = ''; // 新增外部標籤變數
                                 if(val === '原料不足' || val === '報修中' || val === '待修中' || val === '掛修' || val === '已停工') badgeClass = 'status-red';
                                 else if(val === '估算中') badgeClass = 'bg-purple-100 text-purple-700 border border-purple-200 font-bold';
                                 else if(val === '待規劃') badgeClass = 'bg-purple-100 text-purple-700 border border-purple-400 font-bold'; 
@@ -2305,12 +2306,15 @@ if(currentSysName === 'ERP') {
                                 else if(val === '生產中' || val === '已接單') { 
                                 badgeClass = 'status-blue'; pulseClass = ' animate-pulse shadow-sm'; 
                                 // 【新增】如果是 MES 且機台正在報修，加上紅字提示，但維持生產中
+                                // 【修復】將紅字獨立出來，不破壞原本的 span 標籤
                                 if (currentSysName === 'MES' && window.currentEqStatus && window.currentEqStatus.some(e => e.machine_id === row['作業機台'] && (e.status === '報修中' || e.status === '掛修'))) {
-                                    val = '生產中<br><span class="text-[10px] text-red-600 block leading-none mt-1 animate-none">(機台報修中)</span>';
+                                extraBadge = '<div class="text-[10px] text-red-600 font-bold mt-1 tracking-wider">(機台報修中)</div>';
                                 }
-}
+                            }
                                 else if(val === '製作完成' || val === '已完工' || val === '已出貨') badgeClass = 'bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold';
                                 val = `<span class="status-badge ${badgeClass}${pulseClass}">${val}</span>`;
+                                // 【修復】組合時，把 extraBadge 放在標籤的後方
+                                val = `<div class="flex flex-col items-center justify-center"><span class="status-badge inline-block ${badgeClass}${pulseClass}">${val}</span>${extraBadge}</div>`;
                             }
                             else if(currentSysName === 'ERP' && key === '目前庫存') {
                                 let displayVal = val;
@@ -2847,7 +2851,8 @@ if(currentSysName === 'ERP') {
         } else {
             btnSlot2 = `<button onclick="openRepairModal('${mac.split(' ')[0]}')" class="w-20 bg-orange-500 text-white py-1 rounded font-bold shadow-sm hover:bg-orange-600">🔧 機台報修</button>`;
         }
-        
+        // 【新增】掛載機台履歷紀錄按鈕 (利用 btnSlot3)
+        btnSlot3 = `<button onclick="openEqsHistory('${mac.split(' ')[0]}')" class="w-20 bg-gray-500 text-white py-1 rounded font-bold shadow-sm hover:bg-gray-600">📊 機台履歷</button>`;
         btnSlot4 = `<button onclick="openCompleteModal('${woId}', '${oId}', '${mac}')" class="w-20 bg-blue-600 text-white py-1 rounded font-bold shadow animate-pulse">🏁 完工</button>`;
     }
                     }
