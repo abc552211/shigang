@@ -440,7 +440,7 @@
     <div class="w-12 text-center">實際需扣</div>
     <div class="w-6"></div>
 </div>
-<div id="matList" class="space-y-1 max-h-48 overflow-y-auto pt-1"></div>
+<div id="matList" class="space-y-1 pt-1 relative z-50 pb-2"></div>
 
                 
 
@@ -4434,7 +4434,7 @@ document.addEventListener('click', function(e) {
         function proceedPrintDelivery(btn, originalText, orderId, orderRow) {
             google.script.run.withSuccessHandler(res => {
                 let customers = res.data || [];
-                let ourInfo = customers.find(c => c['客戶代號'] === 'C00000001' || c['客戶編號'] === 'C00000001') || {};
+                let ourInfo = customers.find(c => c['客戶代號'] === 'C00000000' || c['客戶編號'] === 'C00000001') || {};
                 let custInfo = customers.find(c => c['客戶名稱'] === orderRow['客戶名稱']) || {};
                 
                 let canvas = document.createElement('canvas'); JsBarcode(canvas, orderId, { format: "CODE39", displayValue: false, height: 30, width: 1.5, margin: 0 });
