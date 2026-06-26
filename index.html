@@ -2857,15 +2857,21 @@ if(currentSysName === 'ERP') {
     }
                     }
                         } else if (currentSysName === 'EQS') {
-                            const status = row['當前狀態']; const mac = row['設備編號'] || row['工序編號'];
-                            btnSlot1 = `<button onclick="openEqsHistory('${mac}')" class="w-20 bg-gray-500 text-white py-1 rounded font-bold">📊 紀錄</button>`;
-                            if (status === '報修中' || status === '掛修') {
-                                btnSlot4 = `<button onclick="finishRepair('${mac}', this)" class="w-20 bg-green-600 text-white py-1 rounded font-bold">🛠️ 完修</button>`;
-                            } else if (status === '生產中' || status === '待機中') { 
-                                btnSlot2 = `<button onclick="openRepairModal('${mac}')" class="w-20 bg-red-500 text-white py-1 rounded font-bold">🔧 報修</button>`; 
-                                btnSlot4 = `<button onclick="openMaintModal('${mac}')" class="w-20 bg-yellow-500 text-white py-1 rounded font-bold">💆 保養</button>`; 
-                            }
-                        } else if (currentSysName === 'ERP') { 
+            // 【強固】自動清除前後空格，防阻欄位名稱錯位
+            let status = (row['當前狀態'] || row['狀態'] || '').trim();
+            let mac = (row['工序編號'] || row['設備編號'] || '').trim();
+            
+            btnSlot1 = `<button onclick="openEqsHistory('${mac}')" class="w-20 bg-gray-500 text-white py-1 rounded font-bold shadow-sm hover:bg-gray-600">📊 紀錄</button>`;
+            
+            // 【強固】改用關鍵字模糊包含判定，只要字串內有「修」或「掛」就判定為故障，秒出完修鈕
+            if (status.includes('修') || status.includes('掛')) {
+                btnSlot4 = `<button onclick="finishRepair('${mac}', this)" class="w-20 bg-green-600 text-white py-1 rounded font-bold shadow-sm hover:bg-green-700">🛠️ 完修</button>`;
+            } else {
+                // 其餘常態（生產中、待機中或空白防呆）一律解鎖報修與保養
+                btnSlot2 = `<button onclick="openRepairModal('${mac}')" class="w-20 bg-red-500 text-white py-1 rounded font-bold shadow-sm hover:bg-red-600">🔧 報修</button>`;
+                btnSlot4 = `<button onclick="openMaintModal('${mac}')" class="w-20 bg-yellow-500 text-white py-1 rounded font-bold shadow-sm hover:bg-yellow-600">💆 保養</button>`;
+            }
+        } else if (currentSysName === 'ERP') { 
                             btnSlot4 = `<button onclick="openReplenishModal('${row['物料編號']}', '${encodeURIComponent(row['品名'] + ' ' + row['規格']||'')}', '${row['供應商']||''}')" class="w-24 bg-yellow-400 text-yellow-900 py-1 rounded hover:bg-yellow-500 font-bold shadow-sm">🛒 補貨申請</button>`; 
                         }
                     
