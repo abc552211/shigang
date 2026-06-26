@@ -694,7 +694,7 @@
 
             '權限管理': { table: 'users_auth', pk: 'emp_id', fields: { '員工編號': 'emp_id', '員工姓名': 'emp_name', '密碼': 'password', '職稱': 'job_title', '可視系統': 'view_auth', '可操作系統': 'op_auth', '可編輯系統': 'edit_auth', '顯示': 'is_visible', '最近一次登入時間': 'last_login_at', '顯示財務金額': 'show_finance' }},
 
-            '內部公告': { table: 'announcements', pk: 'title', fields: { '發布日期': 'publish_date', '公告類別': 'category', '標題': 'title', '內容': 'content', '發佈人': 'publisher' }},
+            '內部公告': { table: 'announcements', pk: 'id', fields: { 'ID': 'id', '發布日期': 'publish_date', '公告類別': 'category', '標題': 'title', '內容': 'content', '發佈人': 'publisher' }},
 
             '交接清單': { table: 'handovers', pk: 'id', fields: { '交接事項': 'content', '優先級': 'priority', '建立人': 'creator', '接收人': 'assignee', '建立時間': 'created_at' }},
 
@@ -941,10 +941,12 @@
                                 let { data: matData } = await sbClient.from('materials').select('*');
 
                                 result.dropdowns["物料編號"] = (matData || []).map(m => ({
-
+                                    
+                                    
                                     id: m.material_id, 
 
-                                    name: m.material_id + " - " + (m.material_name || '') + " " + (m.material_spec || ''), 
+                                    // 【更新】直接在單行內擷取供應商前兩字元與類別
+                                    name:  (m.supplier_name || '未知').substring(0, 2) + " " + (m.category || '無類別') + " | " + (m.material_name || '') + " " + (m.material_spec || '') + "]",
 
                                     price: parseFloat(m.cost_price) || 0,
 
@@ -2751,7 +2753,7 @@ if(currentSysName === 'ERP') {
 
                             // 【關鍵修復】估價KEY完（即狀態非估算中且未結案），估價單與毛利按鈕全面持續開放顯示
 
-                            if (userShowFinance && status !== '估算中' && status !== '已結案') {
+                            if (userShowFinance && status !== '估算中' ) {
 
                                 htmlStr += `<button onclick="printQuotation(${index})" class="w-20 bg-blue-500 text-white py-1 rounded font-bold shadow">📄 估價單</button>`;
 
@@ -4108,6 +4110,11 @@ window.autoFillPrice = function(inputEl) {
             let viewAuthStr = rowData['可視系統'] || ''; let opAuthStr = rowData['可操作系統'] || ''; let editAuthStr = rowData['可編輯系統'] || '';
 
             currentHeaders.forEach(header => {
+                // 在 if (isSysAuth && ...) return; 之後加上這段：
+                if (header === 'ID') {
+                    formGrid.innerHTML += `<input type="hidden" id="input_${header}" value="${rowData[header] || ''}">`;
+                    return;
+                    }
                 if (isSysAuth && (header === '可視系統' || header === '可編輯系統' || header === '可操作系統')) return; 
 
                 // 【需求 2】隱藏 OMS 新增時不需要看到的欄位
