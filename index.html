@@ -8,7 +8,7 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
-    <title>仕罡印刷 - 公司管理系統</title>
+    <title>仕罡印刷事業-管理系統</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -119,7 +119,7 @@
 
         <div class="bg-white p-10 rounded-2xl shadow-xl w-96 text-center border border-gray-200 border-l-8 border-l-moAccent relative">
 
-            <h1 class="text-2xl font-bold text-gray-800 mb-1 tracking-widest">仕罡印刷</h1>
+            <h1 class="text-2xl font-bold text-gray-800 mb-1 tracking-widest">仕罡印刷事業有限公司</h1>
 
             <p class="text-sm text-gray-500 mb-8 tracking-wide">公司管理系統</p>
 
@@ -153,7 +153,7 @@
 
             <div class="p-4 text-center font-bold text-xl border-b border-gray-600 tracking-wider flex flex-col items-center justify-center h-16 text-white">
 
-                仕罡印刷
+                仕罡印刷事業有限公司
 
             </div>
 
@@ -3029,7 +3029,7 @@ if(currentSysName === 'ERP') {
             if (target === 'FIN') {
                 if (!userShowFinance) return alert('🔒 權限不足，無法變更或生成機密財務資料！');
                 
-                csvContent += `"仕罡印刷 - 區間財務損益分析報表 (P&L)"\n`;
+                csvContent += `"仕罡印刷事業有限公司 - 區間財務損益分析報表 (P&L)"\n`;
                 csvContent += `"產出時間：","${new Date().toLocaleString()}"\n\n`;
                 
                 // 抓取網頁上動態算好的 DOM 結構數據，直接轉譯成精準 CSV
@@ -3090,7 +3090,7 @@ if(currentSysName === 'ERP') {
     
     let html = `
         <div class="p-6 font-sans bg-white max-w-[210mm] mx-auto text-gray-800">
-            <h1 class="text-3xl font-bold text-center mb-8 border-b-2 border-black pb-4">仕罡印刷 - 內部補貨申請單<br><span class="text-sm text-gray-500 font-normal mt-2 block">(第一聯：內部留存)</span></h1>
+            <h1 class="text-3xl font-bold text-center mb-8 border-b-2 border-black pb-4">仕罡印刷事業有限公司 - 內部補貨申請單<br><span class="text-sm text-gray-500 font-normal mt-2 block">(第一聯：內部留存)</span></h1>
             <div class="flex justify-between mb-6 text-sm">
                 <p><strong>申請日期：</strong> ${twDate}</p>
                 <p><strong>申請單號：</strong> <span class="text-red-600 font-bold tracking-wider">${repId}</span></p>
@@ -3134,7 +3134,7 @@ if(currentSysName === 'ERP') {
         <div class="html2pdf__page-break"></div>
 
         <div class="p-6 font-sans bg-white max-w-[210mm] mx-auto text-gray-800">
-            <h1 class="text-3xl font-bold text-center mb-8 border-b-2 border-black pb-4">仕罡印刷 - 採購單 (Purchase Order)<br><span class="text-sm text-gray-500 font-normal mt-2 block">(第二聯：廠商憑證)</span></h1>
+            <h1 class="text-3xl font-bold text-center mb-8 border-b-2 border-black pb-4">仕罡印刷事業有限公司 - 採購單 (Purchase Order)<br><span class="text-sm text-gray-500 font-normal mt-2 block">(第二聯：廠商憑證)</span></h1>
             
             <div class="flex justify-between items-end mb-6 border-b border-gray-300 pb-4">
                 <div class="text-sm leading-relaxed">
@@ -4448,7 +4448,7 @@ document.addEventListener('click', function(e) {
                 <div class="relative p-6 text-gray-800 font-sans bg-white min-h-[250mm] max-w-[210mm] mx-auto">
                     ${isUrgentHtml}
                     <div class="text-center mb-6 border-b border-gray-800 pb-3 mt-2">
-                        <h1 class="text-2xl font-bold tracking-widest">${ourInfo['客戶名稱'] || ourInfo['公司名稱'] || '仕罡印刷'}</h1>
+                        <h1 class="text-2xl font-bold tracking-widest">${ourInfo['客戶名稱'] || ourInfo['公司名稱'] || '仕罡印刷事業有限公司'}</h1>
                         <p class="text-lg tracking-widest mt-1 font-bold">出 貨 單</p>
                     </div>
                     <div class="flex justify-between items-start mb-6">
@@ -4678,7 +4678,7 @@ document.addEventListener('click', function(e) {
 
             let html = `
                 <div class="p-4 font-sans bg-white max-w-[210mm] mx-auto text-gray-800 text-xs">
-                    <h1 class="text-xl font-bold text-center mb-1 tracking-widest">仕罡印刷</h1>
+                    <h1 class="text-xl font-bold text-center mb-1 tracking-widest">仕罡印刷事業有限公司</h1>
                     <h2 class="text-sm text-center mb-4 border-b border-gray-400 pb-1">正式估價單 / Quotation</h2>
                     <div class="flex justify-between mb-4">
                         <div>
@@ -4932,7 +4932,7 @@ document.addEventListener('click', function(e) {
 
                 let html = `
                     <div class="p-6 font-sans bg-white max-w-[210mm] mx-auto text-gray-800">
-                        <h1 class="text-xl font-bold text-center mb-1 text-moSide tracking-widest">仕罡印刷 - 10分鐘早會專用報告</h1>
+                        <h1 class="text-xl font-bold text-center mb-1 text-moSide tracking-widest">仕罡印刷事業有限公司 - 10分鐘早會專用報告</h1>
                         <div class="text-right text-[10px] text-gray-500 mb-4 border-b pb-2">報告產出時間：${dateStr}</div>
                         
                         <div class="mb-4 border border-gray-300 rounded p-3 bg-gray-50 shadow-sm">
