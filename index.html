@@ -585,7 +585,10 @@
 
 
     <div id="repairModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4"><div class="bg-moCard rounded-lg w-full max-w-sm flex flex-col"><div class="p-4 border-b flex justify-between bg-red-50"><h3 class="font-bold text-red-600">機台報修</h3><button onclick="closeModal('repairModal')">&times;</button></div><div class="p-6 space-y-4"><p class="text-sm">機台：<span id="repairMachine" class="font-bold"></span></p><div><label class="block text-sm font-bold mb-1">報修原因 / 內容</label><textarea id="repairReason" rows="3" class="w-full p-2 border rounded focus:ring-1 focus:ring-red-300"></textarea></div></div><div class="p-4 border-t flex justify-end gap-3 bg-gray-50"><button onclick="closeModal('repairModal')" class="px-4 py-2 border hover:bg-gray-100 rounded">取消</button><button onclick="submitRepair(this)" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded">送出報修</button></div></div></div>
-
+    <div id="finishRepairModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg w-full max-w-sm flex flex-col shadow-2xl">
+        </div>
+</div>
     <div id="maintModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4"><div class="bg-moCard rounded-lg w-full max-w-sm flex flex-col"><div class="p-4 border-b flex justify-between bg-yellow-50"><h3 class="font-bold text-yellow-700">排定機台保養</h3><button onclick="closeModal('maintModal')">&times;</button></div><div class="p-6 space-y-4"><p class="text-sm">機台：<span id="maintMachine" class="font-bold"></span></p><div><label class="block text-sm font-bold mb-1">預計保養日期</label><input type="date" id="maintDate" class="w-full p-2 border rounded focus:ring-1 focus:ring-yellow-400"></div><p class="text-xs text-gray-500">＊如需改期，直接選擇新日期按確認即可。若要取消，請按左下角。</p></div><div class="p-4 border-t flex justify-end gap-3 bg-gray-50"><button onclick="submitCancelMaint(this)" class="px-4 py-2 bg-red-100 text-red-600 hover:bg-red-200 rounded mr-auto transition-colors">取消保養</button><button onclick="closeModal('maintModal')" class="px-4 py-2 border hover:bg-gray-100 rounded">關閉</button><button onclick="submitMaintenance(this)" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded">確認排定</button></div></div></div>
 
     <div id="eqsHistoryModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4">
@@ -2856,25 +2859,23 @@ if(currentSysName === 'ERP') {
         btnSlot4 = `<button onclick="openCompleteModal('${woId}', '${oId}', '${mac}')" class="w-20 bg-blue-600 text-white py-1 rounded font-bold shadow animate-pulse">🏁 完工</button>`;
     }
                     }
-                        } else if (currentSysName === 'EQS') {
-            // 【除錯】按 F12 打開主控台，秒看這張表到底吐出什麼欄位名稱
-            console.log("【EQS 行資料】:", row);
-
-            // 1. 多欄位盲測，把所有可能的名字都抓一遍
-            let status = (row['當前狀態'] || row['狀態'] || row['設備狀態'] || row['機台狀態'] || row['status'] || '').trim();
-            let mac = (row['工序編號'] || row['設備編號'] || row['機台編號'] || row['machine_id'] || '').trim();
+                        } } else if (currentSysName === 'EQS') {
+            // 精準抓取機台狀態與報修原因 (自動相容不同欄位命名)
+            let status = (row['當前狀態'] || row['狀態'] || row['設備狀態'] || '').trim();
+            let mac = (row['設備編號'] || row['機台編號'] || row['machine_id'] || '').trim();
+            let remark = (row['報修原因'] || row['維修備註'] || row['備註'] || '未填寫報修原因').trim();
             
             btnSlot1 = `<button onclick="openEqsHistory('${mac}')" class="w-20 bg-gray-500 text-white py-1 rounded font-bold shadow-sm hover:bg-gray-600">📊 紀錄</button>`;
             
-            // 2. 終極反向判定：只要狀態「不是」正常、待機、可用，或者「包含」修/故障/停/掛，強制視為壞機！
-            let isNormal = status.includes('正常') || status.includes('待機') || status.includes('可用') || status === 'OK' || status === '正常運作';
-            let isBroken = status.includes('修') || status.includes('掛') || status.includes('故障') || status.includes('停') || status.includes('損');
-            
-            if (!isNormal || isBroken) {
-                // 只要判定為異常，強出完修鈕
-                btnSlot4 = `<button onclick="finishRepair('${mac}', this)" class="w-20 bg-green-600 text-white py-1 rounded font-bold shadow-sm hover:bg-green-700">🛠️ 完修</button>`;
+            // 只要狀態是掛修/報修，就顯示「看工單」與「完修」
+            if (status === '掛修' || status === '報修中' || status.includes('修')) {
+                // 點擊看工單，直接彈出廠房人員寫的報修原因
+                btnSlot2 = `<button onclick="alert('⚠️ 維修工單內容：\\n\\n機台：${mac}\\n原因：${remark}')" class="w-20 border-2 border-red-500 text-red-600 bg-red-50 py-1 rounded font-bold shadow-sm hover:bg-red-100">📄 看工單</button>`;
+                
+                // 完修按鈕綁定專屬的完修結案視窗
+                btnSlot4 = `<button onclick="openFinishRepairModal('${mac}')" class="w-20 bg-green-600 text-white py-1 rounded font-bold shadow animate-pulse hover:bg-green-700">🛠️ 完修</button>`;
             } else {
-                // 只有完全正常的機器才出報修與保養
+                // 正常狀態則顯示一般報修與保養
                 btnSlot2 = `<button onclick="openRepairModal('${mac}')" class="w-20 bg-red-500 text-white py-1 rounded font-bold shadow-sm hover:bg-red-600">🔧 報修</button>`;
                 btnSlot4 = `<button onclick="openMaintModal('${mac}')" class="w-20 bg-yellow-500 text-white py-1 rounded font-bold shadow-sm hover:bg-yellow-600">💆 保養</button>`;
             }
@@ -4028,13 +4029,50 @@ document.addEventListener('click', function(e) {
             btn.innerHTML = '<span class="btn-spinner"></span>送出中'; btn.disabled = true;
             google.script.run.withSuccessHandler(res => { alert("已通報維修！機台轉為 [報修中]"); closeModal('repairModal'); btn.innerHTML = '送出報修'; btn.disabled = false; refreshSystem(); }).withFailureHandler(err => { alert('系統異常：'+err); btn.innerHTML = '送出報修'; btn.disabled = false; }).logEquipmentRepair(machine, true, reason, op);
         }
-        function finishRepair(machine, btn) {
-            let remark = prompt(`請輸入機台 [${machine}] 的完修紀錄 / 內容：\n(若無請直接按確定)`);
-            if(remark === null) return; 
-            const op = document.getElementById('userNameDisplay').innerText;
-            const originalText = btn.innerHTML; btn.innerHTML = '<span class="btn-spinner"></span>'; btn.disabled = true;
-            google.script.run.withSuccessHandler(res => { alert("機台已完修並恢復！"); refreshSystem(); }).withFailureHandler(err => { alert('系統異常：'+err); btn.innerHTML = originalText; btn.disabled = false; }).logEquipmentRepair(machine, false, remark, op);
-        }
+        // ================= 整合維修：開啟完修視窗 =================
+function openFinishRepairModal(mac) {
+    document.getElementById('finishRepairMachine').textContent = mac;
+    document.getElementById('finishRepairReason').value = '';
+    document.getElementById('finishRepairModal').classList.remove('hidden');
+}
+
+// ================= 整合維修：送出完修紀錄並解除鎖定 =================
+async function submitFinishRepair(btn) {
+    let mac = document.getElementById('finishRepairMachine').textContent;
+    let resultRemark = document.getElementById('finishRepairReason').value.trim();
+    if (!resultRemark) return alert("請填寫維修處置說明！");
+    
+    let originalText = btn.innerHTML;
+    btn.innerHTML = '處理中...'; btn.disabled = true;
+    
+    try {
+        let ts = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
+        
+        // 1. 將機台狀態恢復為正常，並清空報修原因
+        await sbClient.from('equipment_status').update({ 
+            status: '正常運作', 
+            repair_remark: '' // 清空工單
+        }).eq('machine_id', mac);
+        
+        // 2. 寫入機台履歷 Log，紀錄是誰修好的、怎麼修的
+        await sbClient.from('equipment_logs').insert([{ 
+            created_at: ts, 
+            machine_id: mac, 
+            status: '完修復原', 
+            operator_name: userOpName || '設備工程師', 
+            remark: '處置：' + resultRemark 
+        }]);
+
+        alert("機台完修登記成功！");
+        closeModal('finishRepairModal');
+        refreshSystem(); // 刷新畫面，讓 MES 的生產紅字警示解除
+    } catch(err) {
+        alert("完修寫入失敗：" + err);
+    } finally {
+        btn.innerHTML = originalText; btn.disabled = false;
+    }
+}
+        
         function openMaintModal(machine) { document.getElementById('maintMachine').innerText = machine; document.getElementById('maintDate').value = ''; document.getElementById('maintModal').classList.remove('hidden'); }
         function submitMaintenance(btn) {
             const machine = document.getElementById('maintMachine').innerText; const mDate = document.getElementById('maintDate').value; const op = document.getElementById('userNameDisplay').innerText;
