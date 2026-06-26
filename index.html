@@ -1054,7 +1054,17 @@ addSheetData: async function(sheetName, rowDataObj, operatorName) {
         dbRow.status = '處理中'; 
     }
     
+    
     await sbClient.from(config.table).insert([dbRow]);
+    
+    // 【新增】EQM 新增設備時，自動在 EQS 產生對應的狀態卡片
+    if (sheetName === '設備選單維護') {
+        await sbClient.from('equipment_status').insert([{
+            machine_id: dbRow.machine_id,
+            process_name: dbRow.machine_name,
+            status: '待機中' // 賦予初始狀態，讓 EQS 抓得到
+        }]);
+    }
     this.getSheetData(sheetName);
 },
 
@@ -4394,7 +4404,10 @@ function openFinishRepairModal(mac) {
                     warnTitle = "🚨 嚴重生產中斷警告";
                     warnMsg = `【強烈警告】此單已進入現場生產或準備出貨階段！\n刪除將會直接銷毀單據，並「強制退料」補回庫存。\n強烈建議您再次確認！確定要強制刪除嗎？`;
                     btnClass = "bg-red-700 hover:bg-red-800 animate-pulse";
-                }
+                } else if (currentSysName === 'EQM') {
+                // 【新增】EQM 禁止刪除防呆
+                alert("⚠️ 系統保護機制：\n設備資料關聯到歷史生產與機台狀態，系統禁止刪除！\n若機台已報廢或停用，請利用「編輯」將名稱或備註加上 (已報廢)。");
+                return;
 
                 showSmartChoice(warnTitle, warnMsg, [
                     { text: "確定刪除", class: `px-4 py-2 ${btnClass} text-white rounded-lg text-xs font-bold shadow`, callback: () => {
