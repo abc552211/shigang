@@ -1005,13 +1005,15 @@
 
                                 if (currentSysName === 'EQS') {
 
-                                    let { data: eqsData } = await sbClient.from('equipment_logs').select('*');
-
-                                    result.eqsLogs = (eqsData || []).map(x => ({ time: x.created_at, mac: x.machine_id, state: x.status, op: x.operator_name, reason: x.remark }));
-
-                                    let { data: woData } = await sbClient.from('work_orders').select('*');
-
-                                    result.allWos = (woData || []).map(x => toChineseRow('生產工單', x));
+                                    // 【修復核心2】擴大設備日誌抓取範圍，讓 MES 模組也能查閱完整履歷
+                            if (['EQS', 'MES'].includes(currentSysName)) {
+                                let { data: eqsData } = await sbClient.from('equipment_logs').select('*');
+                                result.eqsLogs = (eqsData || []).map(x => ({ time: x.created_at, mac: x.machine_id, state: x.status, op: x.operator_name, reason: x.remark }));
+                            }
+                            if (currentSysName === 'EQS') {
+                                let { data: woData } = await sbClient.from('work_orders').select('*');
+                                result.allWos = (woData || []).map(x => toChineseRow('生產工單', x));
+                            }
 
                                 }
 
@@ -2875,26 +2877,21 @@ if(currentSysName === 'ERP') {
     }
                     }
                     } else if (currentSysName === 'EQS') {
-            // 精準抓取機台狀態與報修原因 (自動相容不同欄位命名)
-            let status = (row['當前狀態'] || row['狀態'] || row['設備狀態'] || '').trim();
-            let mac = (row['設備編號'] || row['機台編號'] || row['machine_id'] || '').trim();
-            let remark = (row['報修原因'] || row['維修備註'] || row['備註'] || '未填寫報修原因').trim();
-            
-            btnSlot1 = `<button onclick="openEqsHistory('${mac}')" class="w-20 bg-gray-500 text-white py-1 rounded font-bold shadow-sm hover:bg-gray-600">📊 紀錄</button>`;
-            
-            // 只要狀態是掛修/報修，就顯示「看工單」與「完修」
-            if (status === '掛修' || status === '報修中' || status.includes('修')) {
-                // 點擊看工單，直接彈出廠房人員寫的報修原因
-                btnSlot2 = `<button onclick="alert('⚠️ 維修工單內容：\\n\\n機台：${mac}\\n原因：${remark}')" class="w-20 border-2 border-red-500 text-red-600 bg-red-50 py-1 rounded font-bold shadow-sm hover:bg-red-100">📄 看工單</button>`;
-                
-                // 完修按鈕綁定專屬的完修結案視窗
-                btnSlot4 = `<button onclick="openFinishRepairModal('${mac}')" class="w-20 bg-green-600 text-white py-1 rounded font-bold shadow animate-pulse hover:bg-green-700">🛠️ 完修</button>`;
-            } else {
-                // 正常狀態則顯示一般報修與保養
-                btnSlot2 = `<button onclick="openRepairModal('${mac}')" class="w-20 bg-red-500 text-white py-1 rounded font-bold shadow-sm hover:bg-red-600">🔧 報修</button>`;
-                btnSlot4 = `<button onclick="openMaintModal('${mac}')" class="w-20 bg-yellow-500 text-white py-1 rounded font-bold shadow-sm hover:bg-yellow-600">💆 保養</button>`;
-            }
-        }
+                        // 【修復核心1】精準對齊 schemaMaps 的「工序編號」與「報修內容」
+                        let status = (row['當前狀態'] || row['狀態'] || row['設備狀態'] || '').trim();
+                        let mac = (row['工序編號'] || row['設備編號'] || row['機台編號'] || row['machine_id'] || '').trim();
+                        let remark = (row['報修內容'] || row['報修原因'] || row['維修備註'] || row['備註'] || '未填寫報修原因').trim();
+                        
+                        btnSlot1 = `<button onclick="openEqsHistory('${mac}')" class="w-20 bg-gray-500 text-white py-1 rounded font-bold shadow-sm hover:bg-gray-600">📊 紀錄</button>`;
+                        
+                        if (status === '掛修' || status === '報修中' || status.includes('修')) {
+                            btnSlot2 = `<button onclick="alert('⚠️ 維修工單內容：\\n\\n機台：${mac}\\n原因：${remark}')" class="w-20 border-2 border-red-500 text-red-600 bg-red-50 py-1 rounded font-bold shadow-sm hover:bg-red-100">📄 看工單</button>`;
+                            btnSlot4 = `<button onclick="openFinishRepairModal('${mac}')" class="w-20 bg-green-600 text-white py-1 rounded font-bold shadow animate-pulse hover:bg-green-700">🛠️ 完修</button>`;
+                        } else {
+                            btnSlot2 = `<button onclick="openRepairModal('${mac}')" class="w-20 bg-red-500 text-white py-1 rounded font-bold shadow-sm hover:bg-red-600">🔧 報修</button>`;
+                            btnSlot4 = `<button onclick="openMaintModal('${mac}')" class="w-20 bg-yellow-500 text-white py-1 rounded font-bold shadow-sm hover:bg-yellow-600">💆 保養</button>`;
+                        }
+                    }
                     else if (currentSysName === 'ERP') { 
                             btnSlot4 = `<button onclick="openReplenishModal('${row['物料編號']}', '${encodeURIComponent(row['品名'] + ' ' + row['規格']||'')}', '${row['供應商']||''}')" class="w-24 bg-yellow-400 text-yellow-900 py-1 rounded hover:bg-yellow-500 font-bold shadow-sm">🛒 補貨申請</button>`; 
                         }
@@ -4052,41 +4049,43 @@ function openFinishRepairModal(mac) {
 }
 
 // ================= 整合維修：送出完修紀錄並解除鎖定 =================
-async function submitFinishRepair(btn) {
-    let mac = document.getElementById('finishRepairMachine').textContent;
-    let resultRemark = document.getElementById('finishRepairReason').value.trim();
-    if (!resultRemark) return alert("請填寫維修處置說明！");
-    
-    let originalText = btn.innerHTML;
-    btn.innerHTML = '處理中...'; btn.disabled = true;
-    
-    try {
-        let ts = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
-        
-        // 1. 將機台狀態恢復為正常，並清空報修原因
-        await sbClient.from('equipment_status').update({ 
-            status: '正常運作', 
-            repair_remark: '' // 清空工單
-        }).eq('machine_id', mac);
-        
-        // 2. 寫入機台履歷 Log，紀錄是誰修好的、怎麼修的
-        await sbClient.from('equipment_logs').insert([{ 
-            created_at: ts, 
-            machine_id: mac, 
-            status: '完修復原', 
-            operator_name: userOpName || '設備工程師', 
-            remark: '處置：' + resultRemark 
-        }]);
+// ================= 整合維修：送出完修紀錄並解除鎖定 =================
+        async function submitFinishRepair(btn) {
+            let mac = document.getElementById('finishRepairMachine').textContent;
+            let resultRemark = document.getElementById('finishRepairReason').value.trim();
+            if (!resultRemark) return alert("請填寫維修處置說明！");
+            
+            let originalText = btn.innerHTML;
+            btn.innerHTML = '處理中...'; btn.disabled = true;
+            
+            try {
+                let ts = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
+                let opName = document.getElementById('userNameDisplay').innerText || '設備工程師';
+                
+                // 1. 將機台狀態恢復為正常，並清空報修工單內容
+                await sbClient.from('equipment_status').update({ 
+                    status: '正常運作', 
+                    repair_remark: '' 
+                }).eq('machine_id', mac);
+                
+                // 2. 寫入機台履歷 Log，紀錄是誰修好的、怎麼處置的
+                await sbClient.from('equipment_logs').insert([{ 
+                    created_at: ts, 
+                    machine_id: mac, 
+                    status: '完修復原', 
+                    operator_name: opName, 
+                    remark: '處置：' + resultRemark 
+                }]);
 
-        alert("機台完修登記成功！");
-        closeModal('finishRepairModal');
-        refreshSystem(); // 刷新畫面，讓 MES 的生產紅字警示解除
-    } catch(err) {
-        alert("完修寫入失敗：" + err);
-    } finally {
-        btn.innerHTML = originalText; btn.disabled = false;
-    }
-}
+                alert("機台完修登記成功！狀態已恢復正常。");
+                closeModal('finishRepairModal');
+                refreshSystem(); // 刷新後 MES 的紅字警示會同步解除
+            } catch(err) {
+                alert("完修寫入失敗：" + err);
+            } finally {
+                btn.innerHTML = originalText; btn.disabled = false;
+            }
+        }
         
         function openMaintModal(machine) { document.getElementById('maintMachine').innerText = machine; document.getElementById('maintDate').value = ''; document.getElementById('maintModal').classList.remove('hidden'); }
         function submitMaintenance(btn) {
