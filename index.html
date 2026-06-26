@@ -2848,7 +2848,7 @@ if(currentSysName === 'ERP') {
                         } else if (currentSysName === 'ERP') { 
                             btnSlot4 = `<button onclick="openReplenishModal('${row['物料編號']}', '${encodeURIComponent(row['品名'] + ' ' + row['規格']||'')}', '${row['供應商']||''}')" class="w-24 bg-yellow-400 text-yellow-900 py-1 rounded hover:bg-yellow-500 font-bold shadow-sm">🛒 補貨申請</button>`; 
                         }
-                    }
+                    
                     tableHTML += `${btnSlot1}${btnSlot2}${btnSlot3}${btnSlot4}`;
                     if (hasEditAuth) { tableHTML += `<button onclick="openModal(${index})" class="w-20 border border-moSide text-moSide py-1 rounded font-bold ml-auto bg-white hover:bg-gray-100 transition-colors">📝 編輯</button>`; }
                     tableHTML += `</div></td></tr>`;
