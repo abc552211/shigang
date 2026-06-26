@@ -586,9 +586,24 @@
 
     <div id="repairModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4"><div class="bg-moCard rounded-lg w-full max-w-sm flex flex-col"><div class="p-4 border-b flex justify-between bg-red-50"><h3 class="font-bold text-red-600">機台報修</h3><button onclick="closeModal('repairModal')">&times;</button></div><div class="p-6 space-y-4"><p class="text-sm">機台：<span id="repairMachine" class="font-bold"></span></p><div><label class="block text-sm font-bold mb-1">報修原因 / 內容</label><textarea id="repairReason" rows="3" class="w-full p-2 border rounded focus:ring-1 focus:ring-red-300"></textarea></div></div><div class="p-4 border-t flex justify-end gap-3 bg-gray-50"><button onclick="closeModal('repairModal')" class="px-4 py-2 border hover:bg-gray-100 rounded">取消</button><button onclick="submitRepair(this)" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded">送出報修</button></div></div></div>
     <div id="finishRepairModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg w-full max-w-sm flex flex-col shadow-2xl">
+        <div class="bg-white rounded-lg w-full max-w-sm flex flex-col shadow-2xl">
+            <div class="p-4 border-b flex justify-between bg-green-50 rounded-t-lg">
+                <h3 class="font-bold text-green-700 tracking-wider">🛠️ 機台完修結案</h3>
+                <button onclick="closeModal('finishRepairModal')" class="text-gray-400 hover:text-gray-800">&times;</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <p class="text-sm text-gray-600">維修機台：<span id="finishRepairMachine" class="font-bold text-gray-900 text-base ml-1"></span></p>
+                <div>
+                    <label class="block text-sm font-bold mb-2 text-gray-700">維修處置說明 / 更換零件</label>
+                    <textarea id="finishRepairReason" rows="3" class="w-full p-3 border border-gray-300 rounded focus:ring-2 focus:ring-green-400 focus:outline-none shadow-inner" placeholder="請簡述處置方式..."></textarea>
+                </div>
+            </div>
+            <div class="p-4 border-t flex justify-end gap-3 bg-gray-50 rounded-b-lg">
+                <button onclick="closeModal('finishRepairModal')" class="px-5 py-2 border border-gray-300 text-gray-600 font-bold hover:bg-gray-100 rounded transition-colors">取消</button>
+                <button onclick="submitFinishRepair(this)" class="px-5 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded shadow transition-colors">確認完修</button>
+            </div>
         </div>
-</div>
+    </div>
     <div id="maintModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4"><div class="bg-moCard rounded-lg w-full max-w-sm flex flex-col"><div class="p-4 border-b flex justify-between bg-yellow-50"><h3 class="font-bold text-yellow-700">排定機台保養</h3><button onclick="closeModal('maintModal')">&times;</button></div><div class="p-6 space-y-4"><p class="text-sm">機台：<span id="maintMachine" class="font-bold"></span></p><div><label class="block text-sm font-bold mb-1">預計保養日期</label><input type="date" id="maintDate" class="w-full p-2 border rounded focus:ring-1 focus:ring-yellow-400"></div><p class="text-xs text-gray-500">＊如需改期，直接選擇新日期按確認即可。若要取消，請按左下角。</p></div><div class="p-4 border-t flex justify-end gap-3 bg-gray-50"><button onclick="submitCancelMaint(this)" class="px-4 py-2 bg-red-100 text-red-600 hover:bg-red-200 rounded mr-auto transition-colors">取消保養</button><button onclick="closeModal('maintModal')" class="px-4 py-2 border hover:bg-gray-100 rounded">關閉</button><button onclick="submitMaintenance(this)" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded">確認排定</button></div></div></div>
 
     <div id="eqsHistoryModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4">
@@ -2315,7 +2330,7 @@ if(currentSysName === 'ERP') {
                                 }
                             }
                                 else if(val === '製作完成' || val === '已完工' || val === '已出貨') badgeClass = 'bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold';
-                                val = `<span class="status-badge ${badgeClass}${pulseClass}">${val}</span>`;
+                                
                                 // 【修復】組合時，把 extraBadge 放在標籤的後方
                                 val = `<div class="flex flex-col items-center justify-center"><span class="status-badge inline-block ${badgeClass}${pulseClass}">${val}</span>${extraBadge}</div>`;
                             }
