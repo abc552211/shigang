@@ -1057,7 +1057,11 @@
                         
                         // ================= 補回：CRM, SUP, EQM 全自動編號生成機制 =================
                         if (sheetName === '客戶資料' || sheetName === '供應商資料' || sheetName === '設備選單維護') {
-                            let prefix = sheetName === '客戶資料' ? 'C' : (sheetName === '供應商資料' ? 'V' : 'E');
+                            let prefix = '';
+                            let padLen = 3; 
+                            if (sheetName === '客戶資料') { prefix = 'C'; padLen = 8; }       // C + 8碼 (例: C00000001)
+                            else if (sheetName === '供應商資料') { prefix = 'V'; padLen = 4; } // V + 4碼 (例: V0001)
+                            else if (sheetName === '設備選單維護') { prefix = 'E'; padLen = 3; } // E + 3碼 (例: E001)
                             let { data: items } = await sbClient.from(config.table).select(config.pk);
                             let nextSeq = 1;
                             if (items && items.length > 0) {
