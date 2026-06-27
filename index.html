@@ -4432,6 +4432,7 @@ function openFinishRepairModal(mac) {
         function openModal(rowIndex = -1) {
             editingRowIndex = rowIndex; 
             document.getElementById('modalTitle').innerText = rowIndex !== -1 ? `編輯資料` : `新增資料`;
+            document.getElementById('deleteBtn').classList.toggle('hidden', rowIndex === -1);
             document.getElementById('deleteBtn').onclick = function() { overrideDeleteButton(rowIndex, this); };
             const formGrid = document.getElementById('formGrid'); formGrid.innerHTML = '';
             const rowData = rowIndex !== -1 ? currentTableData[rowIndex] : {};
@@ -4446,6 +4447,15 @@ function openFinishRepairModal(mac) {
                     return;
                     }
                 if (isSysAuth && (header === '可視系統' || header === '可編輯系統' || header === '可操作系統')) return; 
+                // 【核心新增】EIP 內部公告新增時，自動帶入並鎖定當前操作者為「發佈人」
+                if (header === '發佈人' && currentSysName === 'EIP') {
+                    let opName = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
+                    let val = rowData[header] || '';
+                    let fieldHTML = `<div><label class="block text-sm font-bold mb-1">${header}</label>`;
+                    fieldHTML += `<input type="text" id="input_${header}" value="${val || opName}" readonly class="w-full p-2 border bg-gray-100 text-gray-500 font-bold cursor-not-allowed">`;
+                    formGrid.innerHTML += fieldHTML + `</div>`;
+                    return; 
+                }
 
                 // 【需求 2】隱藏 OMS 新增時不需要看到的欄位
                 if (currentSysName === 'OMS' && rowIndex === -1) {
