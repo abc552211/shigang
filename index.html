@@ -869,7 +869,8 @@
 
                         }
 
-                        let d = new Date(); let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
+                        let d = new Date(); 
+                        let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
 
                         await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', userId);
 
@@ -1045,6 +1046,10 @@
 addSheetData: async function(sheetName, rowDataObj, operatorName) {
     let config = schemaMaps[sheetName]; let dbRow = toEnglishRow(sheetName, rowDataObj);
     let dateStr = new Date().toISOString().slice(2,10).replace(/-/g,'');
+    // 【關鍵修復 1】如果主鍵 (ID) 為 null 或空字串，必須刪除該欄位交給資料庫自動生成，否則會觸發 Not-Null 報錯！
+                        if (dbRow[config.pk] === null || dbRow[config.pk] === '') {
+                            delete dbRow[config.pk];
+                        }
     
     // 【修復】動態向資料庫查詢當日最大流水號，不再使用亂數
     if (sheetName === '訂單管理') { 
@@ -1067,9 +1072,15 @@ addSheetData: async function(sheetName, rowDataObj, operatorName) {
         dbRow.replenish_id = 'B' + dateStr + String(nextSeq).padStart(3, '0');
         dbRow.status = '處理中'; 
     }
-    
-    
     await sbClient.from(config.table).insert([dbRow]);
+    // 【關鍵修復 2】攔截資料庫錯誤並彈出警告，不再讓它靜默失敗！
+                        let { error } = await sbClient.from(config.table).insert([dbRow]);
+                        if (error) {
+                            console.error("資料庫寫入失敗:", error);
+                            if (this.failureHandler) return this.failureHandler("寫入失敗：" + error.message);
+                            return;
+                        }
+    
     
     // 【新增】EQM 新增設備時，自動在 EQS 產生對應的狀態卡片
     if (sheetName === '設備選單維護') {
@@ -1405,7 +1416,8 @@ addReplenish: async function(matId, qty, supplier, opName, reason) {
 addHandover: async function(content, priority, assignee, imageBase64, creator) {
     // 【修正 1】轉換為標準 ISO 時間格式 (YYYY-MM-DD HH:mm:ss)，徹底避免 400 Bad Request
     let d = new Date();
-    let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
+    // 【關鍵修復 3】在字串尾部加上 +08:00，明確告訴資料庫這是台灣時間！
+    let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ') + '+08:00';
 
     // 寫入主表
     let { error } = await sbClient.from('handovers').insert([{ 
