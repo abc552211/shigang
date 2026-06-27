@@ -2430,45 +2430,42 @@ if(currentSysName === 'ERP') {
                     detailsHTML += `</div>`;
 
                     
-
-                    // 【需求 6 修復】ERP 印單按鈕與進貨總金額顯示
-
+                  //在待處理補貨清單加上「補貨原因」
                     let mReplenish = currentReplenish.filter(r => r.matId === mId && r.status !== '已結案');
-
                     let replHtml = mReplenish.map(r => {
-
-    let formattedTime = r.time.replace('T', ' ').substring(0, 19);
-
-    // 使用網址安全編碼包裝原因欄位，徹底防止因為特殊引號或換行字元導致印單按鈕卡死
-
-    let safeReason = encodeURIComponent(r.reason || '');
-
-    return `<tr><td class="p-1 border">${formattedTime}</td><td class="p-1 border font-mono">${r.repId}</td><td class="p-1 border text-orange-600 font-bold">${r.reqQty}</td><td class="p-1 border text-blue-600 font-bold">${r.inQty}</td>
-
-    <td class="p-1 border text-center w-28">
-
-        <button onclick="generateReplenishPDF('${r.repId}', '${r.reqQty}', '${r.matId}', '${r.supplier}', decodeURIComponent('${safeReason}'))" class="bg-gray-600 text-white px-2 py-0.5 rounded text-[10px] hover:bg-gray-700 shadow-sm mr-1">🖨️ 印單</button>
-
-                            <button onclick="openRestockFromRepl('${r.repId}', '${r.matId}', '${encodeURIComponent(row['品名'] + ' ' + row['規格']||'')}', '${row['供應商']||''}', ${r.reqQty - r.inQty})" class="bg-blue-600 text-white px-2 py-0.5 rounded text-[10px] hover:bg-blue-700 transition-colors shadow-sm">📦 進貨</button>
-
-                        </td></tr>`;
-
+                        let formattedTime = r.time.replace('T', ' ').substring(0, 19);
+                        let safeReason = encodeURIComponent(r.reason || '');
+                        let displayReason = r.reason || '-';
+                        
+                        // 【新增】加入申請原因的 td，設定最大寬度並隱藏超出字元，滑鼠移過去可看全貌
+                        return `<tr>
+                            <td class="p-1 border">${formattedTime}</td>
+                            <td class="p-1 border font-mono">${r.repId}</td>
+                            <td class="p-1 border text-orange-600 font-bold">${r.reqQty}</td>
+                            <td class="p-1 border text-blue-600 font-bold">${r.inQty}</td>
+                            <td class="p-1 border text-gray-600 max-w-[120px] truncate" title="${displayReason}">${displayReason}</td>
+                            <td class="p-1 border text-center w-28">
+                                <button onclick="generateReplenishPDF('${r.repId}', '${r.reqQty}', '${r.matId}', '${r.supplier}', decodeURIComponent('${safeReason}'))" class="bg-gray-600 text-white px-2 py-0.5 rounded text-[10px] hover:bg-gray-700 shadow-sm mr-1">🖨️ 印單</button>
+                                <button onclick="openRestockFromRepl('${r.repId}', '${r.matId}', '${encodeURIComponent(row['品名'] + ' ' + row['規格']||'')}', '${row['供應商']||''}', ${r.reqQty - r.inQty})" class="bg-blue-600 text-white px-2 py-0.5 rounded text-[10px] hover:bg-blue-700 transition-colors shadow-sm">📦 進貨</button>
+                            </td>
+                        </tr>`;
                     }).join('');
-
                     
-
                     if(replHtml) {
-
                         detailsHTML += `<div class="mt-3"><span class="font-bold text-orange-600 block mb-1">⏳ 待處理的補貨申請單 (可執行進貨)</span>
-
                         <table class="w-full text-[11px] bg-white border border-orange-200 border-collapse text-left">
-
-                            <thead class="bg-orange-50 text-orange-700"><tr><th class="p-1 border border-orange-200">申請時間</th><th class="p-1 border border-orange-200">補貨單號</th><th class="p-1 border border-orange-200">申請數量</th><th class="p-1 border border-orange-200">已進數量</th><th class="p-1 border border-orange-200 text-center">操作</th></tr></thead>
-
+                            <thead class="bg-orange-50 text-orange-700">
+                                <tr>
+                                    <th class="p-1 border border-orange-200">申請時間</th>
+                                    <th class="p-1 border border-orange-200">補貨單號</th>
+                                    <th class="p-1 border border-orange-200">申請數量</th>
+                                    <th class="p-1 border border-orange-200">已進數量</th>
+                                    <th class="p-1 border border-orange-200 w-32">申請原因</th>
+                                    <th class="p-1 border border-orange-200 text-center">操作</th>
+                                </tr>
+                            </thead>
                             <tbody>${replHtml}</tbody>
-
                         </table></div>`;
-
                     }
 
 
