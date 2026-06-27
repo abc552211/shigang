@@ -4432,8 +4432,7 @@ function openFinishRepairModal(mac) {
         function openModal(rowIndex = -1) {
             editingRowIndex = rowIndex; 
             document.getElementById('modalTitle').innerText = rowIndex !== -1 ? `編輯資料` : `新增資料`;
-            document.getElementById('deleteBtn').classList.toggle('hidden', rowIndex === -1);
-            document.getElementById('deleteBtn').onclick = () => overrideDeleteButton(rowIndex);
+            document.getElementById('deleteBtn').onclick = function() { overrideDeleteButton(rowIndex, this); };
             const formGrid = document.getElementById('formGrid'); formGrid.innerHTML = '';
             const rowData = rowIndex !== -1 ? currentTableData[rowIndex] : {};
 
