@@ -748,7 +748,6 @@
         };
 
 
-
         // 雙向翻譯輔助器 (資料庫英文轉網頁中文)
 
         function toChineseRow(sheetName, dbRow) {
@@ -805,6 +804,23 @@
 
             return dbRow;
 
+        }
+        // ================= 萬用時間格式化引擎 =================
+        function formatToLocalTime(str) {
+            if (!str || typeof str !== 'string') return str;
+            // 偵測是否為帶有 T 或 +00 的資料庫時間字串
+            if (str.match(/^\d{4}-\d{2}-\d{2}[T\s]/)) {
+                let d = new Date(str);
+                if (!isNaN(d.getTime())) {
+                    let y = d.getFullYear();
+                    let m = String(d.getMonth() + 1).padStart(2, '0');
+                    let day = String(d.getDate()).padStart(2, '0');
+                    let h = String(d.getHours()).padStart(2, '0');
+                    let min = String(d.getMinutes()).padStart(2, '0');
+                    return `${y}/${m}/${day} ${h}:${min}`;
+                }
+            }
+            return str;
         }
 
 
@@ -1877,6 +1893,7 @@ deleteHandover: async function(id, operatorName) {
                 } else {
                     cardboardBtn.classList.add('hidden');
                 }
+            }    
 
             if (window.innerWidth < 768) document.querySelector('.sidebar-bg').classList.add('hidden');
 
