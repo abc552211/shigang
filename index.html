@@ -2979,7 +2979,7 @@ if(currentSysName === 'ERP') {
                                 } else {
                                     btnSlot4 = `<button onclick="openMaintModal('${mac}', '')" class="w-20 bg-yellow-500 text-white py-1 rounded font-bold shadow-sm hover:bg-yellow-600">💆 排定保養</button>`;
                                 }
-                            
+                            }
                         } else if (currentSysName === 'ERP') { 
                             btnSlot4 = `<button onclick="openReplenishModal('${row['物料編號']}', '${encodeURIComponent(row['品名'] + ' ' + row['規格']||'')}', '${row['供應商']||''}')" class="w-24 bg-yellow-400 text-yellow-900 py-1 rounded hover:bg-yellow-500 font-bold shadow-sm">🛒 補貨申請</button>`; 
                         }
