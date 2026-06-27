@@ -186,14 +186,14 @@
 
 
                 <div class="flex flex-wrap items-center gap-3 w-full md:w-auto" id="headerActions">
-                    <label class="relative inline-flex items-center cursor-pointer group flex-shrink-0">
+                    <label id="hideClosedToggleContainer" class="hidden relative inline-flex items-center cursor-pointer group flex-shrink-0">
                         <input type="checkbox" id="hideClosedOrder" class="sr-only peer" checked onchange="refreshSystem()">
                         <div class="w-9 h-5 bg-gray-300 rounded-full peer peer-checked:bg-emerald-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all shadow-inner flex-shrink-0"></div>
                         <span class="ml-2 text-xs font-bold text-gray-500 group-hover:text-emerald-600 transition-colors select-none tracking-wider whitespace-nowrap">隱藏已結案</span>
                     </label>
                     
                     <a id="cardboardCalcBtn" href="https://shigang-estimate.abc552211.workers.dev" target="_blank" class="hidden flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm font-bold shadow-sm transition-colors tracking-wider flex items-center gap-1">
-                        📊 紙板印刷試算
+                        紙板印刷試算
                     </a>
                     
                     <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="輸入關鍵字模糊搜尋..." class="flex-1 md:w-48 p-2 border border-moBorder rounded text-sm focus:outline-none focus:ring-1 focus:ring-moSide transition-all min-w-[120px]">
@@ -1885,15 +1885,15 @@ deleteHandover: async function(id, operatorName) {
             } else {
                 document.getElementById('addBtn').classList.toggle('hidden', !userEditAuth.includes(sysName));
             }
-            // 【新增】動態控管「紙板印刷試算」按鈕，只在 OMS (訂單管理) 面板呈現
+            // 【新增】動態控管「紙板印刷試算」與「隱藏結案開關」，只在 OMS 面板呈現
             const cardboardBtn = document.getElementById('cardboardCalcBtn');
-            if (cardboardBtn) {
-                if (sysName === 'OMS' || sysName === '訂單管理') {
-                    cardboardBtn.classList.remove('hidden');
-                } else {
-                    cardboardBtn.classList.add('hidden');
-                }
-            }    
+            const hideClosedToggle = document.getElementById('hideClosedToggleContainer');
+            
+            // 判斷當前是否為訂單管理系統
+            let isOMS = (sysName === 'OMS' || sysName === '訂單管理');
+
+            if (cardboardBtn) cardboardBtn.classList.toggle('hidden', !isOMS);
+            if (hideClosedToggle) hideClosedToggle.classList.toggle('hidden', !isOMS);   
 
             if (window.innerWidth < 768) document.querySelector('.sidebar-bg').classList.add('hidden');
 
@@ -2682,7 +2682,10 @@ if(currentSysName === 'ERP') {
 
                         targetKeys.forEach(k => {
 
-                            let v = row[k] || '0'; let isFin = k.includes('成本') || k.includes('報價') || k.includes('金額');
+                            let val = row[key] == null ? '' : formatToLocalTime(String(row[key]));
+                            let v = row[k] || '0'; 
+                            
+                            let isFin = k.includes('成本') || k.includes('報價') || k.includes('金額');
 
                             if (!userShowFinance && isFin) { v = `<span class="text-gray-400 italic">🔒 鎖定</span>`; } 
 
