@@ -2920,26 +2920,22 @@ if(currentSysName === 'ERP') {
         btnSlot4 = `<button onclick="openCompleteModal('${woId}', '${oId}', '${mac}')" class="w-20 bg-blue-600 text-white py-1 rounded font-bold shadow animate-pulse">🏁 完工</button>`;
     }
                     }
-                    } else if (currentSysName === 'EQS') {
-                        let status = (row['當前狀態'] || row['狀態'] || row['設備狀態'] || '').trim();
-                        // 【關鍵】精準抓取「工序編號」以對齊 Schema，否則傳空值會導致按鈕失效
-                        let mac = (row['工序編號'] || row['設備編號'] || row['機台編號'] || row['machine_id'] || '').trim();
-                        let remark = (row['報修內容'] || row['報修原因'] || row['維修備註'] || row['備註'] || '').trim();
-                        
-                        btnSlot1 = `<button onclick="openEqsHistory('${mac}')" class="w-20 bg-gray-500 text-white py-1 rounded font-bold shadow-sm hover:bg-gray-600">📊 歷史彈窗</button>`;
-                        
-                        // 只要狀態是掛修/報修，就顯示「看工單」與「完修」
-                        if (status === '掛修' || status === '報修中' || status.includes('修')) {
-                            btnSlot2 = `<button onclick="alert('⚠️ 維修工單內容：\\n\\n機台：${mac}\\n原因：${remark}')" class="w-20 border-2 border-red-500 text-red-600 bg-red-50 py-1 rounded font-bold shadow-sm hover:bg-red-100">📄 看工單</button>`;
-                            btnSlot4 = `<button onclick="openFinishRepairModal('${mac}')" class="w-20 bg-green-600 text-white py-1 rounded font-bold shadow animate-pulse hover:bg-green-700">🛠️ 完修</button>`;
-                        } else {
-                            // 正常狀態或待機中，則顯示一般報修與保養
-                            btnSlot2 = `<button onclick="openRepairModal('${mac}')" class="w-20 bg-red-500 text-white py-1 rounded font-bold shadow-sm hover:bg-red-600">🔧 報修</button>`;
-                            btnSlot4 = `<button onclick="openMaintModal('${mac}')" class="w-20 bg-yellow-500 text-white py-1 rounded font-bold shadow-sm hover:bg-yellow-600">💆 保養</button>`;
-                        }
-                    }
-                    else if (currentSysName === 'ERP') { 
-                            btnSlot4 = `<button onclick="openReplenishModal('${row['物料編號']}', '${encodeURIComponent(row['品名'] + ' ' + row['規格']||'')}', '${row['供應商']||''}')" class="w-24 bg-yellow-400 text-yellow-900 py-1 rounded hover:bg-yellow-500 font-bold shadow-sm">🛒 補貨申請</button>`; 
+                    } 
+                        // 👇 把 EQS 和 ERP 通通收進 if (hasOpAuth) 的括號裡面！ 👇
+                        else if (currentSysName === 'EQS') {
+                            let status = (row['當前狀態'] || row['狀態'] || row['設備狀態'] || '').trim();
+                            let mac = (row['工序編號'] || row['設備編號'] || row['機台編號'] || row['machine_id'] || '').trim();
+                            let remark = (row['報修內容'] || row['報修原因'] || row['維修備註'] || row['備註'] || '').trim();
+                            
+                            btnSlot1 = `<button onclick="openEqsHistory('${mac}')" class="w-20 bg-gray-500 text-white py-1 rounded font-bold shadow-sm hover:bg-gray-600">📊 歷史彈窗</button>`;
+                            
+                            if (status === '掛修' || status === '報修中' || status.includes('修')) {
+                                btnSlot2 = `<button onclick="alert('⚠️ 維修工單內容：\\n\\n機台：${mac}\\n原因：${remark}')" class="w-20 border-2 border-red-500 text-red-600 bg-red-50 py-1 rounded font-bold shadow-sm hover:bg-red-100">📄 看工單</button>`;
+                                btnSlot4 = `<button onclick="openFinishRepairModal('${mac}')" class="w-20 bg-green-600 text-white py-1 rounded font-bold shadow animate-pulse hover:bg-green-700">🛠️ 完修</button>`;
+                            } else {
+                                btnSlot2 = `<button onclick="openRepairModal('${mac}')" class="w-20 bg-red-500 text-white py-1 rounded font-bold shadow-sm hover:bg-red-600">🔧 報修</button>`;
+                                btnSlot4 = `<button onclick="openMaintModal('${mac}')" class="w-20 bg-yellow-500 text-white py-1 rounded font-bold shadow-sm hover:bg-yellow-600">💆 保養</button>`;
+                            }
                         }
                     
                     tableHTML += `${btnSlot1}${btnSlot2}${btnSlot3}${btnSlot4}`;
