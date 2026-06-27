@@ -1043,55 +1043,71 @@
                     },
 
                     // 5. 標準新增資料
-addSheetData: async function(sheetName, rowDataObj, operatorName) {
-    let config = schemaMaps[sheetName]; let dbRow = toEnglishRow(sheetName, rowDataObj);
-    let dateStr = new Date().toISOString().slice(2,10).replace(/-/g,'');
-    // 【關鍵修復 1】如果主鍵 (ID) 為 null 或空字串，必須刪除該欄位交給資料庫自動生成，否則會觸發 Not-Null 報錯！
+                    addSheetData: async function(sheetName, rowDataObj, operatorName) {
+                        let config = schemaMaps[sheetName]; let dbRow = toEnglishRow(sheetName, rowDataObj);
+                        
+                        // 【關鍵修復 1】如果主鍵 (ID) 為 null 或空字串，必須刪除該欄位交給資料庫自動生成
                         if (dbRow[config.pk] === null || dbRow[config.pk] === '') {
                             delete dbRow[config.pk];
                         }
-    
-    // 【修復】動態向資料庫查詢當日最大流水號，不再使用亂數
-    if (sheetName === '訂單管理') { 
-        let { data: ords } = await sbClient.from('orders').select('order_id').like('order_id', `C${dateStr}%`);
-        let nextSeq = 1;
-        if (ords && ords.length > 0) {
-            let maxSeq = Math.max(...ords.map(o => parseInt(o.order_id.replace('C'+dateStr, ''), 10) || 0));
-            nextSeq = maxSeq + 1;
-        }
-        dbRow.order_id = 'C' + dateStr + String(nextSeq).padStart(3, '0');
-        dbRow.status = '估算中'; 
-    }
-    if (sheetName === '補貨申請LOG') { 
-        let { data: reps } = await sbClient.from('replenish_logs').select('replenish_id').like('replenish_id', `B${dateStr}%`);
-        let nextSeq = 1;
-        if (reps && reps.length > 0) {
-            let maxSeq = Math.max(...reps.map(o => parseInt(o.replenish_id.replace('B'+dateStr, ''), 10) || 0));
-            nextSeq = maxSeq + 1;
-        }
-        dbRow.replenish_id = 'B' + dateStr + String(nextSeq).padStart(3, '0');
-        dbRow.status = '處理中'; 
-    }
-    await sbClient.from(config.table).insert([dbRow]);
-    // 【關鍵修復 2】攔截資料庫錯誤並彈出警告，不再讓它靜默失敗！
+                        
+                        // ─── 修正：全面改用精確台灣本地時間 (UTC+8) 產生日期字串，消滅跨日偏差 ───
+                        let now = new Date(new Date().getTime() + 8 * 60 * 60 * 1000);
+                        let twDateStr = String(now.getUTCFullYear()).slice(2) + 
+                                        String(now.getUTCMonth() + 1).padStart(2, '0') + 
+                                        String(now.getUTCDate()).padStart(2, '0');
+                        
+                        // ================= 訂單管理單號生成 (含全自動防撞排隊鎖) =================
+                        if (sheetName === '訂單管理') { 
+                            let { data: ords } = await sbClient.from('orders').select('order_id').like('order_id', `C${twDateStr}%`);
+                            let nextSeq = 1;
+                            if (ords && ords.length > 0) {
+                                let maxSeq = Math.max(...ords.map(o => parseInt(o.order_id.replace('C'+twDateStr, ''), 10) || 0));
+                                nextSeq = maxSeq + 1;
+                            }
+                            
+                            // 【終極防護】向資料庫進行實時碰撞檢查，若單號已被佔用則自動遞增，直到安全為止
+                            let isUnique = false;
+                            while (!isUnique) {
+                                let checkId = 'C' + twDateStr + String(nextSeq).padStart(3, '0');
+                                let { data: existing } = await sbClient.from('orders').select('order_id').eq('order_id', checkId);
+                                if (!existing || existing.length === 0) {
+                                    dbRow.order_id = checkId;
+                                    isUnique = true;
+                                } else {
+                                    nextSeq++; // 撞號了，自動指派下一碼
+                                }
+                            }
+                            dbRow.status = '估算中'; 
+                        }
+
+                        // ================= 補貨申請單號生成 (同步校正時區) =================
+                        if (sheetName === '補貨申請LOG') { 
+                            let { data: reps } = await sbClient.from('replenish_logs').select('replenish_id').like('replenish_id', `B${twDateStr}%`);
+                            let nextSeq = 1;
+                            if (reps && reps.length > 0) {
+                                let maxSeq = Math.max(...reps.map(o => parseInt(o.replenish_id.replace('B'+twDateStr, ''), 10) || 0));
+                                nextSeq = maxSeq + 1;
+                            }
+                            dbRow.replenish_id = 'B' + twDateStr + String(nextSeq).padStart(3, '0');
+                            dbRow.status = '處理中'; 
+                        }
+                        
+                        // 執行安全插入
                         let { error } = await sbClient.from(config.table).insert([dbRow]);
                         if (error) {
                             console.error("資料庫寫入失敗:", error);
                             if (this.failureHandler) return this.failureHandler("寫入失敗：" + error.message);
                             return;
                         }
-    
-    
-    // 【新增】EQM 新增設備時，自動在 EQS 產生對應的狀態卡片
-    if (sheetName === '設備選單維護') {
-        await sbClient.from('equipment_status').insert([{
-            machine_id: dbRow.machine_id,
-            process_name: dbRow.machine_name,
-            status: '待機中' // 賦予初始狀態，讓 EQS 抓得到
-        }]);
-    }
-    this.getSheetData(sheetName);
-},
+                        
+                        if (sheetName === '設備選單維護') {
+                            await sbClient.from('equipment_status').insert([{
+                                machine_id: dbRow.machine_id, process_name: dbRow.machine_name, status: '待機中' 
+                            }]);
+                        }
+                        this.getSheetData(sheetName);
+                    },
 
                     // 6. 標準更新資料
 
