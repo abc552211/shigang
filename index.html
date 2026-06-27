@@ -1033,16 +1033,7 @@
                                 }
 
                             }
-
-
-
-                            if(this.successHandler) this.successHandler(result);
-
-                        } catch(err) { if(this.failureHandler) this.failureHandler(err.toString()); }
-
-                    },
-
-                    // 【補回】CRM, SUP, EQM 全自動編號生成機制
+                            // 【補回】CRM, SUP, EQM 全自動編號生成機制
                         if (sheetName === '客戶資料' || sheetName === '供應商資料' || sheetName === '設備選單維護') {
                             let prefix = sheetName === '客戶資料' ? 'C' : (sheetName === '供應商資料' ? 'S' : 'MAC');
                             let { data: items } = await sbClient.from(config.table).select(config.pk);
@@ -1058,6 +1049,16 @@
                             }
                             dbRow[config.pk] = prefix + String(nextSeq).padStart(3, '0');
                         }
+
+
+
+                            if(this.successHandler) this.successHandler(result);
+
+                        } catch(err) { if(this.failureHandler) this.failureHandler(err.toString()); }
+
+                    },
+
+                   
 
                     // 5. 標準新增資料
                     addSheetData: async function(sheetName, rowDataObj, operatorName) {
