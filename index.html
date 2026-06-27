@@ -2903,32 +2903,29 @@ if(currentSysName === 'ERP') {
                             btnSlot1 = htmlStr; btnSlot2 = ''; btnSlot3 = ''; btnSlot4 = '';
 
                         } else if (currentSysName === 'MES') {
-                        const status = row['工單狀態']; const mac = row['作業機台']; const woId = row['工單編號']; const oId = row['關聯訂單'];
-                        if (status === '生產中') {
-        let isBroken = window.currentEqStatus && window.currentEqStatus.some(e => e.machine_id === mac && (e.status === '報修中' || e.status === '掛修'));
-        
-        btnSlot1 = `<button onclick="openStopModal('${woId}', '${oId}', '${mac}')" class="w-20 border border-red-500 text-red-600 bg-red-50 py-1 rounded font-bold shadow-sm hover:bg-red-100">🛑 停工退料</button>`;
-        
-        // 【新增】判斷機台是否已報修，若已報修則按鈕反灰且無法點擊
-        if (isBroken) {
-            btnSlot2 = `<button disabled class="w-20 bg-gray-300 text-gray-500 py-1 rounded font-bold shadow-sm cursor-not-allowed">⚠️ 已報修</button>`;
-        } else {
-            btnSlot2 = `<button onclick="openRepairModal('${mac.split(' ')[0]}')" class="w-20 bg-orange-500 text-white py-1 rounded font-bold shadow-sm hover:bg-orange-600">🔧 機台報修</button>`;
-        }
-        // 【新增】掛載機台履歷紀錄按鈕 (利用 btnSlot3)
-        btnSlot3 = `<button onclick="openEqsHistory('${mac.split(' ')[0]}')" class="w-20 bg-gray-500 text-white py-1 rounded font-bold shadow-sm hover:bg-gray-600">📊 機台履歷</button>`;
-        btnSlot4 = `<button onclick="openCompleteModal('${woId}', '${oId}', '${mac}')" class="w-20 bg-blue-600 text-white py-1 rounded font-bold shadow animate-pulse">🏁 完工</button>`;
-    }
-                    }
-                    } 
-                        // 👇 把 EQS 和 ERP 通通收進 if (hasOpAuth) 的括號裡面！ 👇
-                        else if (currentSysName === 'EQS') {
+                            const status = row['工單狀態']; const mac = row['作業機台']; const woId = row['工單編號']; const oId = row['關聯訂單'];
+                            if (status === '生產中') {
+                                let isBroken = window.currentEqStatus && window.currentEqStatus.some(e => e.machine_id === mac && (e.status === '報修中' || e.status === '掛修'));
+                                
+                                btnSlot1 = `<button onclick="openStopModal('${woId}', '${oId}', '${mac}')" class="w-20 border border-red-500 text-red-600 bg-red-50 py-1 rounded font-bold shadow-sm hover:bg-red-100">🛑 停工退料</button>`;
+                                
+                                if (isBroken) {
+                                    btnSlot2 = `<button disabled class="w-20 bg-gray-300 text-gray-500 py-1 rounded font-bold shadow-sm cursor-not-allowed">⚠️ 已報修</button>`;
+                                } else {
+                                    btnSlot2 = `<button onclick="openRepairModal('${mac.split(' ')[0]}')" class="w-20 bg-orange-500 text-white py-1 rounded font-bold shadow-sm hover:bg-orange-600">🔧 機台報修</button>`;
+                                }
+                                btnSlot3 = `<button onclick="openEqsHistory('${mac.split(' ')[0]}')" class="w-20 bg-gray-500 text-white py-1 rounded font-bold shadow-sm hover:bg-gray-600">📊 機台履歷</button>`;
+                                btnSlot4 = `<button onclick="openCompleteModal('${woId}', '${oId}', '${mac}')" class="w-20 bg-blue-600 text-white py-1 rounded font-bold shadow animate-pulse">🏁 完工</button>`;
+                            }
+                        } else if (currentSysName === 'EQS') {
+                            // 精準抓取機台狀態與報修原因 (自動相容不同欄位命名)
                             let status = (row['當前狀態'] || row['狀態'] || row['設備狀態'] || '').trim();
-                            let mac = (row['工序編號'] || row['設備編號'] || row['機台編號'] || row['machine_id'] || '').trim();
-                            let remark = (row['報修內容'] || row['報修原因'] || row['維修備註'] || row['備註'] || '').trim();
+                            let mac = (row['設備編號'] || row['機台編號'] || row['machine_id'] || '').trim();
+                            let remark = (row['報修原因'] || row['維修備註'] || row['備註'] || '未填寫報修原因').trim();
                             
-                            btnSlot1 = `<button onclick="openEqsHistory('${mac}')" class="w-20 bg-gray-500 text-white py-1 rounded font-bold shadow-sm hover:bg-gray-600">📊 歷史彈窗</button>`;
+                            btnSlot1 = `<button onclick="openEqsHistory('${mac}')" class="w-20 bg-gray-500 text-white py-1 rounded font-bold shadow-sm hover:bg-gray-600">📊 紀錄</button>`;
                             
+                            // 只要狀態是掛修/報修，就顯示「看工單」與「完修」
                             if (status === '掛修' || status === '報修中' || status.includes('修')) {
                                 btnSlot2 = `<button onclick="alert('⚠️ 維修工單內容：\\n\\n機台：${mac}\\n原因：${remark}')" class="w-20 border-2 border-red-500 text-red-600 bg-red-50 py-1 rounded font-bold shadow-sm hover:bg-red-100">📄 看工單</button>`;
                                 btnSlot4 = `<button onclick="openFinishRepairModal('${mac}')" class="w-20 bg-green-600 text-white py-1 rounded font-bold shadow animate-pulse hover:bg-green-700">🛠️ 完修</button>`;
@@ -2936,7 +2933,10 @@ if(currentSysName === 'ERP') {
                                 btnSlot2 = `<button onclick="openRepairModal('${mac}')" class="w-20 bg-red-500 text-white py-1 rounded font-bold shadow-sm hover:bg-red-600">🔧 報修</button>`;
                                 btnSlot4 = `<button onclick="openMaintModal('${mac}')" class="w-20 bg-yellow-500 text-white py-1 rounded font-bold shadow-sm hover:bg-yellow-600">💆 保養</button>`;
                             }
+                        } else if (currentSysName === 'ERP') { 
+                            btnSlot4 = `<button onclick="openReplenishModal('${row['物料編號']}', '${encodeURIComponent(row['品名'] + ' ' + row['規格']||'')}', '${row['供應商']||''}')" class="w-24 bg-yellow-400 text-yellow-900 py-1 rounded hover:bg-yellow-500 font-bold shadow-sm">🛒 補貨申請</button>`; 
                         }
+                    } // 【關鍵修復點】：這裡才是 if (hasOpAuth) 真正該關門的地方！
                     
                     tableHTML += `${btnSlot1}${btnSlot2}${btnSlot3}${btnSlot4}`;
                     if (hasEditAuth) { tableHTML += `<button onclick="openModal(${index})" class="w-20 border border-moSide text-moSide py-1 rounded font-bold ml-auto bg-white hover:bg-gray-100 transition-colors">📝 編輯</button>`; }
