@@ -964,8 +964,10 @@
                                     name: "["+(m.supplier_name || '未知').substring(0, 2) + "] " + (m.category || '無類別') + " | " + (m.material_name || '') + " " + (m.material_spec || ''),
                                     price: parseFloat(m.cost_price) || 0,
                                     sellPrice: parseFloat(m.sell_price) || 0,
-                                    // 【新增】將即時庫存包進下拉選單資料庫中
-                                    stock: parseFloat(m.stock_qty) || 0
+                                    stock: parseFloat(m.stock_qty) || 0,
+                                    // 【新增】將類別與供應商一起打包，供後續判定 ∞ 與補貨單使用
+                                    category: m.category || '',
+                                    supplier: m.supplier_name || ''
                                 }));
 
                                 
@@ -3567,8 +3569,7 @@ function doDeleteHandover(id, btn) {
         // 綁定全域暫存變數以回傳後端累加總金額
         window.currentMatTotalSell = 0;
 
-        // ================= 智慧金額自動精算 (全數取至小數點第二位) =================
-        const originalCalcMatCost = calcMatCost;
+        // ================= 智慧金額自動精算 (支援紅字警示、自動跳轉補貨與防呆) =================
         calcMatCost = function() {
             let targetQty = parseFloat(document.getElementById('estTargetQty').value) || 1;
             let yieldRate = parseFloat(document.getElementById('estYieldRate').value) || 100;
@@ -3584,40 +3585,66 @@ function doDeleteHandover(id, btn) {
                 const costInput = row.querySelector('.mat-cost');
                 const sellInput = row.querySelector('.mat-sell');
                 const displayQty = row.querySelector('.actual-qty-display');
-                // 【新增】動態反查並更新即時庫存顯示
-                let realIdInput = row.querySelector('.mat-real-id');
-                let matId = realIdInput ? realIdInput.value : '';
-                let matData = (currentDropdowns['物料編號'] || []).find(m => m.id === matId);
-                let stockDisplay = row.querySelector('.mat-stock-display');
-                if (stockDisplay) {
-                    stockDisplay.innerText = matData ? matData.stock : '-';
-                }
+                const stockDisplay = row.querySelector('.mat-stock-display');
                 
+                // 【修復 1】雙重防呆：優先抓隱藏 ID，如果因為打字被清空，立刻抓取畫面字串的第一段作為 ID，保證料號不丟失！
+                let realIdInput = row.querySelector('.mat-real-id');
+                let matId = (realIdInput && realIdInput.value) ? realIdInput.value : (input && input.value ? input.value.split(' ')[0] : '');
+                let matData = (currentDropdowns['物料編號'] || []).find(m => m.id === matId);
+
+                let actualQ = 0;
                 if (input && qtyInput && input.value && qtyInput.value) {
                     let baseQ = parseFloat(qtyInput.value) || 0;
-                    let actualQ = Math.ceil(baseQ * (100 / yieldRate));
+                    actualQ = Math.ceil(baseQ * (100 / yieldRate)); // 根據良率放大用量
                     if(displayQty) displayQty.innerText = actualQ;
                     row.setAttribute('data-actual-qty', actualQ);
 
                     let costPrice = parseFloat(costInput.value) || 0;
                     let sellPrice = parseFloat(sellInput.value) || 0;
-                    
-                    // 使用 Math.round(val * 100) / 100 來確保兩位小數
                     matTotalCost += (costPrice * actualQ); 
                     matTotalSell += (sellPrice * actualQ);
                 } else {
                     if(displayQty) displayQty.innerText = '0';
                     row.removeAttribute('data-actual-qty');
                 }
+
+                // 【修復 2 & 3】庫存智慧顯示系統 (無形服務顯示 ∞ / 庫存不足紅字跳轉)
+                if (stockDisplay) {
+                    if (matData) {
+                        let cat = String(matData.category || '');
+                        // 判定是否為服務類/加工類
+                        let isService = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('代工') || cat.includes('費');
+                        
+                        if (isService) {
+                            // 服務類：顯示紫色的無限大符號
+                            stockDisplay.innerHTML = '<span class="text-indigo-600 font-bold text-lg">∞</span>';
+                            stockDisplay.className = 'w-16 text-center mat-stock-display flex items-center justify-center bg-indigo-50 border border-indigo-200 rounded h-[38px]';
+                        } else {
+                            let stock = parseFloat(matData.stock) || 0;
+                            if (actualQ > stock) {
+                                // 庫存不足：轉為紅色，並將數字變為可點擊的補貨按鈕
+                                let safeName = encodeURIComponent(matData.name);
+                                let safeSup = matData.supplier || '';
+                                stockDisplay.innerHTML = `<button onclick="openReplenishModal('${matId}', '${safeName}', '${safeSup}')" class="text-red-600 font-bold underline hover:text-red-800 transition-colors animate-pulse tracking-wider" title="庫存嚴重不足！點擊立即發起補貨單">${stock}</button>`;
+                                stockDisplay.className = 'w-16 text-center mat-stock-display flex items-center justify-center bg-red-50 border border-red-300 rounded h-[38px] shadow-inner';
+                            } else {
+                                // 庫存充足：顯示一般藍綠色
+                                stockDisplay.innerHTML = `<span class="text-blue-700 font-bold tracking-wider">${stock}</span>`;
+                                stockDisplay.className = 'w-16 text-center mat-stock-display flex items-center justify-center bg-blue-50 border border-blue-200 rounded h-[38px]';
+                            }
+                        }
+                    } else {
+                        // 料號未對齊或清空時的預設狀態
+                        stockDisplay.innerHTML = '<span class="text-gray-400">-</span>';
+                        stockDisplay.className = 'w-16 text-center mat-stock-display flex items-center justify-center bg-gray-50 border border-gray-200 rounded h-[38px]';
+                    }
+                }
             });
 
-            // 更新介面顯示 (使用 .toFixed(2) 強制格式化)
             document.getElementById('matTotalCost').innerText = matTotalCost.toFixed(2);
             
-            // 客單價精算，並使用 Number.parseFloat().toFixed(2) 強制格式化顯示
             let autoUnitPrice = targetQty > 0 ? (matTotalSell / targetQty) : 0;
             if(document.getElementById('matActionType').value === 'estimate') {
-                // 這裡我們轉成數字後再格式化，確保 1 變成 "1.00"
                 document.getElementById('estUnitPrice').innerText = "$ " + (Math.round(autoUnitPrice * 100) / 100).toFixed(2);
             }
             
@@ -3630,15 +3657,11 @@ function doDeleteHandover(id, btn) {
             let totalCost = matTotalCost + fCost;
             let netProfit = totalRevenue - totalCost;
 
-            // 最終總計顯示保留兩位小數
             document.getElementById('estTotalProductSum').innerText = "$ " + productSum.toFixed(2);
             let profitEl = document.getElementById('estEstProfit');
             profitEl.innerText = "$ " + netProfit.toFixed(2);
-            
-            // 處理樣式
             profitEl.className = netProfit >= 0 ? "text-green-600 font-bold text-xl leading-relaxed" : "text-red-600 font-bold text-xl leading-relaxed";
             
-            // 寫入全域變數供結算使用
             window.currentMatTotalSell = matTotalSell;
         };
 
