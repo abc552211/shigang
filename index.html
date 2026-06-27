@@ -1885,6 +1885,7 @@ deleteHandover: async function(id, operatorName) {
             } else {
                 document.getElementById('addBtn').classList.toggle('hidden', !userEditAuth.includes(sysName));
             }
+            
             // 【新增】動態控管「紙板印刷試算」與「隱藏結案開關」，只在 OMS 面板呈現
             const cardboardBtn = document.getElementById('cardboardCalcBtn');
             const hideClosedToggle = document.getElementById('hideClosedToggleContainer');
@@ -1893,10 +1894,7 @@ deleteHandover: async function(id, operatorName) {
             let isOMS = (sysName === 'OMS' || sysName === '訂單管理');
 
             if (cardboardBtn) cardboardBtn.classList.toggle('hidden', !isOMS);
-            if (hideClosedToggle) hideClosedToggle.classList.toggle('hidden', !isOMS);   
-
-            if (window.innerWidth < 768) document.querySelector('.sidebar-bg').classList.add('hidden');
-
+            if (hideClosedToggle) hideClosedToggle.classList.toggle('hidden', !isOMS);
             
 
             // 智慧快取攔截點
@@ -2681,20 +2679,14 @@ if(currentSysName === 'ERP') {
                         const targetKeys = ['數量', '預估良率', '產出量', '運費成本', '運費報價', '運費備註', '貨運單號', '出貨時間','業務'];
 
                         targetKeys.forEach(k => {
-
-                            let val = row[key] == null ? '' : formatToLocalTime(String(row[key]));
-                            let v = row[k] || '0'; 
+                            // 【關鍵修復】對齊你的變數 k，並包上時間格式化引擎
+                            let v = formatToLocalTime(String(row[k] || '0')); 
                             
                             let isFin = k.includes('成本') || k.includes('報價') || k.includes('金額');
-
                             if (!userShowFinance && isFin) { v = `<span class="text-gray-400 italic">🔒 鎖定</span>`; } 
-
                             else if (isFin && !isNaN(v) && v !== '') { v = `$ ` + parseFloat(v).toLocaleString(); } 
-
                             else if (k === '預估良率' && v !== '' && !v.toString().includes('%')) { v = v + ` %`; }
-
                             bizHtml += `<div><span class="text-gray-400 block mb-0.5 text-[11px]">${k}</span><span class="text-moSide text-sm font-extrabold truncate block">${v}</span></div>`;
-
                         });
 
                         bizHtml += `</div>`; detailsHTML = bizHtml + detailsHTML;
