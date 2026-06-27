@@ -4531,6 +4531,10 @@ function openFinishRepairModal(mac) {
                     fieldHTML += `<select id="input_${header}" onchange="this.className = this.value === '否' ? 'w-full p-2 border rounded focus:ring-1 focus:ring-moSide bg-red-50 text-red-700 font-bold' : 'w-full p-2 border rounded focus:ring-1 focus:ring-moSide bg-white text-gray-700';" class="w-full p-2 border rounded focus:ring-1 focus:ring-moSide ${bg}"><option value="是" ${isSel}>是 (在職)</option><option value="否" ${noSel}>否 (離職/停用)</option></select>`;
                 }
                 else if (header === '顯示財務金額' && currentSheet === '權限管理') {
+                    let isSel = val === '否' ? '' : 'selected'; let noSel = val === '否' ? 'selected' : '';
+                    let bg = val === '否' ? 'bg-white text-gray-700' : 'bg-red-50 text-red-700 font-bold';
+                    fieldHTML += `<select id="input_${header}" onchange="checkFinanceStyle(this)" class="w-full p-2 border rounded focus:ring-1 focus:ring-moSide ${bg}"><option value="是" ${isSel}>是 (淡紅色提醒)</option><option value="否" ${noSel}>否 (無色常態)</option></select>`;
+                }
                 else if (header === '急件') {
                     fieldHTML += `<select id="input_${header}" class="w-full p-2 border rounded focus:ring-1 focus:ring-moSide"><option value="否" ${val==='否'?'selected':''}>否</option><option value="是" ${val==='是'?'selected':''}>是</option></select>`;
                 }
