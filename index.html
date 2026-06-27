@@ -1073,7 +1073,8 @@
                                 }));
                                 nextSeq = maxSeq + 1;
                             }
-                            dbRow[config.pk] = prefix + String(nextSeq).padStart(3, '0');
+                            // 2. 套用專屬的補零長度
+                            dbRow[config.pk] = prefix + String(nextSeq).padStart(padLen, '0');
                         }
 
                         // ================= 權限管理 (SYS) 員工編號生成 =================
