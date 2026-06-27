@@ -385,7 +385,7 @@
 
     </div>
 
-    <div id="replenishModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4"><div class="bg-moCard rounded-lg w-full max-w-sm flex flex-col"><div class="p-4 border-b flex justify-between bg-yellow-50"><h3 class="font-bold text-yellow-700">建立補貨申請單</h3><button onclick="closeModal('replenishModal')">&times;</button></div><div class="p-6 space-y-4"><input type="hidden" id="replMatId"><input type="hidden" id="replSupplier"><p class="text-sm">補貨物料：<span id="replMatName" class="font-bold"></span></p><div><label class="block text-sm font-bold mb-1">預計申請數量</label><input type="number" id="replQty" class="w-full p-2 border rounded focus:ring-1 focus:ring-yellow-400"></div><div><label class="block text-sm font-bold mb-1 text-yellow-700">申請原因 (必填)</label><input type="text" id="replReason" class="w-full p-2 border border-yellow-300 rounded focus:ring-1 focus:ring-yellow-400" placeholder="請輸入補貨原因"></div></div><div class="p-4 border-t flex justify-end gap-3 bg-gray-50"><button onclick="closeModal('replenishModal')" class="px-4 py-2 border hover:bg-gray-100 rounded">取消</button><button onclick="submitReplenish(this)" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded shadow-sm">產生單號並下載 PDF</button></div></div></div>
+    <div id="replenishModal" class="fixed inset-0 bg-black bg-opacity-40 z-[60] hidden flex items-center justify-center p-4"><div class="bg-moCard rounded-lg w-full max-w-sm flex flex-col"><div class="p-4 border-b flex justify-between bg-yellow-50"><h3 class="font-bold text-yellow-700">建立補貨申請單</h3><button onclick="closeModal('replenishModal')">&times;</button></div><div class="p-6 space-y-4"><input type="hidden" id="replMatId"><input type="hidden" id="replSupplier"><p class="text-sm">補貨物料：<span id="replMatName" class="font-bold"></span></p><div><label class="block text-sm font-bold mb-1">預計申請數量</label><input type="number" id="replQty" class="w-full p-2 border rounded focus:ring-1 focus:ring-yellow-400"></div><div><label class="block text-sm font-bold mb-1 text-yellow-700">申請原因 (必填)</label><input type="text" id="replReason" class="w-full p-2 border border-yellow-300 rounded focus:ring-1 focus:ring-yellow-400" placeholder="請輸入補貨原因"></div></div><div class="p-4 border-t flex justify-end gap-3 bg-gray-50"><button onclick="closeModal('replenishModal')" class="px-4 py-2 border hover:bg-gray-100 rounded">取消</button><button onclick="submitReplenish(this)" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded shadow-sm">產生單號並下載 PDF</button></div></div></div>
 
 
 
@@ -3350,12 +3350,22 @@ if(currentSysName === 'ERP') {
             execHTML2PDF(html, `派工單_${orderId}.pdf`);
         }
 
-        function openReplenishModal(matId, pNameEncoded, supplier) {
+        // ================= 補貨申請單 (支援自動帶入短缺數量與關聯單號) =================
+        window.openReplenishModal = function(matId, pNameEncoded, supplier, shortageQty = '', relatedOrderId = '') {
             document.getElementById('replMatId').value = matId; 
             document.getElementById('replSupplier').value = supplier;
             document.getElementById('replMatName').innerText = matId + " (" + decodeURIComponent(pNameEncoded) + ")";
-            document.getElementById('replQty').value = '';
-            document.getElementById('replReason').value = ''; 
+            
+            // 【智慧填入 1】如果有傳入短缺數量，自動填入；沒有則保持空白
+            document.getElementById('replQty').value = shortageQty;
+            
+            // 【智慧填入 2】如果有傳入關聯訂單，自動生成預設補貨原因
+            if (relatedOrderId) {
+                document.getElementById('replReason').value = `訂單 [${relatedOrderId}] 生產備料不足`; 
+            } else {
+                document.getElementById('replReason').value = ''; 
+            }
+            
             document.getElementById('replenishModal').classList.remove('hidden');
         }
         function submitReplenish(btn) {
@@ -3622,10 +3632,14 @@ function doDeleteHandover(id, btn) {
                         } else {
                             let stock = parseFloat(matData.stock) || 0;
                             if (actualQ > stock) {
-                                // 庫存不足：轉為紅色，並將數字變為可點擊的補貨按鈕
+                                // 【新增】抓取當下正在估算的訂單編號，並計算差額
+                                let currentOrderId = document.getElementById('matOrderId').innerText || '';
+                                let shortage = actualQ - stock; 
+                                
+                                // 庫存不足：轉為紅色，並將數字變為可點擊的補貨按鈕 (傳入 shortage 與 currentOrderId)
                                 let safeName = encodeURIComponent(matData.name);
                                 let safeSup = matData.supplier || '';
-                                stockDisplay.innerHTML = `<button onclick="openReplenishModal('${matId}', '${safeName}', '${safeSup}')" class="text-red-600 font-bold underline hover:text-red-800 transition-colors animate-pulse tracking-wider" title="庫存嚴重不足！點擊立即發起補貨單">${stock}</button>`;
+                                stockDisplay.innerHTML = `<button onclick="openReplenishModal('${matId}', '${safeName}', '${safeSup}', ${shortage}, '${currentOrderId}')" class="text-red-600 font-bold underline hover:text-red-800 transition-colors animate-pulse tracking-wider" title="庫存嚴重不足！點擊立即發起補貨單">${stock}</button>`;
                                 stockDisplay.className = 'w-16 text-center mat-stock-display flex items-center justify-center bg-red-50 border border-red-300 rounded h-[38px] shadow-inner';
                             } else {
                                 // 庫存充足：顯示一般藍綠色
