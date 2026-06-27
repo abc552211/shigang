@@ -4107,7 +4107,7 @@ function openFinishRepairModal(mac) {
                 
                 // 1. 將機台狀態恢復為正常，並清空報修工單內容
                 await sbClient.from('equipment_status').update({ 
-                    status: '正常運作', 
+                    status: '待機中', 
                     repair_remark: '' 
                 }).eq('machine_id', mac);
                 
