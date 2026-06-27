@@ -3794,18 +3794,21 @@ window.filterCustomMat = function(inputEl) {
 
     let html = ''; let count = 0;
     (currentDropdowns['物料編號'] || []).forEach(m => {
-        // 料號跟名稱同時合併比對！搜代碼或搜中文都會通
         let text = (m.id + ' ' + m.name).toLowerCase(); 
         let match = keywords.length === 0 ? true : keywords.every(k => text.includes(k));
-        // 找到這個區塊並替換：
+        
         if(match && count < 60) { 
-            // 【更新】加入庫存顯示的 Flex 排版
+            // 【新增】智慧判定：下拉選單同步檢查是否為不計庫存項目
+            let cat = String(m.category || '');
+            let isService = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('代工') || cat.includes('費');
+            let displayStock = isService ? '∞' : (m.stock !== undefined ? m.stock : '0');
+
             html += `<div class="p-2 border-b border-white cursor-pointer bg-indigo-50 hover:bg-indigo-100 transition-colors shadow-sm flex justify-between items-center" onclick="selectCustomMat(this, '${m.id}', '${m.name.replace(/'/g, "\\'")}', ${m.price}, ${m.sellPrice})">
                 <div>
                     <div class="text-[11px] font-bold text-indigo-800 mb-0.5">${m.id}</div>
                     <div class="text-xs text-gray-800 font-medium">${m.name}</div>
                 </div>
-                <div class="text-xs font-bold text-blue-700 bg-blue-100 border border-blue-200 px-2 py-1 rounded shadow-sm whitespace-nowrap">庫存: ${m.stock}</div>
+                <div class="text-xs font-bold text-blue-700 bg-blue-100 border border-blue-200 px-2 py-1 rounded shadow-sm whitespace-nowrap">庫存: ${displayStock}</div>
             </div>`; 
             count++; 
         }
