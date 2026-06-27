@@ -4479,7 +4479,11 @@ function openFinishRepairModal(mac) {
                 }
                 else if (header === '員工編號' && rowIndex === -1 && currentSysName === 'SYS') {
                     fieldHTML += `<input type="text" id="input_${header}" readonly class="w-full p-2 border bg-gray-100 text-gray-400 cursor-not-allowed" placeholder="[送出存檔後自動依年度生成]">`;
-                }    
+                }
+                // 【關鍵修復】SYS 權限管理中的「員工姓名」必須是純文字輸入框，阻擋它變成下拉選單
+                else if (header === '員工姓名' && currentSysName === 'SYS') {
+                    fieldHTML += `<input type="text" id="input_${header}" value="${val}" class="w-full p-2 border rounded focus:ring-1 focus:ring-moSide" placeholder="請輸入員工真實姓名">`;
+                }
                 else if (header === '訂單狀態' && rowIndex === -1 && currentSysName === 'OMS') {
                     fieldHTML += `<input type="text" id="input_${header}" readonly value="估算中" class="w-full p-2 border bg-gray-100 text-gray-500 font-bold cursor-not-allowed">`;
                 }
