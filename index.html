@@ -58,8 +58,6 @@
 
         body { color: #3A4449; -webkit-overflow-scrolling: touch; }
 
-        main { overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
-
         .overflow-x-auto { -webkit-overflow-scrolling: touch; }
 
         .login-bg { background: linear-gradient(135deg, #E2E6E7 0%, #C4CBCD 100%); }
@@ -145,11 +143,11 @@
 
 
 
-    <div id="app" class="flex w-full hidden">
+    <div id="app" class="flex flex-col md:flex-row flex-1 w-full h-full min-h-0 hidden">
 
         
 
-        <div class="w-64 sidebar-bg text-gray-300 flex flex-col shadow-md z-10">
+        <div class="w-full md:w-64 sidebar-bg text-gray-300 flex flex-col shadow-md z-10">
 
             <div class="p-4 text-center font-bold text-xl border-b border-gray-600 tracking-wider flex flex-col items-center justify-center h-16 text-white">
 
@@ -173,7 +171,7 @@
 
         <main class="flex-1 flex flex-col h-full overflow-hidden">
 
-            <header class="bg-moCard px-6 py-4 border-b border-moBorder shadow-sm flex flex-col md:flex-row gap-4 md:gap-0 justify-between items-center">
+            <header class="bg-moCard px-3 py-3 md:px-6 md:py-4 border-b border-moBorder shadow-sm flex flex-col md:flex-row gap-3 md:gap-0 justify-between items-center">
 
                 
 
@@ -205,7 +203,7 @@
 
             </header>
 
-            <div class="flex-1 p-6 overflow-auto relative">
+            <div class="flex-1 p-2 md:p-6 overflow-auto relative min-h-0">
 
                 <div id="loadingIndicator" class="hidden flex-col items-center justify-center py-20 text-moSide">
 
