@@ -1063,18 +1063,47 @@
                     // 5. 標準新增資料
                     addSheetData: async function(sheetName, rowDataObj, operatorName) {
                         let config = schemaMaps[sheetName]; let dbRow = toEnglishRow(sheetName, rowDataObj);
-                        
-                        // 【關鍵修復 1】如果主鍵 (ID) 為 null 或空字串，必須刪除該欄位交給資料庫自動生成
-                        if (dbRow[config.pk] === null || dbRow[config.pk] === '') {
-                            delete dbRow[config.pk];
-                        }
-                        
-                        // ─── 修正：全面改用精確台灣本地時間 (UTC+8) 產生日期字串，消滅跨日偏差 ───
                         let now = new Date(new Date().getTime() + 8 * 60 * 60 * 1000);
                         let twDateStr = String(now.getUTCFullYear()).slice(2) + 
                                         String(now.getUTCMonth() + 1).padStart(2, '0') + 
                                         String(now.getUTCDate()).padStart(2, '0');
+
+                        // 若 ID 為空，交給系統生成
+                        if (dbRow[config.pk] === null || dbRow[config.pk] === '') {
+                            delete dbRow[config.pk];
+                        }
                         
+                        // ================= 補回：CRM, SUP, EQM 全自動編號生成機制 =================
+                        if (sheetName === '客戶資料' || sheetName === '供應商資料' || sheetName === '設備選單維護') {
+                            let prefix = sheetName === '客戶資料' ? 'C' : (sheetName === '供應商資料' ? 'V' : 'E');
+                            let { data: items } = await sbClient.from(config.table).select(config.pk);
+                            let nextSeq = 1;
+                            if (items && items.length > 0) {
+                                let maxSeq = Math.max(...items.map(item => {
+                                    let idStr = item[config.pk] || '';
+                                    if (idStr === 'C00000000') return 0; // 略過我司預設代號
+                                    let numMatch = idStr.match(/\d+$/);
+                                    return numMatch ? parseInt(numMatch[0], 10) : 0;
+                                }));
+                                nextSeq = maxSeq + 1;
+                            }
+                            dbRow[config.pk] = prefix + String(nextSeq).padStart(3, '0');
+                        }
+
+                        // ================= 權限管理 (SYS) 員工編號生成 =================
+                        if (sheetName === '權限管理') {
+                            let currentYear = now.getFullYear().toString();
+                            let { data: users } = await sbClient.from('users_auth').select('emp_id').like('emp_id', `${currentYear}%`);
+                            let nextSeq = 1;
+                            if (users && users.length > 0) {
+                                let maxSeq = Math.max(...users.map(u => parseInt(String(u.emp_id).substring(4), 10) || 0));
+                                nextSeq = maxSeq + 1;
+                            }
+                            dbRow.emp_id = currentYear + String(nextSeq).padStart(3, '0');
+                            if (!dbRow.password) dbRow.password = '1234';
+                            if (!dbRow.is_visible) dbRow.is_visible = '是';
+                        }
+
                         // ================= 訂單管理單號生成 (含全自動防撞排隊鎖) =================
                         if (sheetName === '訂單管理') { 
                             let { data: ords } = await sbClient.from('orders').select('order_id').like('order_id', `C${twDateStr}%`);
@@ -1083,8 +1112,6 @@
                                 let maxSeq = Math.max(...ords.map(o => parseInt(o.order_id.replace('C'+twDateStr, ''), 10) || 0));
                                 nextSeq = maxSeq + 1;
                             }
-                            
-                            // 【終極防護】向資料庫進行實時碰撞檢查，若單號已被佔用則自動遞增，直到安全為止
                             let isUnique = false;
                             while (!isUnique) {
                                 let checkId = 'C' + twDateStr + String(nextSeq).padStart(3, '0');
@@ -1093,13 +1120,13 @@
                                     dbRow.order_id = checkId;
                                     isUnique = true;
                                 } else {
-                                    nextSeq++; // 撞號了，自動指派下一碼
+                                    nextSeq++;
                                 }
                             }
                             dbRow.status = '估算中'; 
                         }
 
-                        // ================= 補貨申請單號生成 (同步校正時區) =================
+                        // ================= 補貨申請單號生成 =================
                         if (sheetName === '補貨申請LOG') { 
                             let { data: reps } = await sbClient.from('replenish_logs').select('replenish_id').like('replenish_id', `B${twDateStr}%`);
                             let nextSeq = 1;
@@ -1110,8 +1137,7 @@
                             dbRow.replenish_id = 'B' + twDateStr + String(nextSeq).padStart(3, '0');
                             dbRow.status = '處理中'; 
                         }
-                        
-                        // 執行安全插入
+
                         let { error } = await sbClient.from(config.table).insert([dbRow]);
                         if (error) {
                             console.error("資料庫寫入失敗:", error);
@@ -1129,8 +1155,6 @@
 
                     // 6. 標準更新資料
 
-                    // 6. 標準更新資料
-                    // 6. 標準更新資料
                     updateSheetData: async function(sheetName, rowIndex, rowDataObj, operatorName) {
                         let config = schemaMaps[sheetName]; let dbRow = toEnglishRow(sheetName, rowDataObj);
                         
