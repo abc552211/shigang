@@ -4449,17 +4449,24 @@ function openFinishRepairModal(mac) {
                 document.getElementById('input_供應商編號').value = ''; document.getElementById('input_物料編號').value = ''; return;
             }
             document.getElementById('input_供應商編號').value = supId;
-            let existingIds = currentTableData.map(r => r['物料編號']).filter(id => id && id.startsWith(supId)).sort();
+
+            // 【核心改動】動態取得今年西元年後兩碼 (YY)，並組裝成新的前綴 (如 V000126K)
+            let yy = String(new Date().getFullYear()).slice(-2);
+            let prefix = supId + yy + 'K';
+
+            // 尋找資料庫中「同供應商」且「同年份」的所有料號
+            let existingIds = currentTableData.map(r => r['物料編號']).filter(id => id && id.startsWith(prefix)).sort();
             
-            let highestSuffix = '000'; let prefix = supId + 'K';
+            let highestSuffix = '000'; 
             if (existingIds.length > 0) {
+                // 抓取最後一筆料號的最後三碼來進行 +1 運算
                 let lastId = existingIds[existingIds.length - 1];
-                prefix = lastId.substring(0, lastId.length - 3);
                 highestSuffix = lastId.substring(lastId.length - 3);
             }
+            
             let nextSuffix = getNextErpSuffix(highestSuffix);
             if(!nextSuffix) {
-                alert("⚠️ 該供應商物料編號已達上限 (ZZ9)！"); document.getElementById('input_物料編號').value = '';
+                alert("⚠️ 該供應商本年度物料編號已達上限 (ZZ9)！"); document.getElementById('input_物料編號').value = '';
             } else {
                 document.getElementById('input_物料編號').value = prefix + nextSuffix;
             }
