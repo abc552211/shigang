@@ -711,7 +711,7 @@
 
         const schemaMaps = {
 
-            '權限管理': { table: 'users_auth', pk: 'emp_id', fields: { '員工編號': 'emp_id', '員工姓名': 'emp_name', '密碼': 'password', '職稱': 'job_title', '可視系統': 'view_auth', '可操作系統': 'op_auth', '可編輯系統': 'edit_auth', '顯示': 'is_visible', '最近一次登入時間': 'last_login_at', '顯示財務金額': 'show_finance' }},
+            '權限管理': { table: 'users_auth', pk: 'emp_id', fields: { '員工編號': 'emp_id', '員工姓名': 'emp_name', '密碼': 'password', '職稱': 'job_title', '可視系統': 'view_auth', '可操作系統': 'op_auth', '可編輯系統': 'edit_auth', '是否在職': 'is_visible', '最近一次登入時間': 'last_login_at', '顯示財務金額': 'show_finance' }},
 
             '內部公告': { table: 'announcements', pk: 'id', fields: { 'ID': 'id', '發布日期': 'publish_date', '公告類別': 'category', '標題': 'title', '內容': 'content', '發佈人': 'publisher' }},
 
@@ -1111,14 +1111,28 @@
 
                     // 6. 標準更新資料
 
+                    // 6. 標準更新資料
+                    // 6. 標準更新資料
                     updateSheetData: async function(sheetName, rowIndex, rowDataObj, operatorName) {
-
                         let config = schemaMaps[sheetName]; let dbRow = toEnglishRow(sheetName, rowDataObj);
+                        
+                        // 【升級】SYS 員工離職自動加註與「手滑復原」機制
+                        if (sheetName === '權限管理') {
+                            if (dbRow.is_visible === '否') {
+                                // 離職：自動加上 (離)
+                                if (dbRow.emp_name && !dbRow.emp_name.startsWith('(離)')) {
+                                    dbRow.emp_name = '(離)' + dbRow.emp_name;
+                                }
+                            } else if (dbRow.is_visible === '是') {
+                                // 復原：如果切回在職，自動把 (離) 拿掉
+                                if (dbRow.emp_name && dbRow.emp_name.startsWith('(離)')) {
+                                    dbRow.emp_name = dbRow.emp_name.replace('(離)', '');
+                                }
+                            }
+                        }
 
                         await sbClient.from(config.table).update(dbRow).eq(config.pk, dbRow[config.pk]);
-
                         this.getSheetData(sheetName);
-
                     },
 
                     // 7. 標準刪除資料
@@ -4426,7 +4440,8 @@ function openFinishRepairModal(mac) {
         function openModal(rowIndex = -1) {
             editingRowIndex = rowIndex; 
             document.getElementById('modalTitle').innerText = rowIndex !== -1 ? `編輯資料` : `新增資料`;
-            document.getElementById('deleteBtn').classList.toggle('hidden', rowIndex === -1);
+            // 【修改】如果是新增模式，或者當前是 SYS 系統，強制隱藏刪除按鈕
+            document.getElementById('deleteBtn').classList.toggle('hidden', rowIndex === -1 || currentSysName === 'SYS');
             document.getElementById('deleteBtn').onclick = function() { overrideDeleteButton(rowIndex, this); };
             const formGrid = document.getElementById('formGrid'); formGrid.innerHTML = '';
             const rowData = rowIndex !== -1 ? currentTableData[rowIndex] : {};
@@ -4440,6 +4455,19 @@ function openFinishRepairModal(mac) {
                     formGrid.innerHTML += `<input type="hidden" id="input_${header}" value="${rowData[header] || ''}">`;
                     return;
                     }
+                // 【新增】新增員工時，隱藏「最近一次登入時間」
+                if (header === '最近一次登入時間' && currentSysName === 'SYS' && rowIndex === -1) {
+                    return; 
+                }
+
+                // 【新增】將「是否在職」轉換為防呆下拉選單，選否時變紅色
+                if (header === '是否在職' && currentSysName === 'SYS') {
+                    let isSel = val === '否' ? '' : 'selected'; let noSel = val === '否' ? 'selected' : '';
+                    let bg = val === '否' ? 'bg-red-50 text-red-700 font-bold' : 'bg-white text-gray-700';
+                    fieldHTML += `<select id="input_${header}" onchange="this.className = this.value === '否' ? 'w-full p-2 border rounded focus:ring-1 focus:ring-moSide bg-red-50 text-red-700 font-bold' : 'w-full p-2 border rounded focus:ring-1 focus:ring-moSide bg-white text-gray-700';" class="w-full p-2 border rounded focus:ring-1 focus:ring-moSide ${bg}"><option value="是" ${isSel}>是 (在職)</option><option value="否" ${noSel}>否 (離職/停用)</option></select>`;
+                    formGrid.innerHTML += fieldHTML + `</div>`;
+                    return;
+                }
                 if (isSysAuth && (header === '可視系統' || header === '可編輯系統' || header === '可操作系統')) return; 
                 // 【核心新增】EIP 內部公告新增時，自動帶入並鎖定當前操作者為「發佈人」
                 if (header === '發佈人' && currentSysName === 'EIP') {
