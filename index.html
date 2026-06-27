@@ -1481,20 +1481,21 @@ deleteHandover: async function(id, operatorName) {
 
                     },
 
+                    // 【升級】排定保養 (同步寫入 Log 追蹤)
                     scheduleMaintenance: async function(m, d, op) {
-
+                        let ts = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
                         await sbClient.from('equipment_status').update({ next_maintenance_date: d }).eq('machine_id', m);
-
-                        this.successHandler({ success: true, msg: "已成功排定機台保養。" });
-
+                        // 追加 Log 寫入
+                        await sbClient.from('equipment_logs').insert([{ created_at: ts, machine_id: m, status: '排定保養', operator_name: op, remark: '預計保養日期設定為: ' + d }]);
+                        this.successHandler({ success: true, msg: "已成功排定機台保養，並寫入追蹤紀錄。" });
                     },
-
+                    // 【升級】取消保養 (同步寫入 Log 追蹤)
                     cancelMaintenance: async function(m, op) {
-
+                        let ts = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
                         await sbClient.from('equipment_status').update({ next_maintenance_date: "" }).eq('machine_id', m);
-
-                        this.successHandler({ success: true, msg: "已成功取消保養排程。" });
-
+                        // 追加 Log 寫入
+                        await sbClient.from('equipment_logs').insert([{ created_at: ts, machine_id: m, status: '取消保養', operator_name: op, remark: '取消原定保養排程' }]);
+                        this.successHandler({ success: true, msg: "已成功取消保養排程，並留下紀錄。" });
                     },
 
 
@@ -2920,7 +2921,7 @@ if(currentSysName === 'ERP') {
                         } else if (currentSysName === 'EQS') {
                             // 精準抓取機台狀態與報修原因 (自動相容不同欄位命名)
                             let status = (row['當前狀態'] || row['狀態'] || row['設備狀態'] || '').trim();
-                            let mac = (row['設備編號'] || row['機台編號'] || row['machine_id'] || '').trim();
+                            let mac = (row['工序編號'] || row['設備編號'] || row['機台編號'] || row['machine_id'] || '').trim();
                             let remark = (row['報修原因'] || row['維修備註'] || row['備註'] || '未填寫報修原因').trim();
                             
                             btnSlot1 = `<button onclick="openEqsHistory('${mac}')" class="w-20 bg-gray-500 text-white py-1 rounded font-bold shadow-sm hover:bg-gray-600">📊 紀錄</button>`;
