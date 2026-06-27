@@ -1904,10 +1904,12 @@ deleteHandover: async function(id, operatorName) {
             
 
             document.getElementById('refreshBtn').classList.remove('hidden');
-
-            if (sysName === 'EQS') document.getElementById('addBtn').classList.add('hidden');
-
-            else document.getElementById('addBtn').classList.toggle('hidden', !userEditAuth.includes(sysName));
+            // 【關鍵修正】MES 與 EQS 皆強制隱藏右上角新增按鈕，確保工單來源唯一性
+            if (sysName === 'EQS' || sysName === 'MES') {
+                document.getElementById('addBtn').classList.add('hidden');
+            } else {
+                document.getElementById('addBtn').classList.toggle('hidden', !userEditAuth.includes(sysName));
+            }
 
             if (window.innerWidth < 768) document.querySelector('.sidebar-bg').classList.add('hidden');
 
