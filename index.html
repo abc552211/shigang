@@ -2320,9 +2320,12 @@ deleteHandover: async function(id, operatorName) {
 
                 tableHTML += `<tr><td colspan="15" class="p-10 text-center text-gray-400 tracking-wider">目前尚無資料。</td></tr>`;
 
-            } else {
+            } else { 
+                // ================= 萬筆資料防護罩：最多只渲染 100 筆 =================
+                let displayLimit = 100;
+                let dataToRender = currentTableData.slice(0, displayLimit);
 
-                currentTableData.forEach((row, index) => {
+                dataToRender.forEach((row, index) => {
 
     // 【新增防護】若為 MES 系統且對應的 OMS 訂單已結案，則直接跳過不渲染該列
 
@@ -3035,6 +3038,20 @@ if(currentSysName === 'ERP') {
                     // 【核心修正：絕對不能漏掉的明細 Tr 容器列，確保估料前後皆可點開！】
                     if (detailsHTML !== '') tableHTML += `<tr id="detail_${index}" class="hidden bg-indigo-50/60"><td colspan="${totalColSpan}" class="p-5 text-sm border-l-4 border-indigo-400 shadow-inner">${detailsHTML}</td></tr>`;
                 });
+            // ================= 防護罩提示：告訴使用者還有隱藏資料 =================
+                if (currentTableData.length > displayLimit) {
+                    let hiddenCount = currentTableData.length - displayLimit;
+                    let totalColSpan = displayHeaders.length + 1;
+                    tableHTML += `
+                        <tr>
+                            <td colspan="${totalColSpan}" class="p-4 text-center text-gray-500 font-bold bg-gray-50 border-t border-dashed">
+                                ⚠️ 系統為保持流暢，已自動隱藏較舊的 ${hiddenCount} 筆資料。<br>
+                                <span class="text-sm font-normal text-gray-400">請利用上方【搜尋框】輸入單號或關鍵字來尋找特定單據。</span>
+                            </td>
+                        </tr>
+                    `;
+                }
+
             }
             tableHTML += `</tbody></table></div>`;
             
