@@ -1033,25 +1033,7 @@
                                 }
 
                             }
-                            // 【補回】CRM, SUP, EQM 全自動編號生成機制
-                        if (sheetName === '客戶資料' || sheetName === '供應商資料' || sheetName === '設備選單維護') {
-                            let prefix = sheetName === '客戶資料' ? 'C' : (sheetName === '供應商資料' ? 'S' : 'MAC');
-                            let { data: items } = await sbClient.from(config.table).select(config.pk);
-                            let nextSeq = 1;
-                            if (items && items.length > 0) {
-                                let maxSeq = Math.max(...items.map(item => {
-                                    let idStr = item[config.pk] || '';
-                                    if (idStr === 'C00000000') return 0; // 略過我司預設代號
-                                    let numMatch = idStr.match(/\d+$/);
-                                    return numMatch ? parseInt(numMatch[0], 10) : 0;
-                                }));
-                                nextSeq = maxSeq + 1;
-                            }
-                            dbRow[config.pk] = prefix + String(nextSeq).padStart(3, '0');
-                        }
-
-
-
+                            
                             if(this.successHandler) this.successHandler(result);
 
                         } catch(err) { if(this.failureHandler) this.failureHandler(err.toString()); }
