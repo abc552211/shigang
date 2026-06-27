@@ -2842,7 +2842,7 @@ if(currentSysName === 'ERP') {
                             } else if (status === '待扣料') { 
 
                                 htmlStr += `<button onclick="openMatModal('${oId}', 'estimate')" class="w-20 bg-gray-500 text-white py-1 rounded font-bold shadow">重新估價</button>`;
-
+                                htmlStr += `<button onclick="openPlanModal('${oId}')" class="w-20 bg-purple-600 text-white py-1 rounded font-bold shadow">📋 重新規劃</button>`;
                                 htmlStr += `<button onclick="openMatModal('${oId}', 'normal')" class="w-20 bg-yellow-500 text-white py-1 rounded font-bold shadow animate-pulse">📦 執行扣料</button>`; 
 
                             } else if (status === '原料不足') { 
