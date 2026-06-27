@@ -4952,32 +4952,43 @@ function openFinishRepairModal(mac) {
             );
         }
 
-        // ================= 內部毛利試算表 (需求 1, 2, 5) =================
+        // ================= 內部毛利試算表 (支援動態精算 BOM 成本) =================
         function doExecuteMargin(index, includeDetails) {
             let row = currentTableData[index]; 
             let rev = parseFloat(row['總金額']||0) + parseFloat(row['運費報價']||0); 
-            let cost = parseFloat(row['預估成本']||0) + parseFloat(row['運費成本']||0); 
-            let profit = rev - cost; 
-            let margin = rev > 0 ? ((profit / rev) * 100).toFixed(1) : 0;
             
+            // 【修復】不再依賴可能缺漏的預估成本欄位，直接從 JSON 明細中動態精算加總！
+            let matTotalCost = 0;
             let matHtml = '';
-            if (includeDetails && row['配料明細']) {
+            
+            if (row['配料明細']) {
                 try {
                     let bom = JSON.parse(row['配料明細']);
                     if (bom.length > 0) {
                         let mRows = bom.map(m => {
                             let matObj = (currentDropdowns['物料編號'] || []).find(opt => opt.id === m.id); 
-                            // 改成優先讀取 JSON 歷史當下存的成本
                             let uCost = m.cost !== undefined ? parseFloat(m.cost) : (matObj ? parseFloat(matObj.price)||0 : 0);
+                            
+                            // 【關鍵計算】算出該項配料的總成本並累加
+                            let lineCost = uCost * (parseFloat(m.qty) || 0);
+                            matTotalCost += lineCost;
+                            
                             let noteStr = m.note ? `<span style="color:#2563eb; font-weight:bold;">[${m.note}]</span> ` : '';
                             let mName = matObj ? matObj.name.replace(m.id+' - ', '') : (m.customName ? m.customName.replace(m.id+' - ', '') : '自訂加工/服務');
-                            return `<tr><td class="p-1.5 border border-gray-300 font-mono">${m.id}</td><td class="p-1.5 border border-gray-300 text-[11px]">${noteStr}${mName}</td><td class="p-1.5 border border-gray-300 text-center font-bold">${m.qty}</td><td class="p-1.5 border border-gray-300 text-right">$ ${uCost}</td><td class="p-1.5 border border-gray-300 text-right font-bold">$ ${(m.qty*uCost).toLocaleString()}</td></tr>`;
+                            return `<tr><td class="p-1.5 border border-gray-300 font-mono">${m.id}</td><td class="p-1.5 border border-gray-300 text-[11px]">${noteStr}${mName}</td><td class="p-1.5 border border-gray-300 text-center font-bold">${m.qty}</td><td class="p-1.5 border border-gray-300 text-right">$ ${uCost}</td><td class="p-1.5 border border-gray-300 text-right font-bold">$ ${lineCost.toLocaleString()}</td></tr>`;
                         }).join('');
-                        // 【需求 5】鎖定料號寬度 (w-[80px])
-                        matHtml = `<h3 class="font-bold text-xs text-moSide mb-1 mt-4">📋 生產精算用料成本分攤明細</h3><table class="w-full text-left border-collapse border border-gray-300 text-xs mb-4"><thead><tr class="bg-gray-50"><th class="p-1.5 border border-gray-300 w-[80px]">物料代號</th><th class="p-1.5 border border-gray-300">加工備註與品名規格</th><th class="p-1.5 border border-gray-300 text-center w-16">用量</th><th class="p-1.5 border border-gray-300 text-right w-20">材料單價</th><th class="p-1.5 border border-gray-300 text-right w-24">成本小計</th></tr></thead><tbody>${mRows}</tbody></table>`;
+                        
+                        if (includeDetails) {
+                            matHtml = `<h3 class="font-bold text-xs text-moSide mb-1 mt-4">📋 生產精算用料成本分攤明細</h3><table class="w-full text-left border-collapse border border-gray-300 text-xs mb-4"><thead><tr class="bg-gray-50"><th class="p-1.5 border border-gray-300 w-[80px]">物料代號</th><th class="p-1.5 border border-gray-300">加工備註與品名規格</th><th class="p-1.5 border border-gray-300 text-center w-16">用量</th><th class="p-1.5 border border-gray-300 text-right w-20">材料單價</th><th class="p-1.5 border border-gray-300 text-right w-24">成本小計</th></tr></thead><tbody>${mRows}</tbody></table>`;
+                        }
                     }
                 } catch(e){}
             }
+            
+            // 重新將動態計算出來的材料總成本，加上運費成本
+            let cost = matTotalCost + parseFloat(row['運費成本']||0); 
+            let profit = rev - cost; 
+            let margin = rev > 0 ? ((profit / rev) * 100).toFixed(1) : 0;
             
             let html = `
                 <div class="p-4 font-sans bg-white max-w-[210mm] mx-auto text-gray-800 text-xs">
@@ -5007,7 +5018,7 @@ function openFinishRepairModal(mac) {
                         </div>
                         <div class="border border-red-200 rounded p-3 bg-red-50">
                             <h3 class="font-bold text-red-800 mb-1 border-b border-red-200 pb-0.5 text-xs">內部成本 (Cost)</h3>
-                            <p class="flex justify-between"><span>初估材料總成本：</span> <span>$ ${parseFloat(row['預估成本']||0).toLocaleString()}</span></p>
+                            <p class="flex justify-between"><span>初估材料總成本：</span> <span>$ ${matTotalCost.toLocaleString()}</span></p>
                             <p class="flex justify-between"><span>專案運費成本：</span> <span>$ ${parseFloat(row['運費成本']||0).toLocaleString()}</span></p>
                             <p class="flex justify-between font-bold mt-1 pt-1 border-t border-red-200 text-sm text-red-900"><span>總本小計：</span> <span>$ ${cost.toLocaleString()}</span></p>
                         </div>
@@ -5021,7 +5032,7 @@ function openFinishRepairModal(mac) {
                         </div>
                         <div class="text-center">
                             <h3 class="text-sm font-bold opacity-90 mb-1">預估專案毛利率</h3>
-                            <p class="text-2xl font-bold tracking-wider text-green-300">${margin}%</p>
+                            <p class="text-2xl font-bold tracking-wider ${margin >= 0 ? 'text-green-300' : 'text-red-300'}">${margin}%</p>
                         </div>
                     </div>
                 </div>`;
@@ -5306,28 +5317,43 @@ function openFinishRepairModal(mac) {
         // 請確保 submitMaterialCheck 的結尾長這樣：
         // .checkAndDeductMaterials(orderId, matArr, (actionType !== 'estimate' && actionType !== 'addon' && actionType !== 'rework'), actionType, window.estImagesData, op, estParams);
 
-        // 【核心修復】將工序規劃函數掛載至 window 全域，徹底解決動態按鈕 onclick 找不到函數按不下去的問題
-window.openPlanModal = function(orderId) {
-    document.getElementById('planOrderId').innerText = orderId;
-    
-    // 雙軌反查訂單資料，確保無論在哪個快取節點都能秒讀
-    let rowData = currentTableData.find(r => r['訂單編號'] === orderId) || (systemCache['訂單管理']?.data || []).find(o => o['訂單編號'] === orderId) || {};
-    
-    window.tempBomForPlan = [];
-    if (rowData['配料明細'] && String(rowData['配料明細']).trim() !== '') {
-        try {
-            window.tempBomForPlan = typeof rowData['配料明細'] === 'string' ? JSON.parse(rowData['配料明細']) : rowData['配料明細'];
-            if (!Array.isArray(window.tempBomForPlan)) window.tempBomForPlan = [];
-        } catch(e) { window.tempBomForPlan = []; }
-    }
-    
-    document.getElementById('planStepsContainer').innerHTML = '';
-    addPlanRow(); // 預設帶入第一站
-    document.getElementById('planModal').classList.remove('hidden');
-};
+        // ================= 【修復】工序規劃：讀取舊紀錄與防呆儲存 =================
+        window.openPlanModal = function(orderId) {
+            document.getElementById('planOrderId').innerText = orderId;
+            
+            // 雙軌反查訂單資料，確保無論在哪個快取節點都能秒讀
+            let rowData = currentTableData.find(r => r['訂單編號'] === orderId) || (systemCache['訂單管理']?.data || []).find(o => o['訂單編號'] === orderId) || {};
+            
+            window.tempBomForPlan = [];
+            if (rowData['配料明細'] && String(rowData['配料明細']).trim() !== '') {
+                try {
+                    window.tempBomForPlan = typeof rowData['配料明細'] === 'string' ? JSON.parse(rowData['配料明細']) : rowData['配料明細'];
+                    if (!Array.isArray(window.tempBomForPlan)) window.tempBomForPlan = [];
+                } catch(e) { window.tempBomForPlan = []; }
+            }
+            
+            document.getElementById('planStepsContainer').innerHTML = '';
 
-        // ================= 【需求 4 進階】工序規劃：瀑布式時間連鎖推移引擎 =================
-        window.addPlanRow = function() {
+            // 【新增】解析原本的工序規劃紀錄，如果有的話自動帶入
+            let existingSteps = [];
+            if (rowData['工序規劃紀錄'] && String(rowData['工序規劃紀錄']).trim() !== '') {
+                try {
+                    existingSteps = typeof rowData['工序規劃紀錄'] === 'string' ? JSON.parse(rowData['工序規劃紀錄']) : rowData['工序規劃紀錄'];
+                } catch (e) {}
+            }
+
+            if (existingSteps && existingSteps.length > 0) {
+                // 如果有歷史紀錄，按照紀錄將每一列資料生成並帶入
+                existingSteps.forEach(step => addPlanRow(step));
+            } else {
+                // 如果完全沒有舊紀錄，預設帶入第一站空行
+                addPlanRow(); 
+            }
+
+            document.getElementById('planModal').classList.remove('hidden');
+        };
+
+        window.addPlanRow = function(stepData = null) {
             let container = document.getElementById('planStepsContainer');
             let prevRows = container.querySelectorAll('.plan-row');
             let idx = prevRows.length + 1;
@@ -5338,29 +5364,46 @@ window.openPlanModal = function(orderId) {
             if(currentDropdowns['作業機台']) { currentDropdowns['作業機台'].forEach(m => { let cleanName = m.name.replace(/\[|\]/g, ''); mOpts += `<option value="${m.id} - ${cleanName}"></option>`; }); }
             if(currentDropdowns['員工姓名']) { currentDropdowns['員工姓名'].forEach(e => { let eId = typeof e === 'object' ? e.id : e; let eName = typeof e === 'object' ? e.name : e; eOpts += `<option value="${eId}">${eName}</option>`; }); }
             
-            let matOpts = window.tempBomForPlan.map(m => {
-                let matObj = (currentDropdowns['物料編號']||[]).find(opt => opt.id === m.id);
-                let n = matObj ? matObj.name.replace(m.id+' - ', '') : m.id;
-                return `<label class="flex items-center gap-1"><input type="checkbox" value="${n} (${m.qty})" class="step-mat-cb w-4 h-4 text-indigo-600"> <span class="text-gray-700">${n} (量: ${m.qty})</span></label>`;
-            }).join('');
-            if(!matOpts) matOpts = '<span class="text-red-400">估算階段無配料，不需提示。</span>';
+            // 【新增】解析 stepData 預設值，還原舊紀錄的機台與人員
+            let initMac = stepData ? `${stepData.mac} - ${stepData.name}` : "";
+            let initEmp = stepData ? stepData.emp : "";
 
-            // 【核心】智慧時間推算：抓取上一個工序的結束時間，當作此工序的開始時間
+            // 解析日期時間
             let defaultStartDate = new Date(new Date().getTime() + 8*60*60*1000).toISOString().split('T')[0];
             let defaultStartTime = "08:00";
-            
-            if (prevRows.length > 0) {
+            let defaultEndDate = new Date(new Date().getTime() + 8*60*60*1000 + 24*60*60*1000).toISOString().split('T')[0];
+            let defaultEndTime = "08:00";
+
+            if (stepData) {
+                if (stepData.startDate && stepData.startDate.includes(' ')) {
+                    let parts = stepData.startDate.split(' ');
+                    defaultStartDate = parts[0]; defaultStartTime = parts[1];
+                }
+                if (stepData.endDate && stepData.endDate.includes(' ')) {
+                    let parts = stepData.endDate.split(' ');
+                    defaultEndDate = parts[0]; defaultEndTime = parts[1];
+                }
+            } else if (prevRows.length > 0) {
                 let lastRow = prevRows[prevRows.length - 1];
                 defaultStartDate = lastRow.querySelector('.step-end-date').value || defaultStartDate;
                 defaultStartTime = lastRow.querySelector('.step-end-time').value || "08:00";
+                let endD = new Date(defaultStartDate);
+                endD.setDate(endD.getDate() + 1);
+                defaultEndDate = endD.toISOString().split('T')[0];
+                defaultEndTime = defaultStartTime;
             }
 
-            // 【核心】自動推算結束日期 (+1天)
-            let endD = new Date(defaultStartDate);
-            endD.setDate(endD.getDate() + 1);
-            let defaultEndDate = endD.toISOString().split('T')[0];
+            // 解析舊材料勾選狀態
+            let checkedMats = stepData ? (stepData.requiredMats || []) : [];
+            let matOpts = window.tempBomForPlan.map(m => {
+                let matObj = (currentDropdowns['物料編號']||[]).find(opt => opt.id === m.id);
+                let n = matObj ? matObj.name.replace(m.id+' - ', '') : m.id;
+                let matVal = `${n} (${m.qty})`;
+                let isChecked = checkedMats.includes(matVal) ? 'checked' : '';
+                return `<label class="flex items-center gap-1"><input type="checkbox" value="${matVal}" class="step-mat-cb w-4 h-4 text-indigo-600" ${isChecked}> <span class="text-gray-700">${n} (量: ${m.qty})</span></label>`;
+            }).join('');
+            if(!matOpts) matOpts = '<span class="text-red-400">估算階段無配料，不需提示。</span>';
 
-            // 產生 06:30 ~ 20:30 的時間選項，並支援預設值選取
             const genTimeOpts = (selected) => {
                 let opts = '';
                 for(let h=6; h<=20; h++) {
@@ -5380,12 +5423,12 @@ window.openPlanModal = function(orderId) {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-1">
                     <div>
                         <label class="block text-[10px] text-moSide font-bold mb-1">🔍 選擇工序機台</label>
-                        <input list="${listId}" class="step-mac w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 font-bold text-indigo-900 text-sm" placeholder="輸入編號/名稱搜尋...">
+                        <input list="${listId}" class="step-mac w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 font-bold text-indigo-900 text-sm" value="${initMac}" placeholder="輸入編號/名稱搜尋...">
                         <datalist id="${listId}">${mOpts}</datalist>
                     </div>
                     <div>
                         <label class="block text-[10px] text-moSide font-bold mb-1">👤 負責人員</label>
-                        <input list="${empListId}" class="step-emp w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="指派人員...">
+                        <input list="${empListId}" class="step-emp w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 text-sm" value="${initEmp}" placeholder="指派人員...">
                         <datalist id="${empListId}">${eOpts}</datalist>
                     </div>
                 </div>
@@ -5402,7 +5445,7 @@ window.openPlanModal = function(orderId) {
                         <label class="block text-[10px] text-moSide font-bold mb-1">📅 預計完成時間</label>
                         <div class="flex gap-1">
                             <input type="date" class="step-end-date w-2/3 p-2 border border-gray-300 rounded text-sm text-gray-700" value="${defaultEndDate}" onchange="handlePlanEndChange(this)">
-                            <select class="step-end-time w-1/3 p-2 border border-gray-300 rounded text-sm text-gray-700" onchange="handlePlanEndChange(this)">${genTimeOpts(defaultStartTime)}</select>
+                            <select class="step-end-time w-1/3 p-2 border border-gray-300 rounded text-sm text-gray-700" onchange="handlePlanEndChange(this)">${genTimeOpts(defaultEndTime)}</select>
                         </div>
                     </div>
                 </div>
@@ -5458,15 +5501,16 @@ window.openPlanModal = function(orderId) {
             let rows = document.querySelectorAll('.plan-row');
             let planSteps = [];
             for(let i=0; i<rows.length; i++) {
-                let macInput = rows[i].querySelector('.step-mac').value.trim(); let macId = macInput.split(' ')[0];
-                let name = macInput.split('|').length > 1 ? macInput.split('|')[1].trim() : macId;
+                let macInput = rows[i].querySelector('.step-mac').value.trim(); 
+                let macId = macInput.split(' ')[0];
+                
+                // 【修復】支援 datalist 的 " - " 分隔符號，避免名字儲存錯誤
+                let parts = macInput.split(/[-|]/);
+                let name = parts.length > 1 ? parts[1].trim() : macId;
+                
                 let emp = rows[i].querySelector('.step-emp').value.trim();
                 let startDate = rows[i].querySelector('.step-start-date').value + " " + rows[i].querySelector('.step-start-time').value;
                 let endDate = rows[i].querySelector('.step-end-date').value + " " + rows[i].querySelector('.step-end-time').value;
-                let eqData = window.currentEqStatus.find(e => e.machine_id === macId);
-                if (eqData && eqData.next_maintenance_date && eqData.next_maintenance_date >= rows[i].querySelector('.step-start-date').value && eqData.next_maintenance_date <= rows[i].querySelector('.step-end-date').value) {
-                    return alert(`🛑 【排程防呆阻擋】\n第 ${i+1} 工序機台 [${macId}] 的保養日 (${eqData.next_maintenance_date})\n剛好落在您設定的生產區間內！\n\n請避開保養日或更換機台。`);
-                }
                 if(!macId || !emp || !rows[i].querySelector('.step-start-date').value || !rows[i].querySelector('.step-end-date').value) return alert(`請完整填寫第 ${i+1} 步驟的機台、人員與起訖日期！`);
                 
                 let mats = Array.from(rows[i].querySelectorAll('.step-mat-cb:checked')).map(cb => cb.value);
