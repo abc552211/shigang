@@ -1347,63 +1347,40 @@ addReplenish: async function(matId, qty, supplier, opName, reason) {
 
 
                     // ERP 進貨數量結算與平均單價動態回填
-
                     addRestock: async function(matId, qty, amount, supplier, repId, vendorShipId, operatorName) {
-
                         let d = new Date(); let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
-
                         if (repId) {
-
                             if (qty === 0) {
-
                                 await sbClient.from('replenish_logs').update({ status: '已結案' }).eq('replenish_id', repId);
-
                             } else {
-
                                 let { data: rep } = await sbClient.from('replenish_logs').select('received_qty, required_qty').eq('replenish_id', repId);
-
                                 if (rep && rep[0]) {
-
                                     let newRec = (parseFloat(rep[0].received_qty)||0) + qty;
-
                                     let status = newRec >= parseFloat(rep[0].required_qty) ? '已結案' : '處理中';
-
                                     await sbClient.from('replenish_logs').update({ received_qty: newRec, status: status }).eq('replenish_id', repId);
-
                                 }
-
                             }
-
                         }
-
                         
-
-                        await sbClient.from('restock_logs').insert([{ created_at: ts, material_id: matId, quantity: qty, total_amount: amount, supplier_name: supplier, operator_name: operatorName, replenish_id: repId, vendor_invoice_id: qty===0 ? "[作廢] "+vendorShipId : vendorShipId }]);
-
+                        // 【修復 1】強制將從網頁傳來的 amount 轉為浮點數數字，破除字串拼接陷阱
+                        let safeAmount = parseFloat(amount) || 0;
                         
-
+                        await sbClient.from('restock_logs').insert([{ created_at: ts, material_id: matId, quantity: qty, total_amount: safeAmount, supplier_name: supplier, operator_name: operatorName, replenish_id: repId, vendor_invoice_id: qty===0 ? "[作廢] "+vendorShipId : vendorShipId }]);
+                        
                         if (qty > 0) {
-
                             let { data: mat } = await sbClient.from('materials').select('stock_qty, cost_price').eq('material_id', matId);
-
                             if (mat && mat[0]) {
-
                                 let currStock = parseFloat(mat[0].stock_qty) || 0;
-
                                 let currAvg = parseFloat(mat[0].cost_price) || 0;
-
                                 let newStock = currStock + qty;
-
-                                let newAvgPrice = newStock > 0 ? Math.round(((currStock * currAvg) + amount) / newStock) : currAvg;
-
+                                
+                                // 【修復 2】採用安全的加法，並保留小數點後兩位精度 (toFixed 轉字串後再用 Number 轉回數字)
+                                let newAvgPrice = newStock > 0 ? Number((((currStock * currAvg) + safeAmount) / newStock).toFixed(2)) : currAvg;
+                                
                                 await sbClient.from('materials').update({ stock_qty: newStock, cost_price: newAvgPrice }).eq('material_id', matId);
-
                             }
-
                         }
-
                         this.successHandler({ success: true, msg: "進貨與移動平均單價結算完成！" });
-
                     },
 
 
