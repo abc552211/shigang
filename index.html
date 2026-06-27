@@ -4915,26 +4915,42 @@ function openFinishRepairModal(mac) {
             }).updateUserPassword(currentUserName, oldPwd, newPwd);
         }
 
-        // ================= ERP 專屬快篩引擎 =================
+        // ================= ERP 專屬快篩引擎 (大數據升級版) =================
         function filterErp(type) {
-            let rows = document.querySelectorAll("#tableContainer tbody tr.erp-row");
-            rows.forEach(row => {
-                let idx = row.getAttribute('data-index');
-                let detailRow = document.getElementById('detail_' + idx);
-                let show = true;
-                
-                if (type === 'low' && row.getAttribute('data-low') !== 'true') show = false;
-                if (type === 'restock' && row.getAttribute('data-res') !== 'true') show = false;
-                
-                if (show) {
-                    row.style.display = "";
-                } else {
-                    row.style.display = "none";
-                    if(detailRow) detailRow.classList.add("hidden");
-                    let btn = document.getElementById('btn_detail_' + idx);
-                    if(btn) { btn.innerText = '查看 ▼'; btn.classList.replace('bg-gray-200', 'bg-gray-100'); }
+            // 確保有資料快取
+            if (!systemCache[currentSheet]) return;
+            let rawData = systemCache[currentSheet].data || [];
+
+            // 如果是「全部顯示」，直接把所有資料交給渲染引擎 (會自動觸發 100 筆保護)
+            if (type === 'all') {
+                renderTable(rawData, userOpAuth.includes(currentSysName), userEditAuth.includes(currentSysName));
+                return;
+            }
+
+            // 在記憶體中瞬間過濾上萬筆資料
+            let filteredData = rawData.filter(row => {
+                let cat = String(row['類別'] || '');
+                let isServiceItem = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('代工') || cat.includes('費');
+
+                if (type === 'low') {
+                    let stock = parseFloat(row['目前庫存']) || 0;
+                    let safe = parseFloat(row['安全庫存']) || 0;
+                    return (!isServiceItem && stock < safe);
                 }
+
+                if (type === 'restock') {
+                    let mId = row['物料編號'];
+                    let reps = currentReplenish.filter(l => l.matId === mId && l.status !== '已結案');
+                    let restockQty = 0;
+                    reps.forEach(r => { restockQty += (parseFloat(r.reqQty) || 0) - (parseFloat(r.inQty) || 0); });
+                    return (restockQty > 0);
+                }
+                
+                return true;
             });
+
+            // 將過濾後的精準結果，交給渲染引擎畫出來
+            renderTable(filteredData, userOpAuth.includes(currentSysName), userEditAuth.includes(currentSysName));
         }
 
         // ================= OMS 送出防呆 (運費必填) =================
