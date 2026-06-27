@@ -1042,6 +1042,23 @@
 
                     },
 
+                    // 【補回】CRM, SUP, EQM 全自動編號生成機制
+                        if (sheetName === '客戶資料' || sheetName === '供應商資料' || sheetName === '設備選單維護') {
+                            let prefix = sheetName === '客戶資料' ? 'C' : (sheetName === '供應商資料' ? 'S' : 'MAC');
+                            let { data: items } = await sbClient.from(config.table).select(config.pk);
+                            let nextSeq = 1;
+                            if (items && items.length > 0) {
+                                let maxSeq = Math.max(...items.map(item => {
+                                    let idStr = item[config.pk] || '';
+                                    if (idStr === 'C00000000') return 0; // 略過我司預設代號
+                                    let numMatch = idStr.match(/\d+$/);
+                                    return numMatch ? parseInt(numMatch[0], 10) : 0;
+                                }));
+                                nextSeq = maxSeq + 1;
+                            }
+                            dbRow[config.pk] = prefix + String(nextSeq).padStart(3, '0');
+                        }
+
                     // 5. 標準新增資料
                     addSheetData: async function(sheetName, rowDataObj, operatorName) {
                         let config = schemaMaps[sheetName]; let dbRow = toEnglishRow(sheetName, rowDataObj);
@@ -4460,14 +4477,7 @@ function openFinishRepairModal(mac) {
                     return; 
                 }
 
-                // 【新增】將「是否在職」轉換為防呆下拉選單，選否時變紅色
-                if (header === '是否在職' && currentSysName === 'SYS') {
-                    let isSel = val === '否' ? '' : 'selected'; let noSel = val === '否' ? 'selected' : '';
-                    let bg = val === '否' ? 'bg-red-50 text-red-700 font-bold' : 'bg-white text-gray-700';
-                    fieldHTML += `<select id="input_${header}" onchange="this.className = this.value === '否' ? 'w-full p-2 border rounded focus:ring-1 focus:ring-moSide bg-red-50 text-red-700 font-bold' : 'w-full p-2 border rounded focus:ring-1 focus:ring-moSide bg-white text-gray-700';" class="w-full p-2 border rounded focus:ring-1 focus:ring-moSide ${bg}"><option value="是" ${isSel}>是 (在職)</option><option value="否" ${noSel}>否 (離職/停用)</option></select>`;
-                    formGrid.innerHTML += fieldHTML + `</div>`;
-                    return;
-                }
+                
                 if (isSysAuth && (header === '可視系統' || header === '可編輯系統' || header === '可操作系統')) return; 
                 // 【核心新增】EIP 內部公告新增時，自動帶入並鎖定當前操作者為「發佈人」
                 if (header === '發佈人' && currentSysName === 'EIP') {
@@ -4489,11 +4499,13 @@ function openFinishRepairModal(mac) {
                 const val = rowData[header] || '';
                 let fieldHTML = `<div><label class="block text-sm font-bold mb-1">${header}</label>`;
 
-                if (header === '顯示財務金額' && currentSheet === '權限管理') {
+                // 【修正歸位】在此處生成下拉選單，確保 val 變數已成功抓取！
+                if (header === '是否在職' && currentSysName === 'SYS') {
                     let isSel = val === '否' ? '' : 'selected'; let noSel = val === '否' ? 'selected' : '';
-                    let bg = val === '否' ? '' : 'bg-red-50 text-red-700 font-bold';
-                    fieldHTML += `<select id="input_${header}" onchange="checkFinanceStyle(this)" class="w-full p-2 border rounded focus:ring-1 focus:ring-moSide ${bg}"><option value="是" ${isSel}>是 (淡紅色提醒)</option><option value="否" ${noSel}>否 (無色常態)</option></select>`;
+                    let bg = val === '否' ? 'bg-red-50 text-red-700 font-bold' : 'bg-white text-gray-700';
+                    fieldHTML += `<select id="input_${header}" onchange="this.className = this.value === '否' ? 'w-full p-2 border rounded focus:ring-1 focus:ring-moSide bg-red-50 text-red-700 font-bold' : 'w-full p-2 border rounded focus:ring-1 focus:ring-moSide bg-white text-gray-700';" class="w-full p-2 border rounded focus:ring-1 focus:ring-moSide ${bg}"><option value="是" ${isSel}>是 (在職)</option><option value="否" ${noSel}>否 (離職/停用)</option></select>`;
                 }
+                else if (header === '顯示財務金額' && currentSheet === '權限管理') {
                 else if (header === '急件') {
                     fieldHTML += `<select id="input_${header}" class="w-full p-2 border rounded focus:ring-1 focus:ring-moSide"><option value="否" ${val==='否'?'selected':''}>否</option><option value="是" ${val==='是'?'selected':''}>是</option></select>`;
                 }
@@ -4504,6 +4516,12 @@ function openFinishRepairModal(mac) {
                 }
                 else if (header === '訂單編號' && rowIndex === -1) {
                     fieldHTML += `<input type="text" id="input_${header}" readonly class="w-full p-2 border bg-gray-100 text-gray-400 cursor-not-allowed" placeholder="[送出存檔後系統自動生成]">`;
+                }
+                    // 【補回】CRM、SUP、EQM 自動編號 UI 防呆鎖定
+                else if ((header === '客戶編號' && currentSysName === 'CRM') || 
+                         (header === '供應商編號' && currentSysName === 'SUP') || 
+                         (header === '設備編號' && currentSysName === 'EQM')) {
+                    fieldHTML += `<input type="text" id="input_${header}" value="${val}" readonly class="w-full p-2 border bg-gray-100 text-gray-500 cursor-not-allowed" placeholder="[送出存檔後系統自動生成]">`;
                 }
                 else if (header === '員工編號' && rowIndex === -1 && currentSysName === 'SYS') {
                     fieldHTML += `<input type="text" id="input_${header}" readonly class="w-full p-2 border bg-gray-100 text-gray-400 cursor-not-allowed" placeholder="[送出存檔後自動依年度生成]">`;
