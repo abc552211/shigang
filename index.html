@@ -2079,10 +2079,8 @@ deleteHandover: async function(id, operatorName) {
 
 
 
-        // ================= 智慧隱藏展開、欄位下收收合面板、與狀態控制渲染器 =================
-
-        function renderTable(data, hasOpAuth, hasEditAuth) {
-
+        // ================= 【大數據無限下拉載入 (Infinite Scroll) 升級】 =================
+        function renderTable(data, hasOpAuth, hasEditAuth, isLoadMore = false) {
             if (!isLoadMore) window.currentRenderLimit = 500; // 只要不是下拉載入，預設都先畫 500 筆保持極速
             const container = document.getElementById('tableContainer');
             const hideClosed = document.getElementById('hideClosedOrder')?.checked;
