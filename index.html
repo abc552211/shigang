@@ -900,147 +900,91 @@
 
                     },
 
-                    // 【分流加載版】getSheetData：根據當前系統模組只撈該模組的資料
-
+                    // 【分流加載版】getSheetData：打破 1000 筆封印與強制最新置頂
                     getSheetData: async function(sheetName) {
-
                         try {
-
                             let config = schemaMaps[sheetName];
-
-                            // 【終極修復】破解 Supabase 預設 1000 筆極限，並強制依 ID 降冪排序，徹底消滅 MVCC 吞資料 Bug
-                            let { data: rawData, error } = await sbClient.from(config.table).select('*').limit(10000).order(config.pk, { ascending: false });
-
+                            
+                            // 1. 突破主表格封印，並由資料庫底層強制最新置頂 (徹底解決幽靈 Bug！)
+                            let { data: rawData, error } = await sbClient.from(config.table)
+                                .select('*')
+                                .order(config.pk, { ascending: false })
+                                .limit(10000);
                             if (error) throw error;
-
                             
-
                             let translatedData = (rawData || []).map(r => toChineseRow(sheetName, r));
-
                             
-
                             let result = {
-
                                 headers: Object.keys(config.fields), 
-
                                 data: translatedData, 
-
                                 dropdowns: {}, 
-
                                 handovers: [], restockLogs: [], replenishLogs: [], allWos: [], deductLogs: [], anomalyLogs: [], eqsLogs: []
-
                             };
 
-
-
+                            // 2. 突破所有關聯表與下拉選單的千筆封印
                             if (sheetName === '內部公告' || currentSysName === 'EIP') {
-
-                                let { data: ho } = await sbClient.from('handovers').select('*');
-
+                                let { data: ho } = await sbClient.from('handovers').select('*').limit(10000);
                                 result.handovers = (ho || []).map(x => ({ id: x.id, time: x.created_at, content: x.content, priority: x.priority, creator: x.creator, assignee: x.assignee, image: x.image_url }));
-
                             }
 
-
-
                             let { data: users } = await sbClient.from('users_auth').select('emp_id, emp_name');
-
                             result.dropdowns['員工姓名'] = (users || []).map(u => ({id: u.emp_id, name: u.emp_name}));
 
-
-
                             let { data: macs } = await sbClient.from('equipment_list').select('machine_id, machine_name');
-
                             result.dropdowns['作業機台'] = (macs || []).map(m => ({id: m.machine_id, name: m.machine_name}));
 
-
-
-                            let { data: sups } = await sbClient.from('suppliers').select('supplier_name, supplier_id');
-
+                            let { data: sups } = await sbClient.from('suppliers').select('supplier_name, supplier_id').limit(10000);
                             result.dropdowns['供應商'] = (sups || []).map(s => s.supplier_name);
-
                             let supMap = {};
-
                             (sups || []).forEach(s => supMap[s.supplier_name] = s.supplier_id);
-
                             result.dropdowns['供應商Mapping'] = supMap;
 
-
-
-                            let { data: custs } = await sbClient.from('customers').select('customer_name');
-
+                            let { data: custs } = await sbClient.from('customers').select('customer_name').limit(10000);
                             result.dropdowns['客戶名稱'] = (custs || []).map(c => c.customer_name);
-
                             result.dropdowns['公司名稱'] = result.dropdowns['客戶名稱'];
 
-
-
                             if (['OMS', 'MES', 'ERP', 'CRM', 'SUP', 'EQS'].includes(currentSysName)) {
-
-                                let { data: matData } = await sbClient.from('materials').select('*');
-
+                                let { data: matData } = await sbClient.from('materials').select('*').limit(10000);
                                 result.dropdowns["物料編號"] = (matData || []).map(m => ({
                                     id: m.material_id, 
                                     name: "["+(m.supplier_name || '未知').substring(0, 2) + "] " + (m.category || '無類別') + " | " + (m.material_name || '') + " " + (m.material_spec || ''),
                                     price: parseFloat(m.cost_price) || 0,
                                     sellPrice: parseFloat(m.sell_price) || 0,
                                     stock: parseFloat(m.stock_qty) || 0,
-                                    // 【新增】將類別與供應商一起打包，供後續判定 ∞ 與補貨單使用
                                     category: m.category || '',
                                     supplier: m.supplier_name || ''
                                 }));
-
                                 
-
                                 if (['ERP', 'MES', 'OMS', 'CRM', 'SUP'].includes(currentSysName)) {
-
-                                    let { data: rData } = await sbClient.from('restock_logs').select('*');
-
-                                    let { data: woData } = await sbClient.from('work_orders').select('*');
-
-                                    let { data: repData } = await sbClient.from('replenish_logs').select('*');
-
-                                    let { data: dedData } = await sbClient.from('deduct_logs').select('*');
-
-                                    let { data: anomData } = await sbClient.from('material_anomalies').select('*');
-
-
+                                    let { data: rData } = await sbClient.from('restock_logs').select('*').limit(10000);
+                                    let { data: woData } = await sbClient.from('work_orders').select('*').limit(10000);
+                                    let { data: repData } = await sbClient.from('replenish_logs').select('*').limit(10000);
+                                    let { data: dedData } = await sbClient.from('deduct_logs').select('*').limit(10000);
+                                    let { data: anomData } = await sbClient.from('material_anomalies').select('*').limit(10000);
 
                                     result.restockLogs = (rData || []).map(x => ({ time: x.created_at, matId: x.material_id, qty: x.quantity, amount: x.total_amount, supplier: x.supplier_name, vendorShipId: x.vendor_invoice_id, repId: x.replenish_id }));
-
                                     result.allWos = (woData || []).map(x => toChineseRow('生產工單', x));
-
                                     result.replenishLogs = (repData || []).map(x => ({ repId: x.replenish_id, matId: x.material_id, reqQty: x.required_qty, inQty: x.received_qty, status: x.status, time: x.created_at, supplier: x.supplier_name, reason: x.reason }));
-
                                     result.deductLogs = (dedData || []).map(x => ({ orderId: x.order_id, matId: x.material_id, qty: x.quantity, time: x.created_at }));
-
                                     result.anomalyLogs = (anomData || []).map(x => ({ time: x.created_at, matId: x.material_id, supplier: x.supplier_name, vendorShipId: x.vendor_invoice_id, repId: x.replenish_id, qty: x.quantity, reason: x.reason, op: x.operator_name }));
-                                    let { data: eqStatData } = await sbClient.from('equipment_status').select('machine_id, status, next_maintenance_date');
+                                    let { data: eqStatData } = await sbClient.from('equipment_status').select('machine_id, status, next_maintenance_date').limit(10000);
                                     result.eqStatus = eqStatData || [];
                                 }
-
                                 
-
                                 if (currentSysName === 'EQS') {
-
-                                    // 【修復核心2】擴大設備日誌抓取範圍，讓 MES 模組也能查閱完整履歷
-                            if (['EQS', 'MES'].includes(currentSysName)) {
-                                let { data: eqsData } = await sbClient.from('equipment_logs').select('*');
-                                result.eqsLogs = (eqsData || []).map(x => ({ time: x.created_at, mac: x.machine_id, state: x.status, op: x.operator_name, reason: x.remark }));
-                            }
-                            if (currentSysName === 'EQS') {
-                                let { data: woData } = await sbClient.from('work_orders').select('*');
-                                result.allWos = (woData || []).map(x => toChineseRow('生產工單', x));
-                            }
-
+                                    if (['EQS', 'MES'].includes(currentSysName)) {
+                                        let { data: eqsData } = await sbClient.from('equipment_logs').select('*').limit(10000);
+                                        result.eqsLogs = (eqsData || []).map(x => ({ time: x.created_at, mac: x.machine_id, state: x.status, op: x.operator_name, reason: x.remark }));
+                                    }
+                                    if (currentSysName === 'EQS') {
+                                        let { data: woData } = await sbClient.from('work_orders').select('*').limit(10000);
+                                        result.allWos = (woData || []).map(x => toChineseRow('生產工單', x));
+                                    }
                                 }
-
                             }
                             
                             if(this.successHandler) this.successHandler(result);
-
                         } catch(err) { if(this.failureHandler) this.failureHandler(err.toString()); }
-
                     },
 
                    
@@ -1140,6 +1084,8 @@
                                 machine_id: dbRow.machine_id, process_name: dbRow.machine_name, status: '待機中' 
                             }]);
                         }
+                        // 【強固防禦】新增完畢後，立刻清空該張表的舊快取，強迫下一次讀取必須抓 Supabase 最新資料
+                        if (systemCache[sheetName]) delete systemCache[sheetName];
                         this.getSheetData(sheetName);
                     },
 
@@ -1164,6 +1110,8 @@
                         }
 
                         await sbClient.from(config.table).update(dbRow).eq(config.pk, dbRow[config.pk]);
+                        // 【強固防禦】編輯完畢後，立刻清空舊快取
+                        if (systemCache[sheetName]) delete systemCache[sheetName];
                         this.getSheetData(sheetName);
                     },
 
@@ -1676,57 +1624,57 @@ deleteHandover: async function(id, operatorName) {
 
 
 
-        // ================= 【修正 3】全域多向不限順序百分號模糊搜尋 =================
-
-        function filterTable() {
-
-            const q = document.getElementById('searchInput').value.toLowerCase();
-
-            // 以 % 符號切割，過濾空白
-
-            const keywords = q.split('%').map(k => k.trim()).filter(k => k !== '');
-
-            const rows = document.querySelectorAll("#tableContainer tbody tr.erp-row");
-
+        // ================= 【大數據升級版】全域模糊搜尋引擎 (帶動畫版) =================
+        window.filterTable = function() {
+            if (!currentSheet || !systemCache[currentSheet]) return;
             
+            const searchBtn = document.querySelector('button[onclick="filterTable()"]');
+            const originalText = searchBtn ? searchBtn.innerHTML : '🔍 搜尋';
+            if (searchBtn) { searchBtn.innerHTML = '<span class="btn-spinner"></span>搜尋中'; searchBtn.disabled = true; }
 
-            rows.forEach((row, idx) => {
-
-                let text = row.innerText.toLowerCase();
-
-                // 必須滿足所有被切割出來的關鍵字
-
-                let match = keywords.every(k => text.includes(k));
-
+            setTimeout(() => {
+                const q = document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase() : '';
+                // 萬能切刀：支援空格、半形 %、全形 ％
+                const keywords = q.split(/[\s%％]+/).map(k => k.trim()).filter(k => k !== '');
                 
+                let rawData = systemCache[currentSheet].data || [];
 
-                row.style.display = match ? "" : "none";
-
-                
-
-                // 如果該列不符合搜尋條件，連同按鈕槽、查看細項、箭頭全部一體化強制收回隱藏
-
-                if(!match) {
-
-                    let btnRow = document.getElementById('btn_row_' + idx); if(btnRow) btnRow.classList.add('hidden');
-
-                    let detailRow = document.getElementById('detail_' + idx); if(detailRow) detailRow.classList.add('hidden');
-
-                    let mainTr = row.closest('tr');
-
-                    if(mainTr) {
-
-                        let arrowCell = mainTr.querySelector('td');
-
-                        if(arrowCell) arrowCell.innerText = '▶';
-
+                // 1. 記憶體高速過濾
+                let filteredData = rawData.filter(row => {
+                    if (keywords.length > 0) {
+                        let rowText = Object.values(row).map(v => {
+                            let str = String(v || '');
+                            let richStr = str;
+                            // 自動擴充斜線與逗號，讓記憶體搜尋跟肉眼看到的一致
+                            if (str.match(/^\d{4}-\d{2}-\d{2}/)) richStr += ' ' + str.replace(/-/g, '/');
+                            if (!isNaN(str) && str !== '') richStr += ' ' + parseFloat(str).toLocaleString();
+                            return richStr;
+                        }).join(' ').toLowerCase();
+                        
+                        // 必須包含所有被切開的關鍵字
+                        if (!keywords.every(k => rowText.includes(k))) return false;
                     }
+                    return true;
+                });
 
-                }
+                // 2. 將過濾後的結果存入暫存，供下拉載入使用，並重置顯示筆數
+                systemCache[currentSheet].filteredData = filteredData;
+                window.currentRenderLimit = 500; 
 
-            });
+                // 3. 把乾淨的資料丟給渲染引擎
+                renderTable(filteredData, userOpAuth.includes(currentSysName), userEditAuth.includes(currentSysName), false);
+                
+                if (searchBtn) { searchBtn.innerHTML = originalText; searchBtn.disabled = false; }
+            }, 50);
+        };
 
-        }
+        // ================= 無限下拉引擎核心 =================
+        window.loadMoreRows = function() {
+            window.currentRenderLimit += 500;
+            // 【修復】優先讀取搜尋過濾後的暫存，確保下拉滑動時搜尋結果不會跑掉
+            let targetData = systemCache[currentSheet].filteredData || systemCache[currentSheet].data || [];
+            renderTable(targetData, userOpAuth.includes(currentSysName), userEditAuth.includes(currentSysName), true);
+        };
 
 
 
@@ -1936,8 +1884,8 @@ deleteHandover: async function(id, operatorName) {
 
         function loadSystem(sysName, sheetName, forceRefresh = false) {
 
-            systemCache = {};
-
+            if (forceRefresh) { systemCache = {}; } // 強制刷新時清空快取
+            
             if(sysName === 'RPT') return loadReportSystem();
 
             document.getElementById('rptControlPanel').classList.add('hidden');
@@ -4941,17 +4889,16 @@ function openFinishRepairModal(mac) {
 
         // ================= ERP 專屬快篩引擎 (大數據升級版) =================
         function filterErp(type) {
-            // 確保有資料快取
             if (!systemCache[currentSheet]) return;
             let rawData = systemCache[currentSheet].data || [];
 
-            // 如果是「全部顯示」，直接把所有資料交給渲染引擎 (會自動觸發 100 筆保護)
             if (type === 'all') {
+                systemCache[currentSheet].filteredData = rawData; // 存入暫存
+                window.currentRenderLimit = 500;
                 renderTable(rawData, userOpAuth.includes(currentSysName), userEditAuth.includes(currentSysName));
                 return;
             }
 
-            // 在記憶體中瞬間過濾上萬筆資料
             let filteredData = rawData.filter(row => {
                 let cat = String(row['類別'] || '');
                 let isServiceItem = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('代工') || cat.includes('費');
@@ -4969,11 +4916,11 @@ function openFinishRepairModal(mac) {
                     reps.forEach(r => { restockQty += (parseFloat(r.reqQty) || 0) - (parseFloat(r.inQty) || 0); });
                     return (restockQty > 0);
                 }
-                
                 return true;
             });
 
-            // 將過濾後的精準結果，交給渲染引擎畫出來
+            systemCache[currentSheet].filteredData = filteredData; // 存入暫存
+            window.currentRenderLimit = 500;
             renderTable(filteredData, userOpAuth.includes(currentSysName), userEditAuth.includes(currentSysName));
         }
 
