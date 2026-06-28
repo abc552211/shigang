@@ -2083,6 +2083,7 @@ deleteHandover: async function(id, operatorName) {
 
         function renderTable(data, hasOpAuth, hasEditAuth) {
 
+            if (!isLoadMore) window.currentRenderLimit = 500; // 只要不是下拉載入，預設都先畫 500 筆保持極速
             const container = document.getElementById('tableContainer');
             const hideClosed = document.getElementById('hideClosedOrder')?.checked;
 
@@ -2322,9 +2323,9 @@ deleteHandover: async function(id, operatorName) {
                 tableHTML += `<tr><td colspan="15" class="p-10 text-center text-gray-400 tracking-wider">目前尚無資料。</td></tr>`;
 
             } else { 
-                // ================= 萬筆資料防護罩：最多只渲染 100 筆 =================
-                let displayLimit = 100;
-                let dataToRender = currentTableData.slice(0, displayLimit);
+                // ================= 動態切割資料：依據當前的無限下拉進度 =================
+            let displayLimit = window.currentRenderLimit;
+            let dataToRender = currentTableData.slice(0, displayLimit);
 
                 dataToRender.forEach((row, index) => {
 
@@ -3039,15 +3040,16 @@ if(currentSysName === 'ERP') {
                     // 【核心修正：絕對不能漏掉的明細 Tr 容器列，確保估料前後皆可點開！】
                     if (detailsHTML !== '') tableHTML += `<tr id="detail_${index}" class="hidden bg-indigo-50/60"><td colspan="${totalColSpan}" class="p-5 text-sm border-l-4 border-indigo-400 shadow-inner">${detailsHTML}</td></tr>`;
                 });
-            // ================= 防護罩提示：告訴使用者還有隱藏資料 =================
+            // ================= 自動下拉載入感測器 (Sentinel) =================
                 if (currentTableData.length > displayLimit) {
-                    let hiddenCount = currentTableData.length - displayLimit;
                     let totalColSpan = displayHeaders.length + 1;
                     tableHTML += `
-                        <tr>
-                            <td colspan="${totalColSpan}" class="p-4 text-center text-gray-500 font-bold bg-gray-50 border-t border-dashed">
-                                ⚠️ 系統為保持流暢，已自動隱藏更多的 ${hiddenCount} 筆資料。<br>
-                                <span class="text-sm font-normal text-gray-400">請利用上方【搜尋框】輸入單號或關鍵字來尋找特定單據。</span>
+                        <tr id="loadMoreSentinel">
+                            <td colspan="${totalColSpan}" class="p-5 text-center text-gray-500 font-bold bg-gray-50 border-t border-dashed cursor-pointer hover:bg-gray-100 transition-colors" onclick="loadMoreRows()">
+                                <div class="flex items-center justify-center gap-2">
+                                    <div class="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                                    往下捲動自動載入更多... (目前顯示 ${displayLimit} 筆 / 總共符合 ${currentTableData.length} 筆)
+                                </div>
                             </td>
                         </tr>
                     `;
@@ -3055,6 +3057,20 @@ if(currentSysName === 'ERP') {
 
             }
             tableHTML += `</tbody></table></div>`;
+
+            // ================= 綁定自動偵測滾動 (Intersection Observer) =================
+            setTimeout(() => {
+                let sentinel = document.getElementById('loadMoreSentinel');
+                if (sentinel) {
+                    let observer = new IntersectionObserver((entries) => {
+                        if (entries[0].isIntersecting) {
+                            observer.disconnect(); // 觸發後先斷開，避免重複觸發
+                            loadMoreRows();
+                        }
+                    }, { rootMargin: "300px" }); // 提早 300px 觸發，無縫銜接
+                    observer.observe(sentinel);
+                }
+            }, 100);
             
             // ================= 【完美復原】ERP 頂級智慧財務看板與快篩按鈕群 =================
             if (currentSysName === 'ERP') {
@@ -3105,6 +3121,13 @@ if(currentSysName === 'ERP') {
 
             container.innerHTML = tableHTML;
         }
+
+        // ================= 無限下拉引擎核心 =================
+        window.loadMoreRows = function() {
+            window.currentRenderLimit += 500;
+            // 重新渲染，並帶入 true 告訴引擎這是「下拉追加」，不要把數量重置回 500
+            renderTable(systemCache[currentSheet].data, userOpAuth.includes(currentSysName), userEditAuth.includes(currentSysName), true);
+        };
 
         // 輔助防呆：清乾淨供應商字串中的空格
         function supplierNameClean(str) { return String(str || '').trim(); }
