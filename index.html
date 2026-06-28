@@ -906,7 +906,8 @@
 
                             let config = schemaMaps[sheetName];
 
-                            let { data: rawData, error } = await sbClient.from(config.table).select('*');
+                            // 【終極修復】破解 Supabase 預設 1000 筆極限，並強制依 ID 降冪排序，徹底消滅 MVCC 吞資料 Bug
+                            let { data: rawData, error } = await sbClient.from(config.table).select('*').limit(10000).order(config.pk, { ascending: false });
 
                             if (error) throw error;
 
