@@ -196,7 +196,9 @@
                         紙板印刷試算
                     </a>
                     
-                    <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="輸入關鍵字模糊搜尋..." class="flex-1 md:w-48 p-2 border border-moBorder rounded text-sm focus:outline-none focus:ring-1 focus:ring-moSide transition-all min-w-[120px]">
+                    <input type="text" id="searchInput" onkeypress="if(event.key==='Enter') filterTable()" placeholder="輸入關鍵字 (按 Enter 搜尋)..." class="flex-1 md:w-48 p-2 border border-moBorder rounded text-sm focus:outline-none focus:ring-1 focus:ring-moSide transition-all min-w-[120px]">
+                    
+                    <button onclick="filterTable()" class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded text-sm font-bold shadow-sm transition-colors whitespace-nowrap">🔍 搜尋</button>
 
                     <button id="refreshBtn" onclick="refreshSystem()" class="hidden bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded text-sm transition-colors whitespace-nowrap">↻ 刷新</button>
 
