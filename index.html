@@ -503,7 +503,7 @@
         
         async function callGemini(userQuery, systemPrompt, jsonSchema = null) {
             // 💡 已將您的金鑰確實填入下方變數中：
-            const apiKey = "AQ.Ab8RN6KOdyvKw7pNWHPBZrI2ABl1-HhqkC7KHLadLrqf5nYZPQ"; 
+            const apiKey = "AIzaSyB3cPMa60muqqeGtmNjArLS6fWvxil7Juc"; 
     
             // 建議一併將模型節點改為 2026 年當前最穩定的正式版 gemini-2.5-flash
             const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
@@ -1883,12 +1883,21 @@ Make sure the summary is action-oriented, encouraging, and clear. Format elegant
             let row = el.closest('.mat-row'); 
             row.querySelector('.mat-real-id').value = id; 
             row.querySelector('.mat-sel-input').value = name;
+            
             let costInput = row.querySelector('.mat-cost'); 
             let sellInput = row.querySelector('.mat-sell');
-            if(costInput.value === '' || parseFloat(costInput.value) === 0) costInput.value = (cost !== 0) ? cost : '';
-            if(sellInput.value === '' || parseFloat(sellInput.value) === 0) sellInput.value = (sell !== 0) ? sell : '';
+            
+            // 確實將取得的價錢塞入欄位中
+            costInput.value = (cost !== 0) ? cost : 0;
+            sellInput.value = (sell !== 0) ? sell : 0;
+            
+            // 隱藏下拉選單
             el.closest('.mat-custom-dl').classList.add('hidden'); 
-            calcMatCost();
+            
+            // 【修復核心】強制瀏覽器重新辨識輸入值，並即時連動算價
+            setTimeout(() => {
+                calcMatCost();
+            }, 50);
         };
 
         window.addMatRow = function(matId = '', baseQty = '', matName = '', note = '', cost = '', sell = '') {
@@ -1904,7 +1913,7 @@ Make sure the summary is action-oriented, encouraging, and clear. Format elegant
                 <div class="w-16 text-center text-blue-700 font-bold text-sm mat-stock-display flex items-center justify-center bg-blue-50 border border-blue-100 rounded h-[38px]">-</div>
                 <input type="number" value="${cost}" class="mat-cost w-16 p-2 border border-red-200 rounded focus:ring-1 focus:ring-red-400 text-sm text-red-600 text-center font-bold bg-red-50 h-[38px]" placeholder="0" oninput="calcMatCost()">
                 <input type="number" value="${sell}" class="mat-sell w-16 p-2 border border-green-200 rounded focus:ring-1 focus:ring-green-400 text-sm text-green-700 text-center font-bold bg-green-50 h-[38px]" placeholder="0" oninput="calcMatCost()">
-                <input type="number" value="${baseQty}" class="mat-qty w-16 p-2 border border-gray-300 rounded focus:ring-1 focus:ring-moSide text-sm text-center font-bold h-[38px]" placeholder="0" onkeyup="calcMatCost()" onchange="calcMatCost()" min="0">
+                <input type="number" value="${baseQty}" class="mat-qty w-16 p-2 border border-gray-300 rounded focus:ring-1 focus:ring-moSide text-sm text-center font-bold h-[38px]" placeholder="0" oninput="calcMatCost()" onchange="calcMatCost()" min="0">
                 <div class="w-12 text-center actual-qty-display text-gray-800 font-bold text-sm h-[38px] flex items-center justify-center">0</div>
                 <button onclick="this.closest('.mat-row').remove(); calcMatCost();" class="w-6 text-gray-300 hover:text-red-500 font-bold text-xl leading-none transition-colors flex items-center justify-center h-[38px]">&times;</button>
             `;
@@ -2588,6 +2597,87 @@ Make sure the summary is action-oriented, encouraging, and clear. Format elegant
 
         async function loadMorningReport() {
             generateMorningReport();
+        }
+        function calcMatCost() {
+            // 1. 取得商務層級的基本乘數
+            const targetQty = parseFloat(document.getElementById('estTargetQty').value) || 0;
+            const yieldRate = parseFloat(document.getElementById('estYieldRate').value) || 100;
+            
+            // 計算實際投產量：目標出貨量 / (良率 / 100)
+            let realProductionQty = targetQty;
+            if (yieldRate > 0) {
+                realProductionQty = Math.ceil(targetQty / (yieldRate / 100));
+            }
+            document.getElementById('estQty').value = realProductionQty;
+
+            const freightCost = parseFloat(document.getElementById('estFreightCost').value) || 0;
+            const freightPrice = parseFloat(document.getElementById('estFreightPrice').value) || 0;
+
+            let totalCostSum = 0;
+            let totalSellSum = 0;
+
+            // 2. 遍歷每一行配料物料
+            const rows = document.querySelectorAll('#matList .mat-row');
+            rows.forEach(row => {
+                const costInput = row.querySelector('.mat-cost');
+                const sellInput = row.querySelector('.mat-sell');
+                const qtyInput = row.querySelector('.mat-qty');
+                const actualQtyDisplay = row.querySelector('.actual-qty-display');
+                const stockDisplay = row.querySelector('.mat-stock-display');
+
+                const cost = parseFloat(costInput.value) || 0;
+                const sell = parseFloat(sellInput.value) || 0;
+                const baseQty = parseFloat(qtyInput.value) || 0;
+
+                // 計算實際需扣：基準量 * 實際投產量
+                const actualDeduct = Number((baseQty * realProductionQty).toFixed(2));
+                if (actualQtyDisplay) {
+                    actualQtyDisplay.innerText = actualDeduct;
+                }
+
+                // 累加總材料成本與產品售價（依據實際需扣量計算）
+                totalCostSum += cost * actualDeduct;
+                totalSellSum += sell * actualDeduct;
+
+                // 同步即時顯示庫存狀態提示（若有選擇標準料號）
+                const matId = row.querySelector('.mat-real-id').value;
+                if (matId && stockDisplay && stockDisplay.innerText === '-') {
+                    const matched = (currentDropdowns['物料編號'] || []).find(opt => opt.id === matId);
+                    if (matched) {
+                        let cat = String(matched.category || '');
+                        let isService = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('代工') || cat.includes('費');
+                        stockDisplay.innerText = isService ? '∞' : matched.stock;
+                        
+                        // 庫存不足時自動變更顏色警示
+                        if (!isService && matched.stock < actualDeduct) {
+                            stockDisplay.className = 'w-16 text-center text-red-600 font-bold text-sm mat-stock-display flex items-center justify-center bg-red-50 border border-red-200 rounded h-[38px] animate-pulse';
+                        } else {
+                            stockDisplay.className = 'w-16 text-center text-blue-700 font-bold text-sm mat-stock-display flex items-center justify-center bg-blue-50 border border-blue-100 rounded h-[38px]';
+                        }
+                    }
+                }
+            });
+
+            // 3. 加上運費並渲染至主畫面
+            const finalProductTotal = totalSellSum + freightPrice;
+            const finalCostTotal = totalCostSum + freightCost;
+            const finalProfit = finalProductTotal - finalCostTotal;
+            const finalUnitPrice = targetQty > 0 ? Number((finalProductTotal / targetQty).toFixed(2)) : 0;
+
+            // 渲染總計金額
+            document.getElementById('estTotalProductSum').innerText = `$ ${Math.round(finalProductTotal).toLocaleString()}`;
+            document.getElementById('estUnitPrice').innerText = `$ ${finalUnitPrice.toLocaleString()}`;
+            document.getElementById('matTotalCost').innerText = Math.round(finalCostTotal).toLocaleString();
+            
+            const profitEl = document.getElementById('estEstProfit');
+            if (profitEl) {
+                profitEl.innerText = `$ ${Math.round(finalProfit).toLocaleString()}`;
+                if (finalProfit < 0) {
+                    profitEl.className = 'text-red-600 text-xl font-bold leading-relaxed';
+                } else {
+                    profitEl.className = 'text-green-600 text-xl font-bold leading-relaxed';
+                }
+            }
         }
     </script>
 
