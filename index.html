@@ -1428,16 +1428,17 @@ Make sure the summary is action-oriented, encouraging, and clear. Format elegant
             
             userEditAuth = editAuth || ''; 
             userOpAuth = (opAuth || '') + ',' + userEditAuth;   
-            userViewAuth = (viewAuth || '') + ',' + userOpAuth; 
-            userShowFinance = (showFinance !== '否'); 
+            userViewAuth = (viewAuth || '') + ',' + userOpAuth + ',CAL'; // 預設全員皆可看 CAL 月曆
             
-            const allSys = ['EIP', 'OMS', 'MES', 'ERP', 'CRM', 'SUP', 'EQS', 'EQM', 'RPT', 'SYS'];
-            const sysMap = { 'EIP':'內部公告', 'CRM':'客戶資料', 'SUP':'供應商資料', 'ERP':'物料庫存', 'OMS':'訂單管理', 'MES':'生產工單', 'EQS':'設備狀態', 'EQM':'設備選單維護', 'RPT':'報表中心', 'SYS':'權限管理' };
+            // 【修復擴充】加入 CAL 月曆對照
+            const allSys = ['CAL', 'EIP', 'OMS', 'MES', 'ERP', 'CRM', 'SUP', 'EQS', 'EQM', 'RPT', 'SYS'];
+            const sysMap = { 'CAL':'營運行事曆', 'EIP':'內部公告', 'CRM':'客戶資料', 'SUP':'供應商資料', 'ERP':'物料庫存', 'OMS':'訂單管理', 'MES':'生產工單', 'EQS':'設備狀態', 'EQM':'設備選單維護', 'RPT':'報表中心', 'SYS':'權限管理' };
             
             let firstSys = null; let navHtml = '';
             allSys.forEach(sys => {
                 if (userViewAuth.includes(sys)) {
-                    navHtml += `<a href="#" id="menu_${sys}" onclick="loadSystem('${sys}', '${sysMap[sys]||''}')" class="px-6 py-3 nav-btn flex items-center gap-3"><span class="tracking-widest">${sys} ${sysMap[sys]||''}</span></a>`;
+                    // 將原本的 py-3 改為 py-1.5，讓功能鈕變扁精緻，符合您要求的排版
+                    navHtml += `<a href="#" id="menu_${sys}" onclick="loadSystem('${sys}', '${sysMap[sys]||''}')" class="px-6 py-1.5 nav-btn flex items-center gap-3 text-xs md:text-sm"><span class="tracking-widest">${sys} ${sysMap[sys]||''}</span></a>`;
                     if(!firstSys && sys !== 'RPT') firstSys = sys;
                 }
             });
@@ -1482,6 +1483,23 @@ Make sure the summary is action-oriented, encouraging, and clear. Format elegant
                 if(document.getElementById('rptStartDate')) document.getElementById('rptStartDate').value = todayStr;
                 if(document.getElementById('rptEndDate')) document.getElementById('rptEndDate').value = todayStr;
                 return; 
+            }
+            // 【精準追加：行事曆月曆載入邏輯】
+            if (sysName === 'CAL') {
+                document.getElementById('addBtn').classList.add('hidden'); // 月曆頁不顯示常規新增鈕
+                document.getElementById('refreshBtn').classList.remove('hidden');
+                document.getElementById('tableContainer').innerHTML = '';
+                document.getElementById('loadingIndicator').classList.remove('hidden');
+                
+                // 動態向雲端同步撈取最新的 OMS 訂單與 EIP 交接快取數據
+                sbClient.from('orders').select('*').then(ordRes => {
+                    sbClient.from('handovers').select('*').then(hoRes => {
+                        document.getElementById('loadingIndicator').classList.add('hidden');
+                        // 呼叫專屬行事曆渲染引擎
+                        renderOperationalCalendar(ordRes.data || [], hoRes.data || []);
+                    });
+                });
+                return;
             }
 
             document.getElementById('loadingIndicator').classList.remove('hidden');
@@ -2677,6 +2695,301 @@ Make sure the summary is action-oriented, encouraging, and clear. Format elegant
                 } else {
                     profitEl.className = 'text-green-600 text-xl font-bold leading-relaxed';
                 }
+            }
+        }
+
+        // --- 📅 仕罡營運月曆核心排版與關聯高亮模組 ---
+        window.currentCalendarYear = new Date().getFullYear();
+        window.currentCalendarMonth = new Date().getMonth(); 
+        window.calendarViewMode = 'month'; // 'month' 或 'week'
+        window.currentWeekStartDate = new Date(); // 週模式的起算日
+
+        // 初始化週模式起算日為本週日
+        const _today = new Date();
+        window.currentWeekStartDate.setDate(_today.getDate() - _today.getDay());
+
+        function renderOperationalCalendar(orders, handovers) {
+            const container = document.getElementById('tableContainer');
+            
+            // 快取數據
+            window.cachedCalOrders = orders;
+            window.cachedCalHandovers = handovers;
+
+            let html = `
+                <div class="p-4 bg-white rounded-lg shadow-sm border border-moBorder flex flex-col h-full overflow-hidden select-none">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4 flex-shrink-0 border-b pb-3">
+                        <div class="flex items-center gap-2">
+                            <button onclick="switchCalendarTime(-1)" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 border rounded text-xs font-bold transition">◀ 上一區間</button>
+                            <h2 id="calendarMonthTitle" class="text-base md:text-lg font-bold text-moSide tracking-widest min-w-[140px] text-center">2026 年 07 月</h2>
+                            <button onclick="switchCalendarTime(1)" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 border rounded text-xs font-bold transition">下一區間 ▶</button>
+                        </div>
+                        
+                        <div class="flex bg-gray-100 p-0.5 rounded-lg border border-gray-200 shadow-inner">
+                            <button id="btnViewMonth" onclick="switchCalendarViewMode('month')" class="px-4 py-1 rounded-md text-xs font-bold transition-all bg-white text-moSide shadow-sm">月模式</button>
+                            <button id="btnViewWeek" onclick="switchCalendarViewMode('week')" class="px-4 py-1 rounded-md text-xs font-bold transition-all text-gray-400 hover:text-moSide">週模式</button>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2 text-[10px] md:text-xs font-bold">
+                            <span class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded border border-purple-200">🟢 訂單開立日</span>
+                            <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded border border-emerald-200">🚚 預計出貨日</span>
+                            <span class="px-2 py-0.5 bg-slate-100 text-slate-800 rounded border border-slate-300">📌 追蹤交接</span>
+                            <span class="px-2 py-0.5 bg-amber-50 text-amber-900 rounded border border-amber-200">⏰ 時效交接</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 overflow-auto">
+                        <table class="w-full table-fixed border-collapse border border-gray-200 min-w-[600px] h-full">
+                            <thead>
+                                <tr class="bg-gray-50 text-moSide border-b border-gray-200 text-xs md:text-sm">
+                                    <th class="p-2 border border-gray-200 w-[14.28%] text-red-500 text-center font-bold">日</th>
+                                    <th class="p-2 border border-gray-200 w-[14.28%] text-center font-bold">一</th>
+                                    <th class="p-2 border border-gray-200 w-[14.28%] text-center font-bold">二</th>
+                                    <th class="p-2 border border-gray-200 w-[14.28%] text-center font-bold">三</th>
+                                    <th class="p-2 border border-gray-200 w-[14.28%] text-center font-bold">四</th>
+                                    <th class="p-2 border border-gray-200 w-[14.28%] text-center font-bold">五</th>
+                                    <th class="p-2 border border-gray-200 w-[14.28%] text-blue-600 text-center font-bold">六</th>
+                                </tr>
+                            </thead>
+                            <tbody id="calendarGridBody" class="text-xs"></tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            container.innerHTML = html;
+            buildCalendarGrid();
+        }
+
+        function switchCalendarMonth(dir) {
+            window.currentCalendarMonth += dir;
+            if (window.currentCalendarMonth > 11) { window.currentCalendarMonth = 0; window.currentCalendarYear++; }
+            if (window.currentCalendarMonth < 0) { window.currentCalendarMonth = 11; window.currentCalendarYear--; }
+            buildCalendarGrid();
+        }
+
+        function switchCalendarViewMode(mode) {
+            window.calendarViewMode = mode;
+            const btnMonth = document.getElementById('btnViewMonth');
+            const btnWeek = document.getElementById('btnViewWeek');
+            
+            if (mode === 'month') {
+                btnMonth.className = "px-4 py-1 rounded-md text-xs font-bold transition-all bg-white text-moSide shadow-sm border border-gray-200";
+                btnWeek.className = "px-4 py-1 rounded-md text-xs font-bold transition-all text-gray-400 hover:text-moSide";
+            } else {
+                btnWeek.className = "px-4 py-1 rounded-md text-xs font-bold transition-all bg-white text-moSide shadow-sm border border-gray-200";
+                btnMonth.className = "px-4 py-1 rounded-md text-xs font-bold transition-all text-gray-400 hover:text-moSide";
+                
+                // 切換到週模式時，預設對齊當前月曆顯示月份的第一天或今天
+                const today = new Date();
+                window.currentWeekStartDate = new Date(window.currentCalendarYear, window.currentCalendarMonth, today.getDate());
+                window.currentWeekStartDate.setDate(window.currentWeekStartDate.getDate() - window.currentWeekStartDate.getDay());
+            }
+            buildCalendarGrid();
+        }
+
+        function switchCalendarTime(dir) {
+            if (window.calendarViewMode === 'month') {
+                window.currentCalendarMonth += dir;
+                if (window.currentCalendarMonth > 11) { window.currentCalendarMonth = 0; window.currentCalendarYear++; }
+                if (window.currentCalendarMonth < 0) { window.currentCalendarMonth = 11; window.currentCalendarYear--; }
+            } else {
+                // 週模式：前進或後退 7 天
+                window.currentWeekStartDate.setDate(window.currentWeekStartDate.getDate() + (dir * 7));
+                window.currentCalendarYear = window.currentWeekStartDate.getFullYear();
+                window.currentCalendarMonth = window.currentWeekStartDate.getMonth();
+            }
+            buildCalendarGrid();
+        }
+
+        // 獨立出的事件 HTML 渲染核心（月/週共用，顯示邏輯 100% 不變）
+        function getCalendarDayEventsMarkup(currentDayStr) {
+            let dayEventsHtml = '';
+            
+            // A. 訂單開立日項目
+            (window.cachedCalOrders || []).forEach(o => {
+                if (o.order_date && o.order_date.startsWith(currentDayStr)) {
+                    dayEventsHtml += `
+                        <div class="cal-ev bg-purple-50 text-purple-700 border border-purple-200 rounded p-1 mb-1 text-[11px] font-bold cursor-pointer transition-all hover:scale-[1.02] overflow-hidden truncate whitespace-nowrap" 
+                             data-related-id="${o.order_id}" data-target-sys="OMS" onclick="handleCalendarRedirect('OMS', '訂單管理', '${o.order_id}')"
+                             onmouseenter="highlightCalendarRelation('${o.order_id}', true)" onmouseleave="highlightCalendarRelation('${o.order_id}', false)"
+                             title="[新訂單] ${o.customer_name || '未知客戶'}: ${o.product_name}">
+                            🟢 ${o.order_id.substring(o.order_id.length - 4)} | ${o.customer_name || '客戶'}
+                        </div>`;
+                }
+            });
+            
+            // B. 預計出貨日項目
+            (window.cachedCalOrders || []).forEach(o => {
+                let isMatch = false;
+                if (o.shipped_at && o.shipped_at.startsWith(currentDayStr)) { isMatch = true; }
+                else if (o.process_plan) {
+                    try {
+                        let steps = typeof o.process_plan === 'string' ? JSON.parse(o.process_plan) : o.process_plan;
+                        if (steps && steps.length > 0 && steps[steps.length - 1].endDate.startsWith(currentDayStr)) { isMatch = true; }
+                    } catch(e){}
+                }
+                if (isMatch) {
+                    dayEventsHtml += `
+                        <div class="cal-ev bg-emerald-50 text-emerald-800 border border-emerald-200 rounded p-1 mb-1 text-[11px] font-bold cursor-pointer transition-all hover:scale-[1.02] overflow-hidden truncate whitespace-nowrap" 
+                             data-related-id="${o.order_id}" data-target-sys="OMS" onclick="handleCalendarRedirect('OMS', '訂單管理', '${o.order_id}')"
+                             onmouseenter="highlightCalendarRelation('${o.order_id}', true)" onmouseleave="highlightCalendarRelation('${o.order_id}', false)"
+                             title="[出貨日] ${o.product_name}">
+                            🚚 出貨 | ${o.order_id.substring(o.order_id.length - 4)}
+                        </div>`;
+                }
+            });
+            
+            // C. 交接追蹤與到期日項目
+            (window.cachedCalHandovers || []).forEach(h => {
+                if (h.status === '已結案') return;
+                let hDate = h.created_at || h.time;
+                let isTrackingMode = !h.content.includes("預計處理時間：");
+                if (!isTrackingMode) {
+                    let match = h.content.match(/預計處理時間：([0-9\-]+)/);
+                    if (match && match[1]) hDate = match[1];
+                }
+                if (hDate && hDate.startsWith(currentDayStr)) {
+                    let prefixIcon = isTrackingMode ? "📌 [追蹤]" : "⏰ [到期]";
+                    let badgeBg = isTrackingMode ? "bg-slate-100 text-slate-800 border-slate-300" : "bg-amber-50 text-amber-900 border-amber-200";
+                    dayEventsHtml += `
+                        <div class="cal-ev border rounded p-1 mb-1 text-[11px] font-medium cursor-pointer transition-all hover:scale-[1.02] overflow-hidden truncate whitespace-nowrap ${badgeBg}"
+                             data-target-sys="EIP" onclick="handleCalendarRedirect('EIP', '內部公告', '')"
+                             title="${prefixIcon} ${h.creator}➔${h.assignee}: ${h.content}">
+                            ${isTrackingMode ? "📌" : "⏰"} ${h.assignee}: ${h.content.split('】').pop().replace(/^-+/, '').substring(0, 8)}...
+                        </div>`;
+                }
+            });
+
+            return dayEventsHtml;
+        }
+
+        function buildCalendarGrid() {
+            const gridBody = document.getElementById('calendarGridBody');
+            gridBody.innerHTML = '';
+            
+            const monthNames = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
+            const today = new Date();
+
+            if (window.calendarViewMode === 'month') {
+                // --- 1. 常規月視角渲染邏輯 ---
+                const year = window.currentCalendarYear;
+                const month = window.currentCalendarMonth;
+                document.getElementById('calendarMonthTitle').innerText = `${year} 年 ${monthNames[month]} 月`;
+                
+                const firstDayIndex = new Date(year, month, 1).getDay();
+                const totalDays = new Date(year, month + 1, 0).getDate();
+                
+                let rowHtml = '<tr class="h-24 md:h-28">';
+                let dayCounter = 1;
+                
+                for (let i = 0; i < firstDayIndex; i++) {
+                    rowHtml += `<td class="bg-gray-50 border border-gray-200 p-1 align-top text-gray-300"></td>`;
+                }
+                
+                for (let i = firstDayIndex; dayCounter <= totalDays; i++) {
+                    if (i > 0 && i % 7 === 0) {
+                        rowHtml += `</tr><tr class="h-24 md:h-28">`;
+                    }
+                    
+                    let currentDayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayCounter).padStart(2, '0')}`;
+                    let dayEventsHtml = getCalendarDayEventsMarkup(currentDayStr);
+                    let isToday = (today.getFullYear() === year && today.getMonth() === month && today.getDate() === dayCounter);
+                    let dayBgClass = isToday ? 'bg-indigo-50/60 border-2 border-indigo-400 font-extrabold' : 'bg-white border-gray-200';
+                    
+                    rowHtml += `
+                        <td class="${dayBgClass} p-1 align-top border min-w-0 box-border overflow-hidden">
+                            <span class="block text-right font-mono text-gray-500 mb-1 text-xs px-1">${dayCounter}</span>
+                            <div class="overflow-y-auto max-h-16 scrollbar-none pr-0.5 space-y-0.5">${dayEventsHtml}</div>
+                        </td>`;
+                    
+                    dayCounter++;
+                }
+                
+                let remainingCells = (7 - (firstDayIndex + totalDays) % 7) % 7;
+                for (let i = 0; i < remainingCells; i++) {
+                    rowHtml += `<td class="bg-gray-50 border border-gray-200 p-1 align-top text-gray-300"></td>`;
+                }
+                rowHtml += '</tr>';
+                gridBody.innerHTML = rowHtml;
+
+            } else {
+                // --- 2. 高精細週視角渲染邏輯 ---
+                let startOfWeek = new Date(window.currentWeekStartDate);
+                let endOfWeek = new Date(startOfWeek);
+                endOfWeek.setDate(endOfWeek.getDate() + 6);
+
+                // 更新標題為該週的區間 (例如: 2026/07/05 ~ 07/11)
+                let startStr = `${startOfWeek.getFullYear()}/${monthNames[startOfWeek.getMonth()]}/${String(startOfWeek.getDate()).padStart(2,'0')}`;
+                let endStr = `${endOfWeek.getFullYear()}/${monthNames[endOfWeek.getMonth()]}/${String(endOfWeek.getDate()).padStart(2,'0')}`;
+                document.getElementById('calendarMonthTitle').innerText = `${startStr} ~ ${endStr}`;
+
+                // 週模式只有單一橫排，且高度拉寬，給予更大的展示空間
+                let rowHtml = '<tr class="h-64 md:h-80">';
+                
+                for (let i = 0; i < 7; i++) {
+                    let iterDate = new Date(startOfWeek);
+                    iterDate.setDate(iterDate.getDate() + i);
+                    
+                    let iYear = iterDate.getFullYear();
+                    let iMonth = iterDate.getMonth();
+                    let iDay = iterDate.getDate();
+                    
+                    let currentDayStr = `${iYear}-${String(iMonth + 1).padStart(2, '0')}-${String(iDay).padStart(2, '0')}`;
+                    let dayEventsHtml = getCalendarDayEventsMarkup(currentDayStr);
+                    
+                    let isToday = (today.getFullYear() === iYear && today.getMonth() === iMonth && today.getDate() === iDay);
+                    let dayBgClass = isToday ? 'bg-indigo-50/70 border-2 border-indigo-400 font-extrabold' : 'bg-white border-gray-200';
+                    
+                    rowHtml += `
+                        <td class="${dayBgClass} p-2 align-top border min-w-0 box-border overflow-hidden">
+                            <div class="flex justify-between items-center border-b border-gray-100 pb-1 mb-2">
+                                <span class="text-[10px] text-gray-400 font-bold">${iYear}/${monthNames[iMonth]}</span>
+                                <span class="font-mono text-moSide text-sm font-bold bg-gray-100 px-1.5 py-0.5 rounded">${iDay} 日</span>
+                            </div>
+                            <div class="overflow-y-auto max-h-56 md:max-h-64 scrollbar-none pr-0.5 space-y-1">${dayEventsHtml}</div>
+                        </td>`;
+                }
+                rowHtml += '</tr>';
+                gridBody.innerHTML = rowHtml;
+            }
+        }
+
+        // 核心高亮處理函式：滑鼠放上時，全畫面同單號項目一起 highlight
+        function highlightCalendarRelation(relatedId, isHighlight) {
+            if (!relatedId) return;
+            const matches = document.querySelectorAll(`[data-related-id="${relatedId}"]`);
+            matches.forEach(el => {
+                if (isHighlight) {
+                    el.style.transform = 'scale(1.05)';
+                    el.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+                    el.style.borderColor = '#4f46e5'; // 強制變更為靛藍色外框
+                } else {
+                    el.style.transform = '';
+                    el.style.boxShadow = '';
+                    el.style.borderColor = '';
+                }
+            });
+        }
+
+        // 點擊事件跳轉＋精密權限檢核卡控機制
+        function handleCalendarRedirect(sysName, sheetName, keyword) {
+            // 安全防呆檢核：檢查登入人員是否有該目標模組的檢視與操作權限
+            if (!userViewAuth.includes(sysName)) {
+                showCustomAlert("🔒 存取遭拒", `抱歉，您的職務帳號權限尚未開通 [${sysName} ${sheetName}] 模組，此點擊跳轉已安全攔截。`);
+                return;
+            }
+            
+            // 執行左側選單跳轉
+            loadSystem(sysName, sheetName);
+            
+            // 若帶有特定單號關鍵字，待表格渲染完畢後自動帶入搜尋框進行精準卡控篩選
+            if (keyword) {
+                setTimeout(() => {
+                    const searchInput = document.getElementById('searchInput');
+                    if (searchInput) {
+                        searchInput.value = keyword;
+                        filterTable();
+                    }
+                }, 400);
             }
         }
     </script>
