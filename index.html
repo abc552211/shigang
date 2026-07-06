@@ -182,16 +182,23 @@
                         <input type="text" id="hoCreator" readonly class="w-full p-2.5 border rounded-lg text-sm bg-gray-100 text-gray-500 font-bold cursor-not-allowed">
                     </div>
                 </div>
-                <div>
-                    <label class="block text-gray-600 font-bold mb-1">指定接收人 (自動連動 LINE 專向推播)</label>
-                    <select id="hoAssignee" class="w-full p-2.5 border rounded-lg text-sm bg-white"></select>
-                </div>
+                    <div>
+    <label class="block text-gray-600 font-bold mb-2">指定接收人 (自動連動 LINE 專向推播)</label>
+    <div class="mb-2">
+        <label class="inline-flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg cursor-pointer border hover:bg-slate-200 transition">
+            <input type="checkbox" id="hoAssignAll" checked onchange="toggleHandoverAssignAll(this)" class="w-4 h-4 rounded text-slate-600 focus:ring-slate-500">
+            <span class="text-xs font-bold text-slate-700">📢 廣播給全體在職人員</span>
+        </label>
+    </div>
+    <div id="hoAssigneeGridContainer" class="hidden p-3 border rounded-lg bg-gray-50 max-h-36 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-2">
+        </div>
+</div>
                 
                 <!-- LINE 控制開關 -->
                 <div class="flex items-center gap-2 bg-amber-50/50 border border-amber-200/60 p-2.5 rounded-lg">
                     <input type="checkbox" id="hoSkipLineNotify" class="w-4 h-4 rounded text-slate-600 focus:ring-slate-500 cursor-pointer">
                     <label for="hoSkipLineNotify" class="text-xs text-amber-900 font-bold cursor-pointer select-none">
-                        🤫 此單僅上傳看板，勾選 [不推播] 至 LINE 通知
+                        🤫 靜音模式，勾選後Line不會推播
                     </label>
                 </div>
                 
@@ -482,7 +489,7 @@
             '交接清單LOG': { table: 'handovers_log', pk: 'id', fields: { '時間': 'created_at', '動作': 'action', '內容': 'content', '操作人': 'operator_name' }},
             '客戶資料': { table: 'customers', pk: 'customer_id', fields: { '客戶編號': 'customer_id', '客戶名稱': 'customer_name', '統一編號': 'tax_id', '聯絡人': 'contact_person', '聯絡電話': 'phone', '手機': 'mobile', '聯絡地址': 'address', '常用盒型': 'box_type', '偏好材質': 'material_preference', '特殊要求備註': 'remark', '合作狀態': 'status', '銀行代碼': 'bank_code', '匯款帳號': 'bank_account', '傳真': 'fax' }},
             '供應商資料': { table: 'suppliers', pk: 'supplier_id', fields: { '供應商編號': 'supplier_id', '大類': 'category', '供應商名稱': 'supplier_name', '電話': 'phone', '手機': 'mobile', '窗口': 'contact_person', '統一編號': 'tax_id', '傳真': 'fax', '地址': 'address', '備註': 'remark', '銀行代碼': 'bank_code', '匯款帳號': 'bank_account' }},
-            '訂單管理': { table: 'orders', pk: 'order_id', fields: { '急件': 'is_urgent', '訂單日期': 'order_date', '訂單編號': 'order_id', '訂單狀態': 'status', '產品名稱': 'product_name', '完成尺寸': 'finished_size', '單價': 'unit_price', '訂購數量': 'production_qty', '總金額': 'total_amount', '客戶名稱': 'customer_name', '訂單細項': 'details', '業務': 'sales_rep', '工序規劃紀錄': 'process_plan', '示意圖': 'images', '運費報價': 'freight_price', '運費備註': 'freight_remark', '預估成本': 'estimated_cost', '運費成本': 'freight_cost', '數量': 'quantity', '產出量': 'output_qty', '預估良率': 'yield_rate', '配料明細': 'bom_details', '貨運單號': 'tracking_id', '出貨時間': 'shipped_at' }},
+            '訂單管理': { table: 'orders', pk: 'order_id', fields: { '關聯估價單號': 'estimate_no', '訂單日期': 'order_date', '訂單編號': 'order_id', '訂單狀態': 'status', '產品名稱': 'product_name', '完成尺寸': 'finished_size', '交貨量': 'production_qty', '客戶名稱': 'customer_name', '訂單細項': 'details', '工序規劃紀錄': 'process_plan', '投產量': 'quantity', '產出量': 'output_qty', '預估良率': 'yield_rate', '配料明細': 'bom_details', '貨運單號': 'tracking_id', '出貨時間': 'shipped_at' }},
             '生產工單': { table: 'work_orders', pk: 'wo_id', fields: { '急件': 'is_urgent', '完成日期': 'completed_at', '當前工序': 'current_process', '工單狀態': 'status', '工單編號': 'wo_id', '關聯訂單': 'order_id', '產品名稱': 'product_name', '作業機台': 'machine_id', '員工姓名': 'emp_name', '產出量': 'output_qty', '停工原因': 'stop_reason', '工序明細': 'process_details', '當前進度索引': 'current_step_index' }},
             '材料異常': { table: 'material_anomalies', pk: 'created_at', fields: { '時間': 'created_at', '物料編號': 'material_id', '品名': 'material_name', '供應商': 'supplier_name', '異常數量': 'quantity', '廠商出貨單號': 'vendor_invoice_id', '補貨單號': 'replenish_id', '異常說明': 'reason', '上傳照片': 'image_url', '操作人': 'operator_name' }},
             '設備狀態': { table: 'equipment_status', pk: 'machine_id', fields: { '工序編號': 'machine_id', '工序名稱': 'process_name', '當前狀態': 'status', '工單編號': 'wo_id', '客戶名稱': 'customer_name', '產品名稱': 'product_name', '預計交期': 'estimated_delivery_date', '報修內容': 'repair_remark', '訂單日期': 'order_date', '預計保養日期': 'next_maintenance_date' }},
@@ -783,9 +790,19 @@ Make sure the summary is action-oriented, encouraging, and clear. Format elegant
                             if(this.successHandler) this.successHandler({ success: false, msg: "密碼錯誤或員工編號不符" });
                             return;
                         }
-                        let d = new Date(); 
-                        let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
-                        await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', userId);
+                        // [修正] 取用台灣本地時間，並精準格式化為 YYYY-MM-DD HH:mm:ss 排除任何時區綴記
+let d = new Date();
+let tzOffset = 8 * 60; // 台灣時間 (UTC+8)
+let localTime = new Date(d.getTime() + (tzOffset + d.getTimezoneOffset()) * 60000);
+let yyyy = localTime.getFullYear();
+let mm = String(localTime.getMonth() + 1).padStart(2, '0');
+let dd = String(localTime.getDate()).padStart(2, '0');
+let hh = String(localTime.getHours()).padStart(2, '0');
+let min = String(localTime.getMinutes()).padStart(2, '0');
+let ss = String(localTime.getSeconds()).padStart(2, '0');
+let ts = `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+
+await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', userId);
                         if(this.successHandler) this.successHandler({
                             success: true, name: data[0].emp_name + ' | ' + (data[0].job_title || '人員'),
                             viewAuth: data[0].view_auth || '', opAuth: data[0].op_auth || '', editAuth: data[0].edit_auth || '', showFinance: data[0].show_finance || '是'
@@ -1444,6 +1461,18 @@ Make sure the summary is action-oriented, encouraging, and clear. Format elegant
             });
             document.getElementById('navMenu').innerHTML = navHtml;
             if(firstSys) loadSystem(firstSys, sysMap[firstSys]);
+            // ===== 💡 [新增] 登入成功後立刻強制由 Supabase 初始化在職人員快取，供交接多選網格使用 =====
+    sbClient.from('users_auth')
+        .select('emp_name, is_visible')
+        .then(res => {
+            if (res.data) {
+                // 過濾掉離職人員，並存入全域快取
+                window.userListCache = res.data
+                    .filter(u => u.is_visible !== '否')
+                    .map(u => u.emp_name);
+                console.log("📊 系統已成功預載在職同仁名單共 " + window.userListCache.length + " 位");
+            }
+        }).catch(err => console.error("人員預載失敗:", err));
         }
 
         function toggleMenu() { document.querySelector('.sidebar-bg').classList.toggle('hidden'); }
@@ -1685,7 +1714,10 @@ Make sure the summary is action-oriented, encouraging, and clear. Format elegant
                     tableHTML += `<tr class="${bgClass} hover:bg-gray-50 transition-colors" data-index="${index}">`;
                     tableHTML += `<td onclick="toggleRowButtons(${index}, this)" class="p-3 text-center cursor-pointer text-moSide font-bold text-sm select-none hover:text-black">▶</td>`;
                     
+                    // ================= 🚀 全系統智慧展開日誌引擎 🚀 =================
                     let detailsHTML = '';
+
+                    // 1. 常態文字與備註欄位追加封裝
                     displayHeaders.forEach(key => {
                         let val = row[key] || '';
                         let isFinanceField = key.includes('成本') || key.includes('報價') || key.includes('單價') || key.includes('售價') || key.includes('金額');
@@ -1706,33 +1738,261 @@ Make sure the summary is action-oriented, encouraging, and clear. Format elegant
                                 val = `<span class="status-badge inline-block ${badgeClass}">${val}</span>`;
                             }
                         }
+                        
+                        // 將文字與備註欄位追加封裝進詳細資訊容器中
+                        if (key.includes('備註') || key.includes('細項') || key.includes('簡述') || key.includes('摘要') || key.includes('原因') || key.includes('內容')) {
+                            if (String(row[key] || '').trim() !== '') {
+                                detailsHTML += `<div class="mb-2"><strong class="text-moSide">${key}：</strong><p class="text-gray-600 mt-1 whitespace-pre-wrap">${String(row[key]).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p></div>`;
+                            }
+                        }
                         tableHTML += `<td class="p-3">${val}</td>`;
                     });
                     tableHTML += `</tr>`;
 
-                    let btnSlot1 = ``; let btnSlot4 = ``;
+                    // 2. 【OMS 訂單管理】展開：強制無痕抓取儲存在 bom_details 的材料 JSON
+                    if (currentSysName === 'OMS' && row['配料明細'] && String(row['配料明細']).trim() !== '') {
+                        try {
+                            let bom = typeof row['配料明細'] === 'string' ? JSON.parse(row['配料明細']) : row['配料明細'];
+                            if (Array.isArray(bom) && bom.length > 0) {
+                                let bomRows = bom.map(m => {
+                                    let matObj = (currentDropdowns['物料編號'] || []).find(opt => opt.id === m.id);
+                                    let noteStr = m.note ? `<span class="text-blue-600 font-bold">[${m.note}]</span> ` : '';
+                                    let mName = matObj ? matObj.name : (m.customName ? m.customName : '外包代工服務費');
+                                    return `<tr class="border-b border-gray-200"><td class="p-1.5 font-mono text-gray-500">${m.id || '自訂'}</td><td class="p-1.5 font-bold text-gray-700">${noteStr}${mName}</td><td class="p-1.5 text-center text-red-600 font-bold">${m.qty || m.baseQty || 0}</td></tr>`;
+                                }).join('');
+                                
+                                detailsHTML += `
+                                    <div class="mt-1 mb-3 bg-white p-3 rounded-lg border border-gray-200 shadow-xs">
+                                        <span class="font-bold text-xs text-moSide block mb-1.5">📦 本單已保存之雲端生產配料明細</span>
+                                        <table class="w-full text-left text-xs border-collapse">
+                                            <thead><tr class="bg-gray-100 text-gray-500 font-bold"><th class="p-1.5 w-24">物料編號</th><th class="p-1.5">品名規格與製程備註</th><th class="p-1.5 w-20 text-center">實際需扣量</th></tr></thead>
+                                            <tbody>${bomRows}</tbody>
+                                        </table>
+                                    </div>`;
+                            }
+                        } catch(e){ console.error("配料解析失敗:", e); }
+                    }
+
+                    // 3. 【ERP 物料庫存】展開：歷史進貨 LOG + 領料 LOG + 異常通報日誌
+                    if (currentSysName === 'ERP') {
+                        const matId = row['物料編號'];
+                        
+                        let rRows = currentRestocks.filter(l => l.matId === matId).map(l => 
+                            `<tr class="border-b"><td class="p-1.5 font-mono">${formatToLocalTime(l.time)}</td><td class="p-1.5 font-bold text-green-600">+${l.qty}</td><td class="p-1.5">$${parseFloat(l.amount || 0).toLocaleString()}</td><td class="p-1.5 text-gray-500">${l.supplier || ''}</td><td class="p-1.5 font-mono text-gray-400">${l.vendorShipId || ''}</td></tr>`
+                        ).join('');
+                        
+                        let dRows = currentDeductLogs.filter(l => l.matId === matId).map(l => 
+                            `<tr class="border-b"><td class="p-1.5 font-mono">${formatToLocalTime(l.time)}</td><td class="p-1.5 font-bold text-red-500">-${l.qty}</td><td class="p-1.5 font-bold text-indigo-600">${l.orderId}</td></tr>`
+                        ).join('');
+
+                        let aRows = currentAnomalies.filter(l => l.matId === matId).map(l => 
+                            `<tr class="border-b text-red-600"><td class="p-1.5 font-mono">${formatToLocalTime(l.time)}</td><td class="p-1.5 font-bold">${l.qty}</td><td class="p-1.5">${l.reason}</td><td class="p-1.5 text-gray-500">${l.supplier}</td></tr>`
+                        ).join('');
+
+                        detailsHTML += `
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-1 text-xs">
+                                <div class="bg-white p-3 rounded-lg border shadow-xs">
+                                    <span class="font-bold text-moSide block mb-1.5">📈 過去歷史進貨紀錄 (LOG)</span>
+                                    <table class="w-full text-left border-collapse">
+                                        <thead><tr class="bg-gray-100 font-bold text-gray-500"><th class="p-1.5">時間</th><th class="p-1.5">進貨量</th><th class="p-1.5">總金額</th><th class="p-1.5">供應商</th><th class="p-1.5">廠商單號</th></tr></thead>
+                                        <tbody>${rRows || '<tr><td colspan="5" class="p-2 text-center text-gray-400 italic">暫無進貨紀錄</td></tr>'}</tbody>
+                                    </table>
+                                </div>
+                                <div class="bg-white p-3 rounded-lg border shadow-xs">
+                                    <span class="font-bold text-moSide block mb-1.5">📉 過去生產領料紀錄 (LOG)</span>
+                                    <table class="w-full text-left border-collapse">
+                                        <thead><tr class="bg-gray-100 font-bold text-gray-500"><th class="p-1.5">時間</th><th class="p-1.5">領用量</th><th class="p-1.5">關聯訂單</th></tr></thead>
+                                        <tbody>${dRows || '<tr><td colspan="3" class="p-2 text-center text-gray-400 italic">暫無領用紀錄</td></tr>'}</tbody>
+                                    </table>
+                                </div>
+                                <div class="bg-white p-3 rounded-lg border shadow-xs lg:col-span-2">
+                                    <span class="font-bold text-red-700 block mb-1.5">⚠️ 材料進貨異常通報紀錄</span>
+                                    <table class="w-full text-left border-collapse">
+                                        <thead><tr class="bg-red-50 font-bold text-red-700"><th class="p-1.5">通報時間</th><th class="p-1.5">異常數量</th><th class="p-1.5">異常說明 / 原因</th><th class="p-1.5">來源廠商</th></tr></thead>
+                                        <tbody>${aRows || '<tr><td colspan="4" class="p-2 text-center text-gray-400 italic">常態優良，無異常通報紀錄</td></tr>'}</tbody>
+                                    </table>
+                                </div>
+                            </div>`;
+                    }
+
+                    // 4. 【EQS 設備狀態】展開：歷年稼動維修與掛修維護明細
+                    if (currentSysName === 'EQS') {
+                        const macId = row['工序編號'] || row['設備編號'];
+                        let eqRows = currentEqsLogs.filter(l => l.mac === macId).map(l => 
+                            `<tr class="border-b">
+                                <td class="p-1.5 font-mono">${formatToLocalTime(l.time)}</td>
+                                <td class="p-1.5"><span class="status-badge ${l.state.includes('修')?'status-red':'status-blue'}">${l.state}</span></td>
+                                <td class="p-1.5 text-gray-700 font-medium">${l.reason || '無'}</td>
+                                <td class="p-1.5 text-gray-400 font-bold">${l.op || ''}</td>
+                             </tr>`
+                        ).join('');
+
+                        detailsHTML += `
+                            <div class="bg-white p-3 rounded-lg border shadow-sm text-xs mt-1">
+                                <span class="font-bold text-moSide block mb-1.5">🛠️ 機台運作狀態變更與保養維修歷史日誌 (LOG)</span>
+                                <table class="w-full text-left border-collapse">
+                                    <thead><tr class="bg-gray-100 font-bold text-gray-500"><th class="p-1.5 w-36">紀錄時間</th><th class="p-1.5 w-24">變更狀態</th><th class="p-1.5">工程處置說明 / 報修原因</th><th class="p-1.5 w-24">操作人</th></tr></thead>
+                                    <tbody>${eqRows || '<tr><td colspan="4" class="p-2 text-center text-gray-400 italic">本設備常態健康，暫無狀態變更紀錄</td></tr>'}</tbody>
+                                </table>
+                            </div>`;
+                    }
+
+                    // 5. 【CRM 客戶資料】展開：追蹤該客戶過去在我司的所有歷史訂單
+                    if (currentSysName === 'CRM') {
+                        const custName = row['客戶名稱'];
+                        let cRows = currentAllWos.filter(o => o['客戶名稱'] === custName || (systemCache['訂單管理']?.data || []).find(x => x['訂單編號'] === o['關聯訂單'] && x['客戶名稱'] === custName)).map(o => 
+                            `<tr class="border-b">
+                                <td class="p-1.5 font-mono font-bold">${o['工單編號'] || '草稿'}</td>
+                                <td class="p-1.5 font-bold text-gray-800">${o['產品名稱']}</td>
+                                <td class="p-1.5">${parseFloat(o['產出量'] || 0).toLocaleString()} 件</td>
+                                <td class="p-1.5 text-right font-bold text-indigo-600">${o['作業機台'] || ''}</td>
+                                <td class="p-1.5 text-center"><span class="status-badge bg-gray-100 text-gray-700">${o['工單狀態'] || '結案'}</span></td>
+                             </tr>`
+                        ).join('');
+
+                        detailsHTML += `
+                            <div class="bg-white p-3 rounded-lg border shadow-sm text-xs mt-1">
+                                <span class="font-bold text-indigo-900 block mb-1.5">📋 該客戶歷史往來交易與投產訂單明細</span>
+                                <table class="w-full text-left border-collapse">
+                                    <thead><tr class="bg-indigo-50/50 font-bold text-indigo-900"><th class="p-1.5 w-28">工單/訂單號</th><th class="p-1.5">訂購產品項目</th><th class="p-1.5 w-24">完工產出量</th><th class="p-1.5 text-right w-32">生產附載機台</th><th class="p-1.5 text-center w-24">單據狀態</th></tr></thead>
+                                    <tbody>${cRows || '<tr><td colspan="5" class="p-2 text-center text-gray-400 italic">本年度暫無新投產訂單紀錄</td></tr>'}</tbody>
+                                </table>
+                            </div>`;
+                    }
+
+                    // 6. 【SUP 供應商資料】展開：追蹤向該供應商採購進貨的歷史明細
+                    if (currentSysName === 'SUP') {
+                        const supName = row['供應商名稱'];
+                        let sRows = currentRestocks.filter(l => l.supplier === supName).map(l => {
+                            let matObj = (currentDropdowns['物料編號'] || []).find(m => m.id === l.matId);
+                            return `<tr class="border-b">
+                                <td class="p-1.5 font-mono">${formatToLocalTime(l.time)}</td>
+                                <td class="p-1.5 font-mono text-gray-500">${l.matId}</td>
+                                <td class="p-1.5 font-bold">${matObj ? matObj.name.split('|').pop().trim() : '原材料'}</td>
+                                <td class="p-1.5 text-center font-bold text-green-600">+${l.qty}</td>
+                                <td class="p-1.5 text-right font-bold">$${parseFloat(l.amount || 0).toLocaleString()}</td>
+                             </tr>`;
+                        }).join('');
+
+                        detailsHTML += `
+                            <div class="bg-white p-3 rounded-lg border shadow-sm text-xs mt-1">
+                                <span class="font-bold text-moSide block mb-1.5">🛒 對該廠商歷史進貨與採購點收明細日誌</span>
+                                <table class="w-full text-left border-collapse">
+                                    <thead><tr class="bg-gray-100 font-bold text-gray-500"><th class="p-1.5 w-36">進貨時間</th><th class="p-1.5 w-24">物料編號</th><th class="p-1.5">物料規格品名</th><th class="p-1.5 text-center w-24">進貨數量</th><th class="p-1.5 text-right w-28">進貨總金額</th></tr></thead>
+                                    <tbody>${sRows || '<tr><td colspan="5" class="p-2 text-center text-gray-400 italic">該區間內無點收進貨歷史紀錄</td></tr>'}</tbody>
+                                </table>
+                            </div>`;
+                    }
+
+                    // 4個卡槽變數定義初始值宣告，徹底解鎖崩潰
+                    let btnSlot1 = ''; let btnSlot2 = ''; let btnSlot3 = ''; let btnSlot4 = '';
+                    
                     if (hasOpAuth) {
                         if (currentSysName === 'OMS') {
                             const status = row['訂單狀態']; const oId = row['訂單編號'];
-                            let htmlStr = `<button onclick="cloneOrder(${index})" class="w-20 bg-gray-800 text-white py-1 rounded font-bold">📋 複製</button>`;
-                            if (status === '估算中') { htmlStr += `<button onclick="openMatModal('${oId}', 'estimate')" class="w-20 bg-indigo-500 text-white py-1 rounded font-bold shadow animate-pulse">📐 配料估價</button>`; } 
-                            else if (status === '待扣料') { htmlStr += `<button onclick="openMatModal('${oId}', 'normal')" class="w-20 bg-yellow-500 text-white py-1 rounded font-bold shadow animate-pulse">📦 執行扣料</button>`; }
-                            else if (status === '待生產') { htmlStr += `<button onclick="startProduction('${oId}')" class="w-20 bg-green-600 text-white py-1 rounded font-bold shadow animate-pulse">🚀 開始生產</button>`; }
+                            let htmlStr = '';
+                            
+                            // 1. 常態顯示「📋 複製」
+                            htmlStr += `<button onclick="cloneOrder(${index})" class="w-16 bg-gray-800 text-white py-1 rounded font-bold shadow-sm">📋 複製</button>`;
+                            
+                            // 2. 根據製程進度，動態派發純廠務的推進按鈕
+                            if (status === '估算中') { 
+                                htmlStr += `<button onclick="openMatModal('${oId}', 'estimate')" class="w-20 bg-indigo-500 text-white py-1 rounded font-bold shadow animate-pulse">📐 帶入配料</button>`; 
+                            } 
+                            else if (status === '待規劃') { 
+                                htmlStr += `<button onclick="openPlanModal('${oId}')" class="w-20 bg-purple-600 text-white py-1 rounded font-bold shadow animate-pulse">📋 工序規劃</button>`; 
+                            } 
+                            else if (status === '待扣料') { 
+                                htmlStr += `<button onclick="openPlanModal('${oId}')" class="w-20 bg-purple-600 text-white py-1 rounded font-bold shadow">📋 重新規劃</button>`;
+                                htmlStr += `<button onclick="openMatModal('${oId}', 'normal')" class="w-20 bg-yellow-500 text-white py-1 rounded font-bold shadow animate-pulse">📦 執行扣料</button>`; 
+                            } 
+                            else if (status === '原料不足') { 
+                                htmlStr += `<button onclick="openReplenishModal('', '', '')" class="w-20 bg-red-100 text-red-700 border border-red-300 py-1 rounded font-bold shadow">🛒 補貨</button>`;
+                                htmlStr += `<button onclick="openMatModal('${oId}', 'normal')" class="w-20 bg-yellow-500 text-white py-1 rounded font-bold shadow animate-pulse">📦 再次扣料</button>`; 
+                            } 
+                            else if (status === '待生產') { 
+                                htmlStr += `<button onclick="generateWoPDF('${oId}')" class="w-16 bg-gray-600 text-white py-1 rounded font-bold shadow">🖨️ 印工單</button>`;
+                                htmlStr += `<button onclick="revertOmsDeduction('${oId}')" class="w-16 bg-red-400 text-white py-1 rounded font-bold shadow">🔙 退料</button>`; 
+                                htmlStr += `<button onclick="startProduction('${oId}')" class="w-20 bg-green-600 text-white py-1 rounded font-bold shadow animate-pulse">🚀 開始生產</button>`; 
+                            } 
+                            else if (status === '生產中') {
+                                htmlStr += `<button onclick="generateWoPDF('${oId}')" class="w-16 bg-gray-600 text-white py-1 rounded font-bold shadow">🖨️ 印工單</button>`;
+                                htmlStr += `<button onclick="openMatModal('${oId}', 'addon')" class="w-20 bg-orange-500 text-white py-1 rounded hover:bg-orange-600 font-bold shadow">➕ 追加耗損</button>`;
+                            } 
+                            else if (status === '製作完成') { 
+                                htmlStr += `<button onclick="generateWoPDF('${oId}')" class="w-16 bg-gray-600 text-white py-1 rounded font-bold shadow">🖨️ 印工單</button>`;
+                                htmlStr += `<button onclick="printDeliveryNote(this, '${oId}')" class="w-16 bg-blue-600 text-white py-1 rounded font-bold shadow">📄 送貨單</button>`;
+                                htmlStr += `<button onclick="openShippingModal('', '${oId}')" class="w-20 bg-emerald-600 text-white py-1 rounded font-bold shadow animate-pulse">🚚 登記出貨</button>`;
+                            } 
+                            else if (status === '已出貨待OMS結案' || status === '已出貨') { 
+                                htmlStr += `<button onclick="generateWoPDF('${oId}')" class="w-16 bg-gray-600 text-white py-1 rounded font-bold shadow">🖨️ 印工單</button>`;
+                                htmlStr += `<button onclick="printDeliveryNote(this, '${oId}')" class="w-16 bg-blue-600 text-white py-1 rounded font-bold shadow">📄 送貨單</button>`; 
+                                htmlStr += `<button onclick="closeOrder('${oId}')" class="w-16 bg-red-700 text-white py-1 rounded font-bold shadow animate-pulse">🔒 結案</button>`;
+                            } 
+                            else if (status === '已停工') {
+                                htmlStr += `<button onclick="generateWoPDF('${oId}')" class="w-16 bg-gray-600 text-white py-1 rounded font-bold shadow">🖨️ 印工單</button>`;
+                                htmlStr += `<button onclick="closeOrder('${oId}')" class="w-16 bg-red-700 text-white py-1 rounded font-bold shadow">🔒 結案</button>`;
+                            }
+                            
                             btnSlot1 = htmlStr;
                         } else if (currentSysName === 'ERP') {
-                            btnSlot4 = `<button onclick="openReplenishModal('${row['物料編號']}', '${encodeURIComponent(row['品名'] + ' ' + row['規格']||'')}', '${row['供應商']||''}')" class="w-24 bg-yellow-400 text-yellow-900 py-1 rounded hover:bg-yellow-500 font-bold">🛒 補貨申請</button>`;
+                            btnSlot4 = `<button onclick="openReplenishModal('${row['物料編號']}', '${encodeURIComponent(row['品名'] + ' ' + row['規格']||'')}', '${row['供應商']||''}')" class="w-24 bg-yellow-400 text-yellow-900 py-1 rounded hover:bg-yellow-500 font-bold shadow-sm">🛒 補貨申請</button>`; 
                         }
                     }
 
-                    const totalColSpan = displayHeaders.length + 1;
-                    tableHTML += `<tr id="btn_row_${index}" class="hidden bg-gray-50 border-b border-gray-200"><td colspan="${totalColSpan}" class="p-2 pl-12"><div class="flex flex-wrap items-center gap-4 text-xs">`;
-                    tableHTML += btnSlot1 + btnSlot4;
-                    if (hasEditAuth) { tableHTML += `<button onclick="openModal(${index})" class="w-20 border border-moSide text-moSide py-1 rounded font-bold ml-auto bg-white hover:bg-gray-100">📝 編輯</button>`; }
+                    // 宣告動態總跨欄數
+                    const currentTotalColSpan = displayHeaders.length + 1;
+
+                    // 建立可收合的功能鈕控制列主容器
+                    tableHTML += `<tr id="btn_row_${index}" class="hidden bg-gray-50 border-b border-gray-200"><td colspan="${currentTotalColSpan}" class="p-2 pl-12"><div class="flex flex-wrap items-center gap-4 text-xs">`;
+                    
+                    // 🔥 【全系統解放】強制讓所有系統的每一列都配備「查看 ▼」按鈕 🔥
+                    tableHTML += `<button id="btn_detail_${index}" onclick="toggleDetails('detail_${index}')" class="w-20 bg-gray-200 border border-gray-300 text-gray-700 py-1 rounded font-bold hover:bg-gray-300 transition-colors shadow-sm">查看 ▼</button>`;
+
+                    // 精確分流按鈕卡槽，徹底移除重影
+                    if (currentSysName === 'OMS') {
+                        tableHTML += `${btnSlot1}`;
+                    } else {
+                        tableHTML += `${btnSlot1}${btnSlot2}${btnSlot3}${btnSlot4}`;
+                    }
+                    
+                    if (hasEditAuth) { 
+                        tableHTML += `<button onclick="openModal(${index})" class="w-20 border border-moSide text-moSide py-1 rounded font-bold ml-auto bg-white hover:bg-gray-100 transition-colors">📝 編輯</button>`; 
+                    }
                     tableHTML += `</div></td></tr>`;
+
+                    // 【核心補丁：安全防空提示機制】這段就是你問的，要放在展開日誌最後面
+                    let finalDetailsContent = detailsHTML.trim() !== '' ? detailsHTML : '<span class="text-gray-400 italic">💡 系統提示：目前該筆資料尚無相關的歷史日誌、備註或明細紀錄。</span>';
+
+                    // 正確掛回隱藏 Tr 展開區塊至 DOM 上
+                    tableHTML += `<tr id="detail_${index}" class="hidden bg-indigo-50/60"><td colspan="${currentTotalColSpan}" class="p-5 text-sm border-l-4 border-indigo-400 shadow-inner">${finalDetailsContent}</td></tr>`;
                 });
             }
             tableHTML += `</tbody></table></div>`;
             container.innerHTML = tableHTML;
+        }
+
+        // 【✨ 核心追加外掛：全相容型跨版本展開控制引擎】
+        // 確保新版功能鈕呼叫的 toggleDetails 與您的舊底層邏輯能 100% 互通，免除 JS 找不到函式而卡死的問題！
+        if (typeof window.toggleDetails !== 'function') {
+            window.toggleDetails = function(detailId) {
+                const targetRow = document.getElementById(detailId);
+                if (!targetRow) return;
+                
+                targetRow.classList.toggle('hidden');
+                const idx = detailId.replace('detail_', '');
+                const btn = document.getElementById('btn_detail_' + idx);
+                
+                if (btn) {
+                    if (!targetRow.classList.contains('hidden')) {
+                        btn.innerText = '收合 ▲';
+                        btn.className = "w-20 bg-gray-300 border border-gray-400 text-gray-800 py-1 rounded font-bold shadow-inner transition-colors";
+                    } else {
+                        btn.innerText = '查看 ▼';
+                        btn.className = "w-20 bg-gray-200 border border-gray-300 text-gray-700 py-1 rounded font-bold hover:bg-gray-300 transition-colors";
+                    }
+                }
+            };
         }
 
         window.renderHandoverCardsMarkup = function(list) {
@@ -1961,43 +2221,51 @@ Make sure the summary is action-oriented, encouraging, and clear. Format elegant
         };
 
         function openModal(rowIndex = -1) {
-            editingRowIndex = rowIndex; document.getElementById('modalTitle').innerText = rowIndex !== -1 ? `編輯資料` : `新增資料`;
+            editingRowIndex = rowIndex; 
+            document.getElementById('modalTitle').innerText = rowIndex !== -1 ? `編輯資料` : `新增資料`;
             document.getElementById('deleteBtn').classList.toggle('hidden', rowIndex === -1 || currentSysName === 'SYS');
-            const formGrid = document.getElementById('formGrid'); formGrid.innerHTML = '';
+            
+            const formGrid = document.getElementById('formGrid'); 
+            formGrid.innerHTML = '';
             const rowData = rowIndex !== -1 ? currentTableData[rowIndex] : {};
+
+            // 【✨ 跨系統對接新功能】如果是「OMS新增訂單」，在最前方提供「智慧牽引估價單」功能，省去手動輸入
+            if (currentSysName === 'OMS' && rowIndex === -1) {
+                formGrid.innerHTML += `
+                    <div class="col-span-1 md:col-span-2 p-3 bg-indigo-50 border border-indigo-200 rounded-xl mb-2 flex items-end gap-3 shadow-sm">
+                        <div class="flex-1">
+                            <label class="block text-xs font-bold text-indigo-900 mb-1">💡 跨系統對接：輸入雲端初算估價單號 (例: T2607001)</label>
+                            <input type="text" id="smart_pull_estimate_no" class="w-full p-2 border border-indigo-300 rounded-lg text-sm bg-white uppercase font-bold tracking-wider" placeholder="請輸入 T 開頭的估價單號...">
+                        </div>
+                        <button type="button" onclick="pullEstimateDataToOmsForm()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-lg text-sm h-[38px] transition-colors whitespace-nowrap shadow-sm">⚡ 一鍵帶入配料</button>
+                    </div>
+                `;
+            }
 
             currentHeaders.forEach(header => {
                 if (header === 'ID') { formGrid.innerHTML += `<input type="hidden" id="input_${header}" value="${rowData[header] || ''}">`; return; }
-                if (currentSysName === 'OMS' && rowIndex === -1) {
-                    const hideOnAdd = ['單價', '數量', '訂購數量', '總金額', '運費報價', '運費備註', '運費成本', '預估成本', '產出量', '配料明細', '預估良率', '工序規劃紀錄', '示意圖', '貨運單號', '出貨時間'];
-                    if (hideOnAdd.includes(header)) return;
-                }
-                if (header === '配料明細' || header === '工序規劃紀錄') return;
+                if (header === '最近一次登入時間' && currentSysName === 'SYS' && rowIndex === -1) return; 
+
+                // 【精準改名同步】同步將瘦身移除的舊商務金額與產出欄位過濾
+                const discardedOmsFields = ['單價', '總金額', '運費報價', '運費備註', '運費成本', '預估成本', '產出量', '配料明細', '工序規劃紀錄', '示意圖', '貨運單號', '出貨時間'];
+                if (currentSysName === 'OMS' && discardedOmsFields.includes(header)) return;
 
                 const val = rowData[header] || '';
                 let fieldHTML = `<div><label class="block text-sm font-bold mb-1">${header}</label>`;
                 
-                let datalistHtml = '';
-                let hasListAttr = '';
-                let dlId = `dl_form_${header}_${Date.now()}`;
-
+                let datalistHtml = ''; let hasListAttr = ''; let dlId = `dl_form_${header}_${Date.now()}`;
                 if (currentDropdowns[header]) {
                     hasListAttr = `list="${dlId}"`;
                     let opts = '';
                     if (Array.isArray(currentDropdowns[header])) {
-                        currentDropdowns[header].forEach(item => {
-                            let optVal = typeof item === 'object' ? item.name : item;
-                            opts += `<option value="${optVal}"></option>`;
-                        });
+                        currentDropdowns[header].forEach(item => { opts += `<option value="${typeof item === 'object' ? item.name : item}"></option>`; });
                     }
                     datalistHtml = `<datalist id="${dlId}">${opts}</datalist>`;
                 }
 
-                // 判斷特定編號欄位是否需要鎖定為唯讀
+                // 判斷編號欄位是否需要鎖定為唯讀
                 const autoGenHeaders = ['訂單編號', '物料編號', '供應商編號', '客戶編號', '設備編號'];
-                let isReadOnlyAttr = '';
-                let placeholderStr = '';
-                let bgClassStr = 'w-full p-2 border rounded';
+                let isReadOnlyAttr = ''; let placeholderStr = ''; let bgClassStr = 'w-full p-2 border rounded';
 
                 if (autoGenHeaders.includes(header)) {
                     isReadOnlyAttr = 'readonly';
@@ -2005,15 +2273,37 @@ Make sure the summary is action-oriented, encouraging, and clear. Format elegant
                     placeholderStr = rowIndex === -1 ? 'placeholder="[儲存後系統自動生成]"' : '';
                 }
 
-                if (header === '是否在職' && currentSysName === 'SYS') {
-                    fieldHTML += `<select id="input_${header}" class="w-full p-2 border rounded"><option value="Tick" ${val!=='否'?'selected':''}>是</option><option value="否" ${val==='否'?'selected':''}>否</option></select>`;
+                // 【精準改名同步】關鍵欄位新增時全面唯讀鎖定，禁止手動亂輸入
+                const omsAutoLockFields = ['關聯估價單號', '訂單狀態', '產品名稱', '客戶名稱', '完成尺寸', '交貨量', '投產量', '預估良率'];
+                
+                if (currentSysName === 'OMS' && rowIndex === -1 && omsAutoLockFields.includes(header)) {
+                    let defaultLockVal = val;
+                    if (header === '訂單狀態') defaultLockVal = '估算中';
+                    fieldHTML += `<input type="text" id="input_${header}" value="${defaultLockVal}" readonly class="w-full p-2 border bg-gray-100 text-gray-500 font-bold cursor-not-allowed" placeholder="[點擊上方一鍵帶入自動填入鎖定]">`;
+                }
+                
+                // 【✨ 核心修復點 2：訂單日期預設填入今日，並綁定日期選擇器】
+                else if (header === '訂單日期' && currentSysName === 'OMS') {
+                    let todayDate = val;
+                    if (rowIndex === -1) {
+                        todayDate = new Date(new Date().getTime() + 8*60*60*1000).toISOString().split('T')[0]; // 自動推算台灣今日西元日期
+                    } else if (val && val.includes(' ')) {
+                        todayDate = val.split(' ')[0]; // 編輯時若是舊有帶有時間的字串，乾淨切出日期
+                    }
+                    fieldHTML += `<input type="date" id="input_${header}" value="${todayDate}" class="w-full p-2 border rounded font-mono font-bold">`;
+                }
+
+                // 其餘常規系統欄位保持不變
+                else if (header === '是否在職' && currentSysName === 'SYS') {
+                    fieldHTML += `<select id="input_${header}" class="w-full p-2 border rounded"><option value="是" ${val!=='否'?'selected':''}>是</option><option value="否" ${val==='否'?'selected':''}>否</option></select>`;
+                } else if (header === '顯示財務金額' && currentSysName === 'SYS') {
+                    fieldHTML += `<select id="input_${header}" class="w-full p-2 border rounded font-bold"><option value="是" ${val!=='否'?'selected':''}>是</option><option value="否" ${val==='否'?'selected':''}>否</option></select>`;
                 } else if (header === '急件') {
                     fieldHTML += `<select id="input_${header}" class="w-full p-2 border rounded"><option value="否" ${val==='否'?'selected':''}>否</option><option value="是" ${val==='是'?'selected':''}>是</option></select>`;
                 } else if (header === '員工編號' && rowIndex === -1 && currentSysName === 'SYS') {
                     fieldHTML += `<input type="text" id="input_${header}" readonly class="w-full p-2 border bg-gray-100 text-gray-400 cursor-not-allowed" placeholder="[系統將自動依民國年派發]">`;
                 } else if (header === '供應商' && currentSysName === 'ERP') {
                     let supOpts = (currentDropdowns['供應商'] || []).map(s => `<option value="${s}"></option>`).join('');
-                    // 如果是編輯狀態，供應商欄位也一併鎖定唯讀（避免自動產生的物料編號與供應商不符）
                     let erpSupReadOnly = rowIndex !== -1 ? 'readonly class="w-full p-2 border bg-gray-100 text-gray-500 cursor-not-allowed"' : 'class="w-full p-2 border rounded"';
                     fieldHTML += `<input type="text" id="input_${header}" list="dl_form_supplier_id" ${erpSupReadOnly} value="${val}" oninput="generateErpMatId(this.value)" onchange="generateErpMatId(this.value)"><datalist id="dl_form_supplier_id">${supOpts}</datalist>`;
                 } else {
@@ -2022,6 +2312,38 @@ Make sure the summary is action-oriented, encouraging, and clear. Format elegant
                 formGrid.innerHTML += fieldHTML + `</div>`;
             });
             document.getElementById('formModal').classList.remove('hidden');
+        }
+
+        // 【✨ 追加：一鍵全選連動勾起功能】
+        function selectAllPermissions(headerName) {
+            const checkboxes = document.querySelectorAll(`.sys-perm-cb-${headerName}`);
+            checkboxes.forEach(cb => cb.checked = true);
+            syncCheckboxToPermissionValue(headerName); // 強制刷新底層字串
+        }
+
+        // 【✨ 追加：財務金額開放之最高隱私警告防呆】
+        function handleFinancePrivacyAlert(value) {
+            if (value === '是') {
+                showSmartChoice(
+                    "⚠️ 商業機密安全警告", 
+                    "【最高權限控管提示】\n您正將此帳號設定為「開放財務金額」！\n\n這將允許該同仁直接查閱：\n1. 廠內產品毛利與估算總利潤\n2. ERP 庫存物料內價成本\n3. 區間財務損益報表 (P&L)\n\n請務必確認此同仁具備財務查閱職能，以防公司利潤機密外洩。",
+                    [{ text: "主管確認核准", class: "px-4 py-2 bg-red-600 text-white rounded-lg text-xs font-bold shadow hover:bg-red-700 transition" }]
+                );
+            }
+        }
+
+        function syncCheckboxToPermissionValue(headerName) {
+            const checkboxes = document.querySelectorAll(`.sys-perm-cb-${headerName}:checked`);
+            const selectedValues = Array.from(checkboxes).map(cb => cb.value);
+            document.getElementById(`input_${headerName}`).value = selectedValues.join(',');
+        }
+
+        // 【✨ 追加：同步 Checkbox 勾選狀態至 Supabase 欄位格式的輔助函式】
+        function syncCheckboxToPermissionValue(headerName) {
+            const checkboxes = document.querySelectorAll(`.sys-perm-cb-${headerName}:checked`);
+            const selectedValues = Array.from(checkboxes).map(cb => cb.value);
+            // 用逗號相連成字串（例如: "OMS,MES,ERP"），完美對接您舊有的權限儲存邏輯
+            document.getElementById(`input_${headerName}`).value = selectedValues.join(',');
         }
 
         function openMatModal(orderId, actionType) {
@@ -2077,80 +2399,163 @@ Make sure the summary is action-oriented, encouraging, and clear. Format elegant
                 else { document.querySelectorAll('#estTopBusinessGroup input, .mat-row input, .mat-row button').forEach(el => { el.disabled = false; }); }
                 calcMatCost();
             }, 100);
+            // 【✨ 舊精華精密復活點】開啟彈窗時，自動解析並還原 Supabase 中已存好的示意圖縮圖
+            window.estImagesData = [];
+            if (rowData['示意圖'] && String(rowData['示意圖']).trim() !== '') {
+                try {
+                    let imgs = typeof rowData['示意圖'] === 'string' ? JSON.parse(rowData['示意圖']) : rowData['示意圖'];
+                    if (Array.isArray(imgs)) {
+                        window.estImagesData = [...imgs];
+                    }
+                } catch(e){ console.error("彈窗還原圖片失敗:", e); }
+            }
+            // 執行渲染，若是正常/唯讀扣料狀態（isNormal）則將刪除紐鎖定隱藏
+            renderEstImagesPreview(isNormal);
             document.getElementById('matModal').classList.remove('hidden');
         }
 
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-        function openHandoverModal() {
-            // 清空先前的表單暫存與附圖預覽
-            document.getElementById('hoContent').value = '';
-            hoImageBase64 = "";
-            document.getElementById('hoImagePreview').src = '';
-            document.getElementById('hoImagePreview').classList.add('hidden');
+        // [追加] 全員勾選狀態連動控制開關
+window.toggleHandoverAssignAll = function(el) {
+    const gridContainer = document.getElementById('hoAssigneeGridContainer');
+    if (el.checked) {
+        gridContainer.classList.add('hidden');
+    } else {
+        gridContainer.classList.remove('hidden');
+    }
+};
+
+// [升級] 100% 關聯 B 程式核心並追加指定複存多選面板
+function openHandoverModal() {
+    document.getElementById('hoContent').value = '';
+    hoImageBase64 = "";
+    if(document.getElementById('hoImage')) document.getElementById('hoImage').value = '';
+    document.getElementById('hoImagePreview').src = '';
+    document.getElementById('hoImagePreview').classList.add('hidden');
+    
+    const currentOpUser = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
+    document.getElementById('hoCreator').value = currentOpUser || '系統人員';
+    
+    // 初始化設定預設為全員廣播
+    const assignAllCb = document.getElementById('hoAssignAll');
+    if (assignAllCb) assignAllCb.checked = true;
+    
+    const gridContainer = document.getElementById('hoAssigneeGridContainer');
+    if (gridContainer) {
+        gridContainer.classList.add('hidden');
+        let cbHtml = '';
+        if (window.userListCache && window.userListCache.length > 0) {
+            window.userListCache.forEach((u, idx) => {
+                if (u && !u.startsWith('(離)')) {
+                    cbHtml += `
+                        <label class="flex items-center gap-1.5 p-1 hover:bg-white rounded cursor-pointer select-none">
+                            <input type="checkbox" value="${u}" class="ho-individual-assignee-cb w-3.5 h-3.5 text-indigo-600 rounded">
+                            <span class="text-xs text-gray-700 font-medium">${u}</span>
+                        </label>`;
+                }
+            });
+        }
+        gridContainer.innerHTML = cbHtml || '<span class="text-gray-400 col-span-3">暫無其他可用在職同仁</span>';
+    }
+    
+    const toggleCheckbox = document.getElementById('hoModeToggle');
+    if (toggleCheckbox) {
+        toggleCheckbox.checked = false;
+        handleModeToggleChange();
+    }
+    
+    if(document.getElementById('hoSkipLineNotify')) {
+        document.getElementById('hoSkipLineNotify').checked = false;
+    }
+    
+    buildTargetTimeOptions(); 
+    document.getElementById('handoverModal').classList.remove('hidden');
+}
+        async function submitHandover(btn) {
+    const content = document.getElementById('hoContent').value.trim();
+    const priority = document.getElementById('hoPriority').value;
+    const creator = document.getElementById('hoCreator').value;
+    const skipLine = document.getElementById('hoSkipLineNotify') ? document.getElementById('hoSkipLineNotify').checked : false;
+    
+    if (!content) return alert("請輸入交接具體內容事項！");
+    
+    // 智慧型搜集最終指名目標陣列
+    let targetAssignees = [];
+    const isAssignAll = document.getElementById('hoAssignAll').checked;
+    
+    if (isAssignAll) {
+        targetAssignees.push("全員");
+    } else {
+        const checkedBoxes = document.querySelectorAll('.ho-individual-assignee-cb:checked');
+        targetAssignees = Array.from(checkedBoxes).map(cb => cb.value);
+        if (targetAssignees.length === 0) return alert("請至少勾選指名一位接收同仁，或切換為全員廣播！");
+    }
+    
+    let dbContent = "";
+    let lineContent = "";
+    const isTrackingMode = document.getElementById('hoModeToggle').checked;
+    
+    if (!isTrackingMode) {
+        const targetDate = document.getElementById('hoTargetDate').value;
+        const targetTime = document.getElementById('hoTargetTime').value;
+        const displayTime = `${targetDate} ${targetTime}`;
+        const gCalDate = displayTime.replace(/[- :]/g, '').substring(0, 12) + "00"; 
+        const gCalLink = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('仕罡印刷-交接待辦項目')}&dates=${gCalDate}/${gCalDate}&details=${encodeURIComponent(content)}`;
+        
+        dbContent = `⏰【預計處理時間：${displayTime}】\n----------------------------------------\n${content}`;
+        lineContent = `${dbContent}\n\n📅點擊加入行事曆：${gCalLink}`;
+    } else {
+        dbContent = `📌【追蹤工作單：日常交辦與跟進】\n----------------------------------------\n${content}`;
+        lineContent = dbContent;
+    }
+    
+    btn.disabled = true;
+    btn.innerText = "傳送中...";
+    
+    try {
+        let d = new Date();
+        let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString();
+        
+        // 遍歷所有選取的目標，執行批次寫入與推播
+        for (let target of targetAssignees) {
+            let { error } = await sbClient.from('handovers').insert([{
+                content: dbContent, priority: priority, creator: creator, assignee: target, image_url: hoImageBase64 || "", created_at: ts, status: '進行中'
+            }]);
+            if (error) throw error;
             
-            // 自動帶入當前發布人姓名
-            const currentOpUser = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
-            document.getElementById('hoCreator').value = currentOpUser || '系統人員';
+            // 寫入變更記錄
+            await sbClient.from('handovers_log').insert([{ created_at: ts, action: '新增', content: `發布給[${target}]: ${content.substring(0, 20)}...`, operator_name: creator }]);
             
-            // 動態綁定並載入指定接收人的下拉選單清單
-            const assigneeSelect = document.getElementById('hoAssignee');
-            if (assigneeSelect) {
-                let optionsHtml = '<option value="全員">📢 全員公告通知</option>';
-                if (window.userListCache && window.userListCache.length > 0) {
-                    window.userListCache.forEach(u => {
-                        if (u && !u.startsWith('(離)')) { // 過濾掉離職人員
-                            optionsHtml += `<option value="${u}">👤 ${u}</option>`;
+            // 執行 LINE 推播業務分流
+            if (!skipLine) {
+                if (target === "全員") {
+                    window.userListCache.forEach(targetEmployee => {
+                        if (targetEmployee && !targetEmployee.startsWith('(離)')) {
+                            fetch(GAS_LINE_API, {
+                                method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ action: "sendNotification", creator: creator, assignee: targetEmployee, priority: priority, content: lineContent })
+                            });
                         }
                     });
+                } else {
+                    fetch(GAS_LINE_API, {
+                        method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "sendNotification", creator: creator, assignee: target, priority: priority, content: lineContent })
+                    });
                 }
-                assigneeSelect.innerHTML = optionsHtml;
             }
-            
-            // 重置預設發布模式為指定時間
-            const toggleCheckbox = document.getElementById('hoModeToggle');
-            if (toggleCheckbox) {
-                toggleCheckbox.checked = false;
-                handleModeToggleChange();
-            }
-            
-            // 顯示工作交接彈窗
-            document.getElementById('handoverModal').classList.remove('hidden');
         }
-        async function submitHandover(btn) {
-            const content = document.getElementById('hoContent').value.trim();
-            const priority = document.getElementById('hoPriority').value;
-            const assignee = document.getElementById('hoAssignee').value;
-            const creator = document.getElementById('hoCreator').value;
-            const skipLine = document.getElementById('hoSkipLineNotify').checked;
-            
-            if (!content) return alert("請輸入交接具體內容事項！");
-            
-            let finalContent = content;
-            const isTrackingMode = document.getElementById('hoModeToggle').checked;
-            
-            if (!isTrackingMode) {
-                const targetDate = document.getElementById('hoTargetDate').value;
-                const targetTime = document.getElementById('hoTargetTime').value;
-                finalContent = `⏰【預計處理時間：${targetDate} ${targetTime}】\n----------------------------------------\n${content}`;
-            } else {
-                finalContent = `📌【追蹤工作單：日常交辦與跟進】\n----------------------------------------\n${content}`;
-            }
-            
-            btn.disabled = true;
-            btn.innerText = "發布中...";
-            
-            google.script.run.withSuccessHandler(res => {
-                showCustomAlert("發布成功", "工作交接單已成功同步發布至雲端看板！");
-                closeModal('handoverModal');
-                refreshSystem();
-                btn.disabled = false;
-                btn.innerText = "發布並 LINE 推播";
-            }).withFailureHandler(err => {
-                alert("發布失敗：" + err);
-                btn.disabled = false;
-                btn.innerText = "發布並 LINE 推播";
-            }).addHandover(finalContent, priority, assignee, hoImageBase64, creator);
-        }
+        
+        showCustomAlert("發布成功", `工作交接事項已成功指名指派給 [${targetAssignees.join(', ')}] 並完成同步！`);
+        closeModal('handoverModal');
+        refreshSystem();
+    } catch(e) {
+        alert("雲端發布管道中斷：" + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "發布並 LINE 推播";
+    }
+}
         function openImageModal(src) { document.getElementById('largeImageTarget').src = src; document.getElementById('viewImageModal').classList.remove('hidden'); }
         function compressImage(file, maxWidth, maxHeight, quality, callback) {
             let reader = new FileReader();
@@ -2179,13 +2584,55 @@ Make sure the summary is action-oriented, encouraging, and clear. Format elegant
             });
         }
 
+        // 【✨ 儲存鍵卡死徹底解鎖】重構創單儲存引擎，精準適配 [交貨量] 與 [投產量] 新架構，阻斷空欄位崩潰
         function submitForm(btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="btn-spinner"></span>儲存中...';
+
             let rowDataObj = {};
-            currentHeaders.forEach(h => { let el = document.getElementById(`input_${h}`); if(el) rowDataObj[h] = el.value; });
-            const op = document.getElementById('userNameDisplay').innerText;
+            
+            // 遍歷當前載入的表頭，安全抓取數值
+            currentHeaders.forEach(h => { 
+                let el = document.getElementById(`input_${h}`); 
+                if (el) {
+                    rowDataObj[h] = el.value; 
+                }
+            });
+
+            // 【核心防呆卡控】如果是 OMS 創單，強行將一鍵牽引的 [配料明細] 與 [示意圖] 打包掛載
+            if (currentSysName === 'OMS' && editingRowIndex === -1) {
+                if (window.tempPulledBomDetails) {
+                    rowDataObj['配料明細'] = JSON.stringify(window.tempPulledBomDetails);
+                }
+                if (window.tempPulledImages) {
+                    rowDataObj['示意圖'] = JSON.stringify(window.tempPulledImages);
+                }
+            }
+
+            const op = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
             const target = editingRowIndex !== -1 ? 'updateSheetData' : 'addSheetData';
             const args = editingRowIndex !== -1 ? [currentSheet, editingRowIndex, rowDataObj, op] : [currentSheet, rowDataObj, op];
-            google.script.run.withSuccessHandler(res => { closeModal('formModal'); refreshSystem(); })[target](...args);
+
+            // 呼叫 Google Script / Supabase 傳輸層
+            google.script.run.withSuccessHandler(res => { 
+                showCustomAlert("ℹ️ 系統提示", "資料已成功與雲端安全同步存檔！");
+                closeModal('formModal'); 
+                
+                // 創單存檔成功後，徹底清空全域牽引暫存暫存器
+                window.tempPulledBomDetails = null; 
+                window.tempPulledImages = null;
+                
+                // 🔥 【按鈕解鎖修復】成功後將按鈕狀態與文字徹底復原，避免下次開啟時卡死
+                btn.disabled = false;
+                btn.innerHTML = '儲存送出';
+                
+                refreshSystem(); 
+            }).withFailureHandler(err => {
+                alert("存檔傳輸發生隱藏異常：" + err);
+                // 失敗時原本就有做解鎖
+                btn.disabled = false;
+                btn.innerHTML = '儲存送出';
+            })[target](...args);
         }
 
         function deleteData(btn) {
@@ -2595,10 +3042,112 @@ Make sure the summary is action-oriented, encouraging, and clear. Format elegant
             let link = document.createElement("a"); link.href = URL.createObjectURL(blob);
             link.download = `${document.getElementById('rptTargetSheet').value}_營運數據報表.csv`; link.click();
         }
+        
 
         function generateMorningReport() {
+            // 顯示同步中讀取條
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+
             google.script.run.withSuccessHandler(res => {
-                showCustomAlert("早會報告通知", "早會報告數據已確實同步完成！");
+                document.getElementById('loadingIndicator').classList.add('hidden');
+                
+                // 1. 取得當前時間與人員
+                const todayStr = new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString().split('T')[0];
+                const currentOpUser = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
+                
+                // 2. 彙整目前的交接看板清單
+                let hoHtml = '';
+                if (currentHandovers && currentHandovers.length > 0) {
+                    currentHandovers.forEach(h => {
+                        if (h.status !== '已結案') {
+                            hoHtml += `
+                                <div style="margin-bottom: 8px; padding: 6px; border-left: 3px solid #66747A; background: #F9FAFB;">
+                                    <strong>[${h.priority}級優先] ${h.creator} ➔ ${h.assignee}:</strong> ${h.content.split('】').pop().replace(/^-+/, '')}
+                                </div>`;
+                        }
+                    });
+                } else { hoHtml = '<p style="color: #9CA3AF;">目前無在線交接事項</p>'; }
+
+                // 3. 彙整生產中/待生產的訂單
+                let ordHtml = '';
+                if (res.orders && res.orders.length > 0) {
+                    res.orders.forEach(o => {
+                        ordHtml += `<tr style="border-bottom: 1px solid #E5E7EB;"><td style="padding: 6px;">${o.id}</td><td style="padding: 6px;">${o.cust}</td><td style="padding: 6px;">${o.name}</td><td style="padding: 6px; font-weight: bold; color: #2563EB;">${o.status}</td></tr>`;
+                    });
+                } else { ordHtml = '<tr><td colspan="4" style="padding: 12px; text-align: center; color: #9CA3AF;">暫無運作中訂單</td></tr>'; }
+
+                // 4. 彙整安全庫存警示
+                let matHtml = '';
+                if (res.lowStock && res.lowStock.length > 0) {
+                    res.lowStock.forEach(m => { matHtml += `<li style="color: #DC2626; margin-bottom: 4px; font-weight: bold;">⚠️ ${m}</li>`; });
+                } else { matHtml = '<li style="color: #059669;">✅ 所有生產物料皆高於安全庫存</li>'; }
+
+                // 5. 彙整機台掛修狀態
+                let macHtml = '';
+                if (res.brokenMacs && res.brokenMacs.length > 0) {
+                    res.brokenMacs.forEach(m => { macHtml += `<li style="color: #DC2626; margin-bottom: 4px; font-weight: bold;">🛠️ ${m}</li>`; });
+                } else { macHtml = '<li style="color: #059669;">✅ 所有現場機台皆運作正常 (待機/生產中)</li>'; }
+
+                // 6. 塞入隱藏的 PDF 渲染容器 (#pdfContent)
+                const pdfContainer = document.getElementById('pdfContent');
+                pdfContainer.innerHTML = `
+                    <div style="font-family: '微軟正黑體', sans-serif; color: #3A4449; padding: 10px;">
+                        <div style="text-align: center; border-bottom: 2px solid #66747A; padding-bottom: 10px; margin-bottom: 20px;">
+                            <h1 style="font-size: 22px; margin: 0; tracking-spacing: 2px;">仕罡印刷事業有限公司</h1>
+                            <p style="font-size: 14px; color: #66747A; margin: 5px 0 0 0; font-weight: bold;">每日營運早會動態摘要報告 (Morning Report)</p>
+                        </div>
+                        
+                        <table style="width: 100%; font-size: 12px; margin-bottom: 20px; background: #F3F4F6; padding: 8px; border-radius: 6px;">
+                            <tr>
+                                <td><strong>產出日期：</strong>${todayStr}</td>
+                                <td><strong>早會召集人：</strong>${currentOpUser}</td>
+                                <td style="text-align: right; color: #66747A;">* 本報表由 Supabase 雲端即時彙整</td>
+                            </tr>
+                        </table>
+
+                        <h3 style="font-size: 14px; border-left: 4px solid #66747A; padding-left: 8px; margin: 15px 0 10px 0; color: #2D3748;">一、 廠內最新工作交接對辦看板</h3>
+                        <div style="font-size: 12px; line-height: 1.6; margin-bottom: 20px;">${hoHtml}</div>
+
+                        <h3 style="font-size: 14px; border-left: 4px solid #66747A; padding-left: 8px; margin: 15px 0 10px 0; color: #2D3748;">二、 在線生產工單與排程進度</h3>
+                        <table style="width: 100%; font-size: 11px; border-collapse: collapse; margin-bottom: 20px; text-align: left;">
+                            <thead>
+                                <tr style="background: #E5E7EB; border-bottom: 2px solid #D1D5DB;">
+                                    <th style="padding: 6px;">單號</th><th style="padding: 6px;">客戶</th><th style="padding: 6px;">品名規格</th><th style="padding: 6px;">當前狀態</th>
+                                </tr>
+                            </thead>
+                            <tbody>${ordHtml}</tbody>
+                        </table>
+
+                        <div style="display: flex; gap: 20px; margin-top: 15px;">
+                            <div style="flex: 1;">
+                                <h3 style="font-size: 14px; border-left: 4px solid #DC2626; padding-left: 8px; margin-bottom: 10px; color: #2D3748;">三、 物料安全庫存警示</h3>
+                                <ul style="font-size: 12px; padding-left: 20px; margin: 0;">${matHtml}</ul>
+                            </div>
+                            <div style="flex: 1;">
+                                <h3 style="font-size: 14px; border-left: 4px solid #DC2626; padding-left: 8px; margin-bottom: 10px; color: #2D3748;">四、 設備異常與掛修通報</h3>
+                                <ul style="font-size: 12px; padding-left: 20px; margin: 0;">${macHtml}</ul>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 40px; border-top: 1px dashed #D1D5DB; padding-top: 15px; font-size: 11px; color: #9CA3AF; text-align: center;">
+                            仕罡印刷事業有限公司 - 內部管理系統自動產出
+                        </div>
+                    </div>
+                `;
+
+                // 7. 呼叫 html2pdf 模組執行精密渲染與瀏覽器下載
+                const opt = {
+                    margin:       [10, 10, 10, 10],
+                    filename:     `仕罡印刷_營運早會報告_${todayStr}.pdf`,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true },
+                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                html2pdf().set(opt).from(pdfContainer).save().then(() => {
+                    showCustomAlert("📄 PDF 導出成功", "今日營運早會報告 PDF 已成功派發並下載完成！");
+                });
+
             }).getMorningReportData(currentHandovers);
         }
 
@@ -2992,6 +3541,522 @@ Make sure the summary is action-oriented, encouraging, and clear. Format elegant
                 }, 400);
             }
         }
+
+        function submitMaterialCheck(btn) {
+            const orderId = document.getElementById('matOrderId').innerText;
+            const actionType = document.getElementById('matActionType').value;
+            const op = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
+
+            // 1. 蒐集目前畫面上所有配料列的數據
+            let materialsArr = [];
+            const rows = document.querySelectorAll('#matList .mat-row');
+            
+            rows.forEach(row => {
+                const id = row.querySelector('.mat-real-id').value;
+                const customName = row.querySelector('.mat-sel-input').value.trim();
+                const note = row.querySelector('.mat-note').value.trim();
+                const cost = parseFloat(row.querySelector('.mat-cost').value) || 0;
+                const sell = parseFloat(row.querySelector('.mat-sell').value) || 0;
+                const baseQty = parseFloat(row.querySelector('.mat-qty').value) || 0;
+                const actualQty = parseFloat(row.querySelector('.actual-qty-display').innerText) || 0;
+
+                // 只要有填品名或選有料號就納入配料清單
+                if (id || customName) {
+                    materialsArr.push({
+                        id: id,
+                        customName: customName,
+                        note: note,
+                        cost: cost,
+                        sell: sell,
+                        baseQty: baseQty,
+                        qty: actualQty // 實際需扣量
+                    });
+                }
+            });
+
+            // 2. 彙整估價主參數
+            const targetQty = parseFloat(document.getElementById('estTargetQty').value) || 1;
+            const yieldRate = parseFloat(document.getElementById('estYieldRate').value) || 100;
+            const qty = parseFloat(document.getElementById('estQty').value) || targetQty;
+            const freightCost = parseFloat(document.getElementById('estFreightCost').value) || 0;
+            const freightPrice = parseFloat(document.getElementById('estFreightPrice').value) || 0;
+            const details = document.getElementById('estFinalDetailsText').value;
+
+            // 逆推總成本與計算單價
+            let totalCostSum = freightCost;
+            let totalSellSum = freightPrice;
+            materialsArr.forEach(m => {
+                totalCostSum += m.cost * m.qty;
+                totalSellSum += m.sell * m.qty;
+            });
+            const unitPrice = targetQty > 0 ? Number((totalSellSum / targetQty).toFixed(2)) : 0;
+
+            const estParams = {
+                targetQty: targetQty,
+                yieldRate: yieldRate,
+                qty: qty,
+                unitPrice: unitPrice,
+                totalAmount: totalSellSum,
+                freightCost: freightCost,
+                freightPrice: freightPrice,
+                details: details
+            };
+
+            // 3. 根據操作類型，對接實體扣料或單純儲存配料數據
+            btn.disabled = true;
+            btn.innerText = "資料傳輸中...";
+
+            // 判定是否執行扣料：非 estimate 且非唯讀狀態才扣庫存
+            const executeDeduct = (actionType !== 'estimate');
+
+            // 【精準修正】將原本的空陣列 [] 替換為全域暫存的實際圖片陣列 window.estImagesData，確保圖片能完整存入 Supabase
+            google.script.run.withSuccessHandler(res => {
+                showCustomAlert("📐 雲端儲存成功", res.msg);
+                closeModal('matModal');
+                refreshSystem();
+                btn.disabled = false;
+                btn.innerText = "確認送出";
+            }).withFailureHandler(err => {
+                alert("儲存失敗：" + err);
+                btn.disabled = false;
+                btn.innerText = "確認送出";
+            }).checkAndDeductMaterials(orderId, materialsArr, executeDeduct, actionType, window.estImagesData || [], op, estParams);
+        }
+
+        // =========================================================================
+        // ================== 👑 舊程式精華補回：商務 PDF 輸出與毛利計算模組 ==================
+        // =========================================================================
+
+        function printQuotation(index) {
+            if (!userShowFinance) { alert("🔒 您的權限設定為：否 (禁止出現任何機密財務資料)"); return; }
+            showSmartChoice(
+                "📄 導出客戶估價單",
+                "請選擇此估價單的列印規格：是否需要將「預計消耗之物料耗用清單」附加於單據下方？",
+                [
+                    { text: "📊 包含用料明細表", class: "px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition", callback: () => doExecuteQuotation(index, true) },
+                    { text: "📄 僅列印主單報價", class: "px-4 py-2 bg-gray-600 text-white rounded-lg text-xs font-bold hover:bg-gray-700 transition", callback: () => doExecuteQuotation(index, false) },
+                    { text: "取消", class: "px-4 py-2 border text-gray-500 rounded-lg text-xs font-bold hover:bg-gray-100 transition", callback: null }
+                ]
+            );
+        }
+
+        function doExecuteQuotation(index, includeDetails) {
+            let row = currentTableData[index];
+            let matHtml = '';
+            
+            if (includeDetails && row['配料明細']) {
+                try {
+                    let bom = JSON.parse(row['配料明細']);
+                    if (bom.length > 0) {
+                        let mRows = bom.map(m => {
+                            let matObj = (currentDropdowns['物料編號'] || []).find(opt => opt.id === m.id);
+                            let noteStr = m.note ? `<span style="color:#2563eb; font-weight:bold;">[${m.note}]</span> ` : '';
+                            return `<tr><td style="padding:6px; border:1px solid #cbd5e1; font-family:monospace;">${m.id}</td><td style="padding:6px; border:1px solid #cbd5e1;">${noteStr}${matObj ? matObj.name.replace(m.id+' - ', '') : '配套原料'}</td><td style="padding:6px; border:1px solid #cbd5e1; text-align:center; font-weight:bold;">${m.qty}</td></tr>`;
+                        }).join('');
+                        matHtml = `<h3 style="font-size:13px; font-weight:bold; color:#525F65; margin-top:20px; margin-bottom:6px; border-left:3px solid #525F65; padding-left:6px;">📦 隨單預計消耗用料清單</h3><table style="width:100%; border-collapse:collapse; border:1px solid #cbd5e1; font-size:11px; text-align:left;"><thead style="background:#f8fafc;"><tr><th style="padding:6px; border:1px solid #cbd5e1; width:90px;">物料編號</th><th style="padding:6px; border:1px solid #cbd5e1;">加工備註與品名規格</th><th style="padding:6px; border:1px solid #cbd5e1; text-align:center; width:70px;">用量</th></tr></thead><tbody>${mRows}</tbody></table>`;
+                    }
+                } catch(e){}
+            }
+
+            let imgHtml = '';
+            if (row['示意圖'] && String(row['示意圖']).trim() !== '') {
+                try {
+                    let imgs = typeof row['示意圖'] === 'string' ? JSON.parse(row['示意圖']) : row['示意圖'];
+                    if (Array.isArray(imgs) && imgs.length > 0) {
+                        let imgTags = imgs.map(src => `<img src="${src}" style="max-width:48%; max-height:220px; border:1px solid #cbd5e1; border-radius:4px; display:inline-block; margin-right:2%; margin-bottom:10px;">`).join('');
+                        imgHtml = `<div style="margin-top:20px; border-top:1px dashed #cbd5e1; padding-top:10px;"><p style="font-weight:bold; font-size:12px; margin-bottom:8px; color:#374151;">【估價單附圖與示意配置】</p><div style="text-align:left;">${imgTags}</div></div>`;
+                    }
+                } catch(e){}
+            }
+
+            // 動態提取我司 C00000000 抬頭建檔資料
+            let ourInfo = (systemCache['客戶資料']?.data || []).find(c => c['客戶編號'] === 'C00000000' || c['客戶代號'] === 'C00000000') || {};
+            let myTaxId = ourInfo['統一編號'] || '未建檔';
+            let myPhone = ourInfo['聯絡電話'] || '未建檔';
+            let myCompany = ourInfo['客戶名稱'] || ourInfo['公司名稱'] || '仕罡印刷事業有限公司';
+
+            let html = `
+                <div style="padding:20px; font-family:'微軟正黑體', sans-serif; color:#374151; background:#fff; font-size:12px;">
+                    <h1 style="text-align:center; font-size:22px; font-bold; margin:0 0 4px 0; letter-spacing:2px;">${myCompany}</h1>
+                    <h2 style="text-align:center; font-size:14px; margin:0 0 20px 0; border-bottom:1px solid #475569; padding-bottom:4px; color:#475569; letter-spacing:1px;">正式估價單 / Quotation</h2>
+                    
+                    <table style="width:100%; margin-bottom:15px; border-collapse:collapse;">
+                        <tr style="vertical-align:top;">
+                            <td>
+                                <p style="margin:0 0 4px 0;"><strong>致：</strong> <span style="font-size:14px; font-weight:bold;">${row['客戶名稱']}</span> 御中</p>
+                                <p style="margin:0;"><strong>日期：</strong> ${new Date().toISOString().split('T')[0]}</p>
+                            </td>
+                            <td style="text-align:right; color:#64748B; font-size:11px;">
+                                <p style="margin:0;">單號：${row['訂單編號']}</p>
+                                <p style="margin:2px 0 0 0;">統編：${myTaxId} | 電話：${myPhone}</p>
+                                <p style="margin:4px 0 0 0; font-weight:bold; color:#525F65;">業務窗口：${row['業務'] || '未指定'}</p>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <table style="width:100%; border-collapse:collapse; border:1px solid #475569; font-size:12px; text-align:left; margin-bottom:15px;">
+                        <thead style="background:#f1f5f9;">
+                            <tr style="border-b:1px solid #475569;">
+                                <th style="padding:8px; border:1px solid #475569;">品名與完成尺寸</th>
+                                <th style="padding:8px; border:1px solid #475569; text-align:center; width:70px;">數量</th>
+                                <th style="padding:8px; border:1px solid #475569; text-align:right; width:90px;">單價</th>
+                                <th style="padding:8px; border:1px solid #475569; text-align:right; width:100px;">小計</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding:10px; border:1px solid #475569; font-weight:bold;">
+                                    ${row['產品名稱']}<br/>
+                                    <span style="font-size:11px; color:#64748B; font-weight:normal;">尺寸：${row['完成尺寸']||'依原稿'}</span>
+                                </td>
+                                <td style="padding:10px; border:1px solid #475569; text-align:center; font-weight:bold;">${parseFloat(row['數量']||0).toLocaleString()}</td>
+                                <td style="padding:10px; border:1px solid #475569; text-align:right;">$ ${parseFloat(row['單價']||0).toLocaleString()}</td>
+                                <td style="padding:10px; border:1px solid #475569; text-align:right; font-weight:bold;">$ ${parseFloat(row['總金額']||0).toLocaleString()}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" style="padding:6px; border:1px solid #475569; text-align:right; color:#64748B; font-size:11px;">專案運費報價 ${row['運費備註'] ? '('+row['運費備註']+')' : ''}</td>
+                                <td style="padding:6px; border:1px solid #475569; text-align:right;">$ ${parseFloat(row['運費報價']||0).toLocaleString()}</td>
+                            </tr>
+                            <tr style="background:#f8fafc;">
+                                <td colspan="3" style="padding:8px; border:1px solid #475569; text-align:right; font-weight:bold;">總計報價 (Total)</td>
+                                <td style="padding:8px; border:1px solid #475569; text-align:right; font-weight:bold; font-size:13px; color:#b91c1c;">$ ${(parseFloat(row['總金額']||0) + parseFloat(row['運費報價']||0)).toLocaleString()}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    ${matHtml}
+                    
+                    <div style="font-size:11px; color:#64748B; margin-top:15px; border-top:1px dashed #cbd5e1; padding-top:8px;">
+                        <p style="font-weight:bold; margin:0 0 2px 0; color:#475569;">【訂單細項與備註指示】</p>
+                        <p style="margin:0; white-space:pre-wrap;">${row['訂單細項'] || '無特殊備註'}</p>
+                    </div>
+                    ${imgHtml}
+                </div>`;
+            
+            execHTML2PDF(html, `仕罡印刷_估價單_${row['訂單編號']}.pdf`);
+        }
+
+        function printMarginReport(index) {
+            if (!userShowFinance) { alert("🔒 您的權限設定為：否 (禁止出現任何機密財務資料)"); return; }
+            showSmartChoice(
+                "📈 導出內部毛利分析報告",
+                "請選擇利潤報告的解析深度：是否展開列印「每項材料配套扣料的精密拆分成本對照表」？",
+                [
+                    { text: "📊 展開完整物料成本", class: "px-4 py-2 bg-purple-600 text-white rounded-lg text-xs font-bold hover:bg-purple-700 transition", callback: () => doExecuteMargin(index, true) },
+                    { text: "📈 僅列印總額毛利分析", class: "px-4 py-2 bg-gray-600 text-white rounded-lg text-xs font-bold hover:bg-gray-700 transition", callback: () => doExecuteMargin(index, false) },
+                    { text: "取消", class: "px-4 py-2 border text-gray-500 rounded-lg text-xs font-bold hover:bg-gray-100 transition", callback: null }
+                ]
+            );
+        }
+
+        function doExecuteMargin(index, includeDetails) {
+            let row = currentTableData[index]; 
+            let rev = parseFloat(row['總金額']||0) + parseFloat(row['運費報價']||0); 
+            
+            let matTotalCost = 0;
+            let matHtml = '';
+            
+            if (row['配料明細']) {
+                try {
+                    let bom = JSON.parse(row['配料明細']);
+                    if (bom.length > 0) {
+                        let mRows = bom.map(m => {
+                            let matObj = (currentDropdowns['物料編號'] || []).find(opt => opt.id === m.id); 
+                            let uCost = m.cost !== undefined ? parseFloat(m.cost) : (matObj ? parseFloat(matObj.price)||0 : 0);
+                            let lineCost = uCost * (parseFloat(m.qty) || 0);
+                            matTotalCost += lineCost;
+                            
+                            let noteStr = m.note ? `<span style="color:#2563eb; font-weight:bold;">[${m.note}]</span> ` : '';
+                            let mName = matObj ? matObj.name.replace(m.id+' - ', '') : (m.customName ? m.customName.replace(m.id+' - ', '') : '自訂外包加工');
+                            return `<tr><td style="padding:6px; border:1px solid #cbd5e1; font-family:monospace;">${m.id}</td><td style="padding:6px; border:1px solid #cbd5e1;">${noteStr}${mName}</td><td style="padding:6px; border:1px solid #cbd5e1; text-align:center; font-weight:bold;">${m.qty}</td><td style="padding:6px; border:1px solid #cbd5e1; text-align:right;">$ ${uCost}</td><td style="padding:6px; border:1px solid #cbd5e1; text-align:right; font-weight:bold;">$ ${lineCost.toLocaleString()}</td></tr>`;
+                        }).join('');
+                        
+                        if (includeDetails) {
+                            matHtml = `<h3 style="font-size:13px; font-weight:bold; color:#525F65; margin-top:15px; margin-bottom:6px; border-left:3px solid #525F65; padding-left:6px;">📋 生產精算用料成本分攤明細</h3><table style="width:100%; border-collapse:collapse; border:1px solid #cbd5e1; font-size:11px; text-align:left;"><thead style="background:#f8fafc;"><tr><th style="padding:6px; border:1px solid #cbd5e1; width:80px;">物料代號</th><th style="padding:6px; border:1px solid #cbd5e1;">加工備註與品名規格</th><th style="padding:6px; border:1px solid #cbd5e1; text-align:center; width:60px;">用量</th><th style="padding:6px; border:1px solid #cbd5e1; text-align:right; width:70px;">材料單價</th><th style="padding:6px; border:1px solid #cbd5e1; text-align:right; width:90px;">成本小計</th></tr></thead><tbody>${mRows}</tbody></table>`;
+                        }
+                    }
+                } catch(e){}
+            }
+            
+            let cost = matTotalCost + parseFloat(row['運費成本']||0); 
+            let profit = rev - cost; 
+            let margin = rev > 0 ? ((profit / rev) * 100).toFixed(1) : 0;
+            
+            let html = `
+                <div style="padding:20px; font-family:'微軟正黑體', sans-serif; color:#374151; background:#fff; font-size:12px;">
+                    <h2 style="text-align:center; font-size:16px; font-weight:bold; margin:0 0 15px 0; color:#525F65; border-bottom:1px solid #cbd5e1; padding-bottom:4px; letter-spacing:1px;">📈 專案毛利率精密試算報告 (內部稽核專用)</h2>
+                    <table style="width:100%; border-collapse:collapse; border:1px solid #cbd5e1; text-align:left; margin-bottom:15px;">
+                        <tbody>
+                            <tr>
+                                <th style="padding:6px; border:1px solid #cbd5e1; background:#f8fafc; width:80px;">訂單單號</th><td style="padding:6px; border:1px solid #cbd5e1; font-family:monospace;">${row['訂單編號']}</td>
+                                <th style="padding:6px; border:1px solid #cbd5e1; background:#f8fafc; width:80px;">客戶名稱</th><td style="padding:6px; border:1px solid #cbd5e1; font-weight:bold;">${row['客戶名稱']}</td>
+                            </tr>
+                            <tr>
+                                <th style="padding:6px; border:1px solid #cbd5e1; background:#f8fafc;">產品名稱</th><td colspan="3" style="padding:6px; border:1px solid #cbd5e1; font-weight:bold;">${row['產品名稱']} ${row['完成尺寸'] ? '(尺寸: '+row['完成尺寸']+')' : ''}</td>
+                            </tr>
+                            <tr>
+                                <th style="padding:6px; border:1px solid #cbd5e1; background:#f8fafc; color:#1e40af;">目標出貨</th><td style="padding:6px; border:1px solid #cbd5e1; font-weight:bold; color:#1d4ed8;">${parseFloat(row['數量']||0).toLocaleString()} 件</td>
+                                <th style="padding:6px; border:1px solid #cbd5e1; background:#f8fafc; color:#9a3412;">實際投產</th><td style="padding:6px; border:1px solid #cbd5e1; font-weight:bold; color:#b45309;">${parseFloat(row['訂購數量'] || row['數量'] || 0).toLocaleString()} 件 <span style="color:#64748B; font-weight:normal; font-size:11px;">(初估良率: ${row['預估良率'] || 100}%)</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                        <div style="width:48%; border:1px solid #bbf7d0; border-radius:6px; padding:10px; background:#f0fdf4; box-sizing:border-box;">
+                            <h3 style="font-weight:bold; color:#166534; margin:0 0 6px 0; border-bottom:1px solid #bbf7d0; padding-bottom:2px; font-size:12px;">營業收入 (Revenue)</h3>
+                            <p style="margin:3px 0; display:flex; justify-content:space-between;"><span>產品報價總額：</span> <span>$ ${parseFloat(row['總金額']||0).toLocaleString()}</span></p>
+                            <p style="margin:3px 0; display:flex; justify-content:space-between;"><span>專案運費報價：</span> <span>$ ${parseFloat(row['運費報價']||0).toLocaleString()}</span></p>
+                            <p style="margin:6px 0 0 0; display:flex; justify-content:space-between; font-weight:bold; border-top:1px solid #bbf7d0; padding-top:4px; font-size:13px; color:#14532d;"><span>總收小計：</span> <span>$ ${rev.toLocaleString()}</span></p>
+                        </div>
+                        <div style="width:48%; border:1px solid #fecaca; border-radius:6px; padding:10px; background:#fef2f2; box-sizing:border-box;">
+                            <h3 style="font-weight:bold; color:#991b1b; margin:0 0 6px 0; border-bottom:1px solid #fecaca; padding-bottom:2px; font-size:12px;">內部成本 (Cost)</h3>
+                            <p style="margin:3px 0; display:flex; justify-content:space-between;"><span>動態材料總成本：</span> <span>$ ${matTotalCost.toLocaleString()}</span></p>
+                            <p style="margin:3px 0; display:flex; justify-content:space-between;"><span>專案運費成本：</span> <span>$ ${parseFloat(row['運費成本']||0).toLocaleString()}</span></p>
+                            <p style="margin:6px 0 0 0; display:flex; justify-content:space-between; font-weight:bold; border-top:1px solid #fecaca; padding-top:4px; font-size:13px; color:#7f1d1d;"><span>總本小計：</span> <span>$ ${cost.toLocaleString()}</span></p>
+                        </div>
+                    </div>
+                    
+                    ${matHtml}
+                    
+                    <div style="margin-top:20px; background:#525F65; color:#fff; padding:12px; border-radius:6px; display:flex;">
+                        <div style="width:50%; text-align:center; border-right:1px solid rgba(255,255,255,0.2);">
+                            <h3 style="font-size:12px; margin:0 0 4px 0; opacity:0.9;">預估專案純利潤</h3>
+                            <p style="font-size:20px; font-weight:bold; margin:0; letter-spacing:1px;">$ ${Math.round(profit).toLocaleString()}</p>
+                        </div>
+                        <div style="width:50%; text-align:center;">
+                            <h3 style="font-size:12px; margin:0 0 4px 0; opacity:0.9;">預估本單毛利率</h3>
+                            <p style="font-size:20px; font-weight:bold; margin:0; letter-spacing:1px; color:${margin >= 0 ? '#6ee7b7' : '#fca5a5'};">${margin} %</p>
+                        </div>
+                    </div>
+                </div>`;
+            execHTML2PDF(html, `仕罡內部_毛利試算報告_${row['訂單編號']}.pdf`);
+        }
+        function execHTML2PDF(htmlContent, filename) {
+            const element = document.getElementById('pdfContent');
+            element.innerHTML = htmlContent;
+            
+            let loadingEl = document.createElement('div');
+            loadingEl.id = 'pdfLoadingToast';
+            loadingEl.className = 'fixed top-10 left-1/2 transform -translate-x-1/2 bg-moSide text-white px-6 py-3 rounded-lg shadow-2xl z-[9999] flex items-center gap-3 font-bold tracking-wider text-xs';
+            loadingEl.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> 正在產出精密商業單據，請稍候...';
+            document.body.appendChild(loadingEl);
+
+            const opt = { 
+                margin: 10, 
+                filename: filename, 
+                image: { type: 'jpeg', quality: 0.98 }, 
+                html2canvas: { 
+                    scale: 2, 
+                    useCORS: true, // 解除 Supabase 圖片跨域鎖定的核心關鍵
+                    logging: false
+                }, 
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                const toast = document.getElementById('pdfLoadingToast');
+                if(toast) toast.remove();
+            }).catch(err => {
+                alert("單據生成失敗：" + err);
+                const toast = document.getElementById('pdfLoadingToast');
+                if(toast) toast.remove();
+            });
+        }
+        // 【舊精華強固補回】支援分次上傳：累加圖片直到 2 張上限，並即時渲染精美小縮圖預覽
+    window.estImagesData = []; // 全域圖片暫存陣列
+
+    function handleEstImages(input) {
+        let files = Array.from(input.files);
+        
+        files.forEach(file => {
+            // 檢查是否已達 2 張上限
+            if (window.estImagesData.length >= 2) {
+                alert("⚠️ 最多只能上傳 2 張示意圖！");
+                return;
+            }
+            
+            compressImage(file, 800, 800, 0.7, function(base64) {
+                if (window.estImagesData.length < 2) {
+                    window.estImagesData.push(base64); // 累加寫入暫存
+                    renderEstImagesPreview(false);     // 即時渲染小縮圖預覽
+                    if(typeof calcMatCost === 'function') calcMatCost(); // 連動精算金額
+                }
+            });
+        });
+        
+        // 【關鍵防呆】清空 input 的選取值，這樣下一次點擊才能重複選擇第二張
+        input.value = '';
+    }
+
+    // 縮圖預覽生成器：依據唯讀狀態，動態決定要不要出現個別刪除 ❌ 按鈕
+    function renderEstImagesPreview(isReadOnly = false) {
+        let container = document.getElementById('estImagePreviewContainer');
+        if (!container) return;
+        container.innerHTML = '';
+        
+        window.estImagesData.forEach((base64, index) => {
+            // 如果是唯讀(例如扣料階段)，就不顯示刪除叉叉
+            let delBtn = isReadOnly ? '' : `<button type="button" onclick="removeEstImage(${index})" class="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold shadow-md hover:bg-red-600 transition-colors">&times;</button>`;
+            
+            container.innerHTML += `
+                <div class="relative inline-block h-16 w-16 mt-1 mr-2">
+                    <img src="${base64}" onclick="openImageModal(this.src)" class="h-16 w-16 object-cover rounded border border-gray-300 cursor-pointer hover:opacity-80 transition-opacity" title="點擊放大檢視">
+                    ${delBtn}
+                </div>
+            `;
+        });
+    }
+
+    // 移除單張圖片
+    function removeEstImage(index) {
+        window.estImagesData.splice(index, 1);
+        renderEstImagesPreview(false); // 移除後重新渲染
+        if(typeof calcMatCost === 'function') calcMatCost();
+    }
+
+    // 一鍵清空圖片
+    function clearEstImages() {
+        if(document.getElementById('estImages')) document.getElementById('estImages').value = '';
+        window.estImagesData = [];
+        renderEstImagesPreview(false);
+        if(typeof calcMatCost === 'function') calcMatCost();
+    }
+    // 【✨ 牽引讀不到終極修復】雙重保險防護網：完美解碼 Vue 嵌套 JSON，徹底消滅 NaN 與空白盲點
+        async function pullEstimateDataToOmsForm() {
+            const estNo = document.getElementById('smart_pull_estimate_no').value.trim().toUpperCase();
+          if (!estNo) return alert("請先輸入欲調閱的估價單號！");
+          
+          document.getElementById('loadingIndicator').classList.remove('hidden');
+          
+          try {
+              const { data, error } = await sbClient.from('estimates').select('*').eq('estimate_no', estNo).maybeSingle();
+              document.getElementById('loadingIndicator').classList.add('hidden');
+              
+              if (error || !data) {
+                  alert(`⚠️ 雲端調閱失敗：找不到估價單號 [${estNo}]，請確認初算端已按儲存。`);
+                  return;
+              }
+              
+              const d = data.details || {};
+              
+              // 1. 自動灌入標準字串欄位
+              if(document.getElementById('input_關聯估價單號')) document.getElementById('input_關聯估價單號').value = estNo;
+              if(document.getElementById('input_產品名稱')) document.getElementById('input_產品名稱').value = d.global_product_name || (d.assemblies && d.assemblies[0]?.name) || '未定義印刷品';
+              if(document.getElementById('input_客戶名稱')) document.getElementById('input_客戶名稱').value = d.quote_customer?.customer_name || '';
+              if(document.getElementById('input_完成尺寸')) document.getElementById('input_完成尺寸').value = d.global_finished_size || '依各總成規格';
+              if(document.getElementById('input_業務')) document.getElementById('input_業務').value = d.global_sales_rep || '未指定';
+              if(document.getElementById('input_訂單狀態')) document.getElementById('input_訂單狀態').value = '估算中';
+
+              // 2. 智慧提取【交貨量】➔ 完美注入唯讀文字鎖定格
+let finalDeliveryQty = data.quantity || (d.assemblies && d.assemblies[0]?.params?.quantity) || 1000;
+if(document.getElementById('input_交貨量')) {
+    document.getElementById('input_交貨量').value = String(finalDeliveryQty);
+}
+
+// 3. 【智慧雙保險】解開初算系統的良率安全鎖
+let finalYield = data.yield_rate || d.profit_margin_yield || (d.assemblies && d.assemblies[0]?.params?.yield_rate);
+if (!finalYield && d.assemblies?.[0]?.calc?.result) {
+    finalYield = 100; // 預設安全值
+}
+finalYield = parseFloat(finalYield) || 100; 
+if(document.getElementById('input_預估良率')) {
+    document.getElementById('input_預估良率').value = String(finalYield);
+}
+
+// 4. 精算並注入【投產量】
+let finalProductionQty = data.production_qty || (d.assemblies && d.assemblies[0]?.calc?.result?.production_qty);
+if (!finalProductionQty) {
+    // 若資料庫最外層沒開欄位，則現場即時依據良率精算公式逆推
+    finalProductionQty = Math.ceil(finalDeliveryQty / (finalYield / 100));
+}
+if(document.getElementById('input_投產量')) {
+    document.getElementById('input_投產量').value = String(finalProductionQty);
+}
+
+              // 5. 材料 BOM 自動融合成型
+              let mergedBom = [];
+              if (d.assemblies && d.assemblies.length > 0) {
+                  d.assemblies.forEach(asm => {
+                      if (asm.calc && asm.calc.result && asm.calc.result.board) {
+                          let b = asm.calc.result.board;
+                          let asmProdQty = Math.ceil((asm.params?.quantity || finalDeliveryQty) / (finalYield / 100));
+                          mergedBom.push({
+                              id: b.type === '全紙' ? 'PAPER-FULL' : 'PAPER-SMALL',
+                              customName: `${asm.name} 紙板 - ${b.paperSize || '客製尺寸'}`,
+                              note: b.desc || '現場開料提示',
+                              cost: Number((b.perModCost || 0).toFixed(4)),
+                              sell: Number((b.perModCost || 0).toFixed(4)),
+                              baseQty: 1,
+                              qty: asmProdQty
+                          });
+                      }
+                      // 5. 材料 BOM 自動融合成型 (升級版：精準分流【單個/整單】計算，強制加工類不扣庫存)
+                      if (asm.params && asm.params.addedMaterials) {
+                          asm.params.addedMaterials.forEach(m => {
+                              let asmProdQty = Math.ceil((asm.params?.quantity || finalDeliveryQty) / (finalYield / 100));
+                              
+                              // 【⚡ 核心修復 1：辨識不同計算模式，徹底瓦解重複相乘爆量】
+                              let finalCalculatedQty = 0;
+                              if (m.calc_type === 'total') {
+                                  // 如果是「整單計算」，現場實際需扣量就直接等於估價輸入的總量，不需要再乘以投產量
+                                  finalCalculatedQty = Number(m.qty || 0);
+                              } else {
+                                  // 如果是「單個計算」，則維持：單個基準量 * 放大放損後的投產量
+                                  finalCalculatedQty = (Number(m.qty || 1) * asmProdQty);
+                              }
+
+                              // 【⚡ 核心修復 2：維持外包加工類不扣庫存保護卡控】
+                              const cName = String(m.material_name || '').toLowerCase();
+                              const cCate = String(m.category || '').toLowerCase();
+                              if (cName.includes('外包') || cName.includes('服務') || cName.includes('加工') || cName.includes('費') ||
+                                  cCate.includes('外包') || cCate.includes('服務') || cCate.includes('加工') || cCate.includes('費')) {
+                                  finalCalculatedQty = 0; // 強制歸零，現場看得到品名工序，但倉庫實體不扣除庫存件數
+                              } else {
+                                  finalCalculatedQty = Math.ceil(finalCalculatedQty); // 實體物料無條件進入取整數
+                              }
+
+                              mergedBom.push({
+                                  id: m.material_id,
+                                  customName: m.material_name,
+                                  note: m.remark || asm.name, // 綁定正名後的物料備註
+                                  cost: m.cost_price || 0,
+                                  sell: m.sell_price || 0,
+                                  baseQty: m.qty || 1,
+                                  calc_type: m.calc_type || 'unit', // 傳遞模式標記供反查
+                                  qty: finalCalculatedQty            // 灌入精準分流後的廠務需扣量
+                              });
+                          });
+                      }
+                  });
+              }
+              // 【⚡ 核心運費代入補丁】將雲端運費成本與報價，完美融合進 OMS 生產配料 BOM 體系，加工類自動維持不扣庫存
+              let estShippingCost = Number(data.shipping_cost) || Number(d.shipping_cost) || 0;
+              let estShippingPrice = Number(data.shipping_price) || Number(d.shipping_price) || 0;
+
+              if (estShippingCost > 0 || estShippingPrice > 0) {
+                  mergedBom.push({
+                      id: 'SHIPPING-FEES',                   // 固定的虛擬物流代碼
+                      customName: '物流運費專案服務',        // 品名
+                      note: '雲端初算同步運費項目',          // 製程備註
+                      cost: estShippingCost,                 // 運費實際成本 ➔ 生管看得到成本
+                      sell: estShippingPrice,                 // 運費對客售價 ➔ 商務總金額對得齊
+                      baseQty: 1,
+                      calc_type: 'total',                    // 強制鎖定「整單計算」！絕對不會乘以投產量放大爆量
+                      qty: 0                                 // 它是加工物流服務類 ➔ 倉庫實際需扣量強制歸零，不扣除實體庫存
+                  });
+              }
+              
+              window.tempPulledBomDetails = mergedBom;
+              window.tempPulledImages = d.referenceImages || [];
+              
+              alert(`⚡ 跨系統對接完成！\n估價單 [${estNo}] 的資料、材料 BOM 與大圖已順利配置完畢。\n[交貨量]: ${finalDeliveryQty} / [投產量]: ${finalProductionQty}\n請點擊下方儲存送出。`);
+              
+          } catch (err) {
+              document.getElementById('loadingIndicator').classList.add('hidden');
+              console.error(err);
+              alert("數據牽引發生連鎖異常：" + err.message);
+          }
+      }
     </script>
 
     <div id="viewImageModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden flex items-center justify-center p-4" onclick="closeModal('viewImageModal')">
