@@ -2475,20 +2475,23 @@ function openHandoverModal() {
     const content = document.getElementById('hoContent').value.trim();
     const priority = document.getElementById('hoPriority').value;
     const creator = document.getElementById('hoCreator').value;
-    const skipLine = document.getElementById('hoSkipLineNotify') ? document.getElementById('hoSkipLineNotify').checked : false;
+    
+    // 安全防呆：檢查靜音勾選框是否存在
+    const skipLineEl = document.getElementById('hoSkipLineNotify');
+    const skipLine = skipLineEl ? skipLineEl.checked : false;
     
     if (!content) return alert("請輸入交接具體內容事項！");
     
-    // 智慧型搜集最終指名目標陣列
-    let targetAssignees = [];
-    const isAssignAll = document.getElementById('hoAssignAll').checked;
+    // 【👑 核心修復點】修正對應新版 HTML 網格結構，移除舊有 hoAssignee.value 錯誤
+    let finalAssigneeText = "全員";
+    const assignAllCb = document.getElementById('hoAssignAll');
     
-    if (isAssignAll) {
-        targetAssignees.push("全員");
-    } else {
+    // 若沒有勾選「全體廣播」，才去抓取網格內被勾選的人員名字
+    if (assignAllCb && !assignAllCb.checked) {
         const checkedBoxes = document.querySelectorAll('.ho-individual-assignee-cb:checked');
-        targetAssignees = Array.from(checkedBoxes).map(cb => cb.value);
-        if (targetAssignees.length === 0) return alert("請至少勾選指名一位接收同仁，或切換為全員廣播！");
+        const selectedNames = Array.from(checkedBoxes).map(cb => cb.value);
+        if (selectedNames.length === 0) return alert("請至少勾選指名一位接收同仁，或切換為全員廣播！");
+        finalAssigneeText = selectedNames.join(', '); // 合併成單一字串，只產生一張卡片
     }
     
     let dbContent = "";
@@ -2512,48 +2515,71 @@ function openHandoverModal() {
     btn.disabled = true;
     btn.innerText = "傳送中...";
     
+    let d = new Date();
+    let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString();
+    
+    // 自動判斷目前是 A 程式環境還是 B 程式環境
+    const isAApp = (typeof google !== 'undefined' && google.script && google.script.run);
+    
     try {
-        let d = new Date();
-        let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString();
-        
-        // 遍歷所有選取的目標，執行批次寫入與推播
-        for (let target of targetAssignees) {
+        if (isAApp) {
+            // --- A 程式 (呼叫 Google Script) ---
+            google.script.run.withSuccessHandler(res => {
+                showCustomAlert("發布成功", `工作交接單已成功派發至看板！\n指名對象：[${finalAssigneeText}]`);
+                closeModal('handoverModal');
+                refreshSystem();
+                btn.disabled = false; btn.innerText = "發布並 LINE 推播";
+                
+                // 智慧拆分推播
+                if (!skipLine) sendLineNotifyBatch(creator, finalAssigneeText, priority, lineContent);
+            }).withFailureHandler(err => {
+                alert("發布失敗：" + err);
+                btn.disabled = false; btn.innerText = "發布並 LINE 推播";
+            }).addHandover(dbContent, priority, finalAssigneeText, hoImageBase64, creator);
+            
+        } else {
+            // --- B 程式 (直連 Supabase) ---
             let { error } = await sbClient.from('handovers').insert([{
-                content: dbContent, priority: priority, creator: creator, assignee: target, image_url: hoImageBase64 || "", created_at: ts, status: '進行中'
+                content: dbContent, priority: priority, creator: creator, assignee: finalAssigneeText, image_url: hoImageBase64 || "", created_at: ts, status: '進行中'
             }]);
             if (error) throw error;
             
-            // 寫入變更記錄
-            await sbClient.from('handovers_log').insert([{ created_at: ts, action: '新增', content: `發布給[${target}]: ${content.substring(0, 20)}...`, operator_name: creator }]);
+            await sbClient.from('handovers_log').insert([{ created_at: ts, action: '新增', content: `發布給[${finalAssigneeText}]: ${content.substring(0, 20)}...`, operator_name: creator }]);
             
-            // 執行 LINE 推播業務分流
-            if (!skipLine) {
-                if (target === "全員") {
-                    window.userListCache.forEach(targetEmployee => {
-                        if (targetEmployee && !targetEmployee.startsWith('(離)')) {
-                            fetch(GAS_LINE_API, {
-                                method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ action: "sendNotification", creator: creator, assignee: targetEmployee, priority: priority, content: lineContent })
-                            });
-                        }
-                    });
-                } else {
-                    fetch(GAS_LINE_API, {
-                        method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ action: "sendNotification", creator: creator, assignee: target, priority: priority, content: lineContent })
-                    });
-                }
-            }
+            closeModal('handoverModal');
+            loadMainData();
+            
+            // 智慧拆分推播
+            if (!skipLine) sendLineNotifyBatch(creator, finalAssigneeText, priority, lineContent);
         }
-        
-        showCustomAlert("發布成功", `工作交接事項已成功指名指派給 [${targetAssignees.join(', ')}] 並完成同步！`);
-        closeModal('handoverModal');
-        refreshSystem();
     } catch(e) {
-        alert("雲端發布管道中斷：" + e.message);
+        alert("發布失敗：" + e.message);
     } finally {
-        btn.disabled = false;
-        btn.innerText = "發布並 LINE 推播";
+        if (!isAApp) { btn.disabled = false; btn.innerText = "發布並 LINE 推播"; }
+    }
+}
+        // [追加] 支援單張小卡、多同仁手機同時推播的 LINE 批次發送引擎
+function sendLineNotifyBatch(creator, assigneeText, priority, lineContent) {
+    if (assigneeText === "全員") {
+        window.userListCache.forEach(targetEmployee => {
+            if (targetEmployee && !targetEmployee.startsWith('(離)')) {
+                fetch(GAS_LINE_API, {
+                    method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "sendNotification", creator: creator, assignee: targetEmployee, priority: priority, content: lineContent })
+                });
+            }
+        });
+    } else {
+        // 如果有多個名字（以逗號分隔），自動切開並對每個人發送專向推播
+        const individualNames = assigneeText.split(',').map(name => name.trim());
+        individualNames.forEach(targetEmployee => {
+            if (targetEmployee) {
+                fetch(GAS_LINE_API, {
+                    method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "sendNotification", creator: creator, assignee: targetEmployee, priority: priority, content: lineContent })
+                });
+            }
+        });
     }
 }
         function openImageModal(src) { document.getElementById('largeImageTarget').src = src; document.getElementById('viewImageModal').classList.remove('hidden'); }
