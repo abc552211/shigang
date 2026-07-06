@@ -263,10 +263,39 @@
     </div>
 
     <div id="replenishModal" class="fixed inset-0 bg-black bg-opacity-40 z-[60] hidden flex items-center justify-center p-4">
-        <div class="bg-moCard rounded-lg w-full max-w-sm flex flex-col">
-            <div class="p-4 border-b flex justify-between bg-yellow-50"><h3 class="font-bold text-yellow-700">建立補貨申請單</h3><button onclick="closeModal('replenishModal')">&times;</button></div>
-            <div class="p-6 space-y-4"><input type="hidden" id="replMatId"><input type="hidden" id="replSupplier"><p class="text-sm">補貨物料：<span id="replMatName" class="font-bold"></span></p><div><label class="block text-sm font-bold mb-1">預計申請數量</label><input type="number" id="replQty" class="w-full p-2 border rounded focus:ring-1 focus:ring-yellow-400"></div><div><label class="block text-sm font-bold mb-1 text-yellow-700">申請原因 (必填)</label><input type="text" id="replReason" class="w-full p-2 border border-yellow-300 rounded focus:ring-1 focus:ring-yellow-400" placeholder="請輸入補貨原因"></div></div>
-            <div class="p-4 border-t flex justify-end gap-3 bg-gray-50"><button onclick="closeModal('replenishModal')" class="px-4 py-2 border hover:bg-gray-100 rounded">取消</button><button onclick="submitReplenish(this)" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded shadow-sm">產生單號並存檔</button></div>
+        <div class="bg-moCard rounded-lg w-full max-w-sm flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-4 border-b flex justify-between bg-yellow-50 items-center">
+                <h3 class="font-bold text-yellow-700">🛒 建立補貨申請單</h3>
+                <button onclick="closeModal('replenishModal')" class="text-gray-400 hover:text-gray-700 text-xl font-bold">&times;</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div id="replMatFixedGroup" class="hidden bg-gray-50 p-3 rounded-lg border border-gray-200">
+                    <input type="hidden" id="replMatId">
+                    <input type="hidden" id="replSupplier">
+                    <p class="text-xs text-gray-500 mb-1">補貨物料</p>
+                    <p id="replMatName" class="font-bold text-moSide text-sm"></p>
+                </div>
+                
+                <div id="replMatSelectGroup" class="hidden">
+                    <label class="block text-sm font-bold mb-1 text-moSide">🔍 選擇補貨物料 <span class="text-red-500">*</span></label>
+                    <input type="text" id="replMatSearchInput" list="dl_repl_mats" class="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-yellow-400 text-sm font-bold text-indigo-900 placeholder-gray-400" placeholder="請點擊選擇或輸入料號搜尋..." onchange="handleReplMatSelect(this)" oninput="handleReplMatSelect(this)">
+                    <datalist id="dl_repl_mats"></datalist>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold mb-1 text-moSide">預計申請數量 <span class="text-red-500">*</span></label>
+                    <input type="number" id="replQty" class="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-yellow-400 text-sm font-bold" placeholder="0">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-bold mb-1 text-yellow-700">申請原因 <span class="text-red-500">*</span></label>
+                    <input type="text" id="replReason" class="w-full p-2 border border-yellow-300 bg-yellow-50/50 rounded focus:ring-1 focus:ring-yellow-400 text-sm text-yellow-900 font-bold" placeholder="請輸入補貨原因">
+                </div>
+            </div>
+            <div class="p-4 border-t flex justify-end gap-3 bg-gray-50">
+                <button onclick="closeModal('replenishModal')" class="px-4 py-2 border hover:bg-gray-100 rounded text-sm font-bold text-gray-600 transition-colors">取消</button>
+                <button onclick="submitReplenish(this)" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded shadow text-sm font-bold transition-colors">產生單號並存檔</button>
+            </div>
         </div>
     </div>
 
@@ -274,7 +303,6 @@
         <div id="pdfContent" class="bg-white text-black p-8" style="width: 190mm; font-family: '微軟正黑體', sans-serif;"></div>
     </div>
 
-    <!-- 📐 配料成本與商務估價彈窗 -->
     <div id="matModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-xl w-full max-w-5xl border border-gray-300 flex flex-col shadow-2xl overflow-hidden max-h-[90vh]">
             <div class="p-4 border-b bg-gray-50 font-bold text-moSide flex justify-between items-center">
@@ -283,20 +311,14 @@
             </div>
             <input type="hidden" id="matActionType">
             <div class="p-6 overflow-y-auto space-y-4 flex-1">
-                <div id="estTopBusinessGroup" class="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">目標出貨量</label><input type="number" id="estTargetQty" value="1" min="1" oninput="calcMatCost()" class="w-full p-2 border rounded-lg text-sm font-bold text-indigo-700"></div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">預估良率 (%)</label><input type="number" id="estYieldRate" value="100" min="1" max="100" oninput="calcMatCost()" class="w-full p-2 border rounded-lg text-sm font-bold text-orange-600"></div>
+                <div id="estTopBusinessGroup" class="grid grid-cols-3 gap-3 p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1">目標出貨量</label><input type="number" id="estTargetQty" readonly class="w-full p-2 border bg-gray-100 rounded-lg text-sm font-bold text-gray-500 cursor-not-allowed"></div>
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1">預估良率 (%)</label><input type="number" id="estYieldRate" readonly class="w-full p-2 border bg-gray-100 rounded-lg text-sm font-bold text-gray-500 cursor-not-allowed"></div>
                     <div><label class="block text-xs font-bold text-gray-500 mb-1">實際投產量</label><input type="number" id="estQty" readonly class="w-full p-2 border bg-gray-100 text-gray-500 rounded-lg text-sm font-bold cursor-not-allowed"></div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">運費成本</label><input type="number" id="estFreightCost" value="0" min="0" oninput="calcMatCost()" class="w-full p-2 border rounded-lg text-sm font-bold text-red-600"></div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">運費報價</label><input type="number" id="estFreightPrice" value="0" min="0" oninput="calcMatCost()" class="w-full p-2 border rounded-lg text-sm font-bold text-green-700"></div>
                 </div>
 
                 <div class="flex justify-between items-center border-b pb-2 mt-2">
-                    <h3 class="font-bold text-sm text-moSide flex items-center gap-1.5">
-                        📋 生產物料與加工配料清單 
-                        <button type="button" id="aiBOMHelperBtn" onclick="callAiBOMRecommendation()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] px-2 py-0.5 rounded shadow-sm font-bold flex items-center gap-0.5 transition-colors">✨ AI 智慧配料推薦</button>
-                    </h3>
-                    <button id="addMatBtn" onclick="addMatRow()" class="bg-moSide text-white text-xs px-3 py-1 rounded shadow hover:bg-gray-600 transition">+ 新增物料</button>
+                    <h3 class="font-bold text-sm text-moSide flex items-center gap-1.5">📋 生產物料與加工配料清單 (唯讀)</h3>
                 </div>
                 <div class="flex gap-2 items-center px-1 pt-3 pb-1 text-[11px] font-bold text-gray-500 tracking-widest border-b border-gray-100">
                     <div class="w-20 text-center">加工備註</div>
@@ -304,9 +326,7 @@
                     <div class="w-16 text-center text-blue-600">當前庫存</div>
                     <div class="w-16 text-center text-red-500">內價成本</div>
                     <div class="w-16 text-center text-green-600">外價報價</div>
-                    <div class="w-16 text-center">基準量</div>
-                    <div class="w-12 text-center">實際需扣</div>
-                    <div class="w-6"></div>
+                    <div class="w-16 text-center text-indigo-600">實際需扣</div>
                 </div>
                 <div id="matList" class="space-y-1 pt-1 relative z-50 pb-2"></div>
 
@@ -320,16 +340,12 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-bold text-moSide mb-1">📝 訂單細項 / 摘要備註 (供您確認或微調)</label>
+                    <label class="block text-sm font-bold text-moSide mb-1">📝 訂單細項 / 摘要備註 (僅此欄位可編輯)</label>
                     <textarea id="estFinalDetailsText" class="w-full flex-1 p-3 border rounded-xl text-sm focus:ring-1 focus:ring-moSide" style="min-height:100px; resize:vertical;"></textarea>
                 </div>
-                <div class="mt-3">
-                    <div class="flex justify-between items-center mb-1">
-                        <label class="block text-sm font-bold text-moSide">🖼️ 上傳估價示意圖 (最多2張，印於單據尾部)</label>
-                        <button type="button" onclick="clearEstImages()" class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded hover:bg-red-200 font-bold transition-colors">❌ 清除檔案</button>
-                    </div>
-                    <input type="file" id="estImages" accept="image/*" multiple max="2" onchange="handleEstImages(this)" class="w-full text-xs text-gray-500 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:bg-gray-200 hover:file:bg-gray-300">
-                    <div id="estImagePreviewContainer" class="flex gap-2 mt-2"></div>
+                <div class="mt-3 pt-3 border-t border-gray-100">
+                    <label class="block text-sm font-bold text-moSide mb-2">🖼️ 估價示意圖 (僅供檢閱)</label>
+                    <div id="estImagePreviewContainer" class="flex gap-3 overflow-x-auto pb-2"></div>
                 </div>
             </div>
             <div class="p-4 border-t flex justify-end gap-2 bg-gray-50">
@@ -971,39 +987,77 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                         this.getSheetData(sheetName);
                     },
                     
-                    checkAndDeductMaterials: async function(orderId, materialsArr, executeDeduct, actionType, imagesBase64Arr, operatorName, estParams) {
-                        try {
-                            if (!executeDeduct && actionType === 'estimate') {
-                                let { data } = await sbClient.from('orders').select('status').eq('order_id', orderId);
-                                let nextStatus = (data && data[0]?.status === '估算中') ? '待規劃' : (data ? data[0]?.status : '待規劃');
-                                await sbClient.from('orders').update({
-                                    status: nextStatus, quantity: estParams.targetQty, yield_rate: estParams.yieldRate,
-                                    production_qty: estParams.qty, unit_price: estParams.unitPrice, total_amount: estParams.totalAmount,
-                                    freight_cost: estParams.freightCost, freight_price: estParams.freightPrice, details: estParams.details,
-                                    bom_details: materialsArr, images: imagesBase64Arr || []
-                                }).eq('order_id', orderId);
-                                return this.successHandler({ success: true, msg: "📐 估算損益數據與雲端圖片已完整保存至 Supabase！" });
-                            }
+                    // =========================================================================
+
+        checkAndDeductMaterials: async function(orderId, materialsArr, executeDeduct, actionType, imagesBase64Arr, operatorName, estParams) {
+            try {
+                // 1. 估價階段 (帶入配料)：純存檔，不扣料
+                if (!executeDeduct && actionType === 'estimate') {
+                    let { data } = await sbClient.from('orders').select('status').eq('order_id', orderId);
+                    let nextStatus = (data && data[0]?.status === '估算中') ? '待規劃' : (data ? data[0]?.status : '待規劃');
+                    
+                    // 🚀 關鍵防呆修復：徹底拔除資料庫沒有的 unit_price 與 total_amount 欄位
+                    let { error } = await sbClient.from('orders').update({
+                        status: nextStatus, 
+                        quantity: estParams.qty,             // 資料庫裡的投產量
+                        yield_rate: estParams.yieldRate,
+                        production_qty: estParams.targetQty, // 資料庫裡的交貨量
+                        details: estParams.details,
+                        bom_details: materialsArr
+                    }).eq('order_id', orderId);
+                    
+                    if (error) throw error; 
+                    
+                    return this.successHandler({ success: true, msg: "📐 配料明細已保存！訂單推進至 [待規劃]。" });
+                }
+
+                // 2. 實體扣料階段 (執行扣料)
+                if (executeDeduct) {
+                    let d = new Date(); let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
+                    
+                    let isShortage = false;
+                    let shortageItems = [];
+                    for(let m of materialsArr) {
+                        let { data: mat } = await sbClient.from('materials').select('stock_qty, category, material_name').eq('material_id', m.id);
+                        if(mat && mat[0]) {
+                            let cat = String(mat[0].category || '');
+                            let isService = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('代工') || cat.includes('費');
                             
-                            if (executeDeduct) {
-                                let d = new Date(); let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
-                                for(let m of materialsArr) {
-                                    let { data: mat } = await sbClient.from('materials').select('stock_qty, category').eq('material_id', m.id);
-                                    if(mat && mat[0]) {
-                                        let cat = String(mat[0].category || '');
-                                        let isService = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('代工') || cat.includes('費');
-                                        if (!isService) {
-                                            let newStock = (parseFloat(mat[0].stock_qty) || 0) - parseFloat(m.qty);
-                                            await sbClient.from('materials').update({ stock_qty: newStock }).eq('material_id', m.id);
-                                        }
-                                        await sbClient.from('deduct_logs').insert([{ created_at: ts, order_id: orderId, material_id: m.id, quantity: m.qty, operator_name: operatorName }]);
-                                    }
+                            if (!isService) {
+                                let currentStock = parseFloat(mat[0].stock_qty) || 0;
+                                let requiredQty = parseFloat(m.qty) || 0;
+                                if (currentStock < requiredQty) {
+                                    isShortage = true;
+                                    shortageItems.push(`[${m.id}] ${mat[0].material_name}`);
                                 }
-                                await sbClient.from('orders').update({ status: '待生產' }).eq('order_id', orderId);
-                                return this.successHandler({ success: true, msg: "庫存扣料成功！訂單已推進至 [待生產]。" });
                             }
-                        } catch(e) { alert(e.message); }
-                    },
+                        }
+                    }
+
+                    if (isShortage) {
+                        await sbClient.from('orders').update({ status: '原料不足' }).eq('order_id', orderId);
+                        return this.successHandler({ success: false, msg: `⚠️ 扣料失敗！以下材料庫存不足：\n${shortageItems.join('\n')}\n\n訂單狀態已轉為 [原料不足]，請前往請購。` });
+                    } else {
+                        for(let m of materialsArr) {
+                            let { data: mat } = await sbClient.from('materials').select('stock_qty, category').eq('material_id', m.id);
+                            if(mat && mat[0]) {
+                                let cat = String(mat[0].category || '');
+                                let isService = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('代工') || cat.includes('費');
+                                if (!isService) {
+                                    let newStock = (parseFloat(mat[0].stock_qty) || 0) - parseFloat(m.qty);
+                                    await sbClient.from('materials').update({ stock_qty: newStock }).eq('material_id', m.id);
+                                }
+                                await sbClient.from('deduct_logs').insert([{ created_at: ts, order_id: orderId, material_id: m.id, quantity: m.qty, operator_name: operatorName }]);
+                            }
+                        }
+                        await sbClient.from('orders').update({ status: '待生產' }).eq('order_id', orderId);
+                        return this.successHandler({ success: true, msg: "✅ 庫存扣料成功！訂單已推進至 [待生產]。" });
+                    }
+                }
+            } catch(e) { 
+                return this.failureHandler(e.message); 
+            }
+        },
                     
                     saveProcessPlan: async function(orderId, planSteps) {
                         await sbClient.from('orders').update({ process_plan: JSON.stringify(planSteps), status: '待扣料' }).eq('order_id', orderId);
@@ -1201,12 +1255,33 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                         let { data: ord } = await sbClient.from('orders').select('bom_details').eq('order_id', orderId);
                         let bom = ord[0]?.bom_details || [];
                         try { bom = typeof bom === 'string' ? JSON.parse(bom) : bom; } catch(e){}
+                        let d = new Date(); let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
+                        
                         for(let b of bom) {
-                            let { data: m } = await sbClient.from('materials').select('stock_qty').eq('material_id', b.id);
-                            if(m && m[0]) await sbClient.from('materials').update({ stock_qty: (parseFloat(m[0].stock_qty)||0) + parseFloat(b.qty) }).eq('material_id', b.id);
+                            let { data: m } = await sbClient.from('materials').select('stock_qty, category').eq('material_id', b.id);
+                            if(m && m[0]) {
+                                let cat = String(m[0].category || '');
+                                let isService = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('代工') || cat.includes('費');
+                                if (!isService) {
+                                    let returnQty = parseFloat(b.qty) || 0;
+                                    await sbClient.from('materials').update({ stock_qty: (parseFloat(m[0].stock_qty)||0) + returnQty }).eq('material_id', b.id);
+                                    
+                                    // 🚀 關鍵修復：把退回的料寫入進貨紀錄，並明確標註 OMS 訂單號碼
+                                    await sbClient.from('restock_logs').insert([{ 
+                                        created_at: ts, 
+                                        material_id: b.id, 
+                                        quantity: returnQty, 
+                                        total_amount: 0, 
+                                        supplier_name: 'OMS退料回庫', 
+                                        operator_name: op, 
+                                        replenish_id: orderId, // 將訂單號碼存在這個欄位
+                                        vendor_invoice_id: `退單:${orderId}` // 明確備註單號
+                                    }]);
+                                }
+                            }
                         }
                         await sbClient.from('orders').update({ status: '待扣料' }).eq('order_id', orderId);
-                        this.successHandler({ success: true, msg: "🔄 退料成功！庫存已全數退回，狀態返回 [待扣料]。" });
+                        this.successHandler({ success: true, msg: "🔄 退料成功！庫存已全數退回，並寫入進貨日誌，狀態返回 [待扣料]。" });
                     },
                     deleteOmsOrderAndRefund: async function(orderId, op) {
                         await sbClient.from('orders').delete().eq('order_id', orderId);
@@ -1701,14 +1776,22 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                     const bgClass = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
                     let isLowStock = false; let isRestocking = false; let restockQty = 0;
                     let isServiceItem = false;
+                    let activeReps = []; // 🚀 宣告儲存該料號底下所有進行中的補貨單
                     
                     if(currentSysName === 'ERP') {
                         let cat = String(row['類別'] || '');
                         isServiceItem = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('代工') || cat.includes('費');
                         let stock = parseFloat(row['目前庫存']) || 0; let safe = parseFloat(row['安全庫存']) || 0;
                         if(!isServiceItem && stock < safe) isLowStock = true;
-                        let reps = currentReplenish.filter(l => l.matId === row['物料編號'] && l.status !== '已結案');
-                        reps.forEach(r => { isRestocking = true; restockQty += (parseFloat(r.reqQty) || 0) - (parseFloat(r.inQty) || 0); });
+                        
+                        // 將所有未結案的補貨單找出來
+                        activeReps = currentReplenish.filter(l => l.matId === row['物料編號'] && l.status !== '已結案');
+                        activeReps.forEach(r => { 
+                            isRestocking = true; 
+                            restockQty += (parseFloat(r.reqQty) || 0) - (parseFloat(r.inQty) || 0); 
+                        });
+                        row._isRestocking = isRestocking;
+                        row._restockQty = restockQty;
                     }
 
                     tableHTML += `<tr class="${bgClass} hover:bg-gray-50 transition-colors" data-index="${index}">`;
@@ -1724,6 +1807,10 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                         if (!userShowFinance && isFinanceField && val !== '') {
                             val = `<span class="text-gray-400 italic">🔒 無權限</span>`;
                         } else {
+                            // 🚀 將這段加在 if(key === '急件') 的上面
+                            if (currentSysName === 'ERP' && key === '品名' && row._isRestocking) {
+                            val += `<span class="ml-2 inline-block bg-yellow-100 text-yellow-800 border border-yellow-300 px-1.5 py-0.5 rounded text-[10px] font-bold animate-pulse shadow-sm">🛒 補貨中 (${row._restockQty})</span>`;
+                            }
                             if(key === '急件' && val === '是') val = `<span class="bg-red-600 text-white px-2 py-1 rounded text-xs font-bold animate-pulse shadow-sm">急件</span>`;
                             else if(key.includes('狀態') || key === '當前狀態' || key === '工單狀態') {
                                 let badgeClass = 'status-gray';
@@ -1748,6 +1835,49 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                         tableHTML += `<td class="p-3">${val}</td>`;
                     });
                     tableHTML += `</tr>`;
+                    // --- 補回 1. 【OMS 訂單管理】展開：工序規劃紀錄 ---
+                    if (currentSysName === 'OMS' && row['工序規劃紀錄'] && String(row['工序規劃紀錄']).trim() !== '') {
+                        try {
+                            let steps = typeof row['工序規劃紀錄'] === 'string' ? JSON.parse(row['工序規劃紀錄']) : row['工序規劃紀錄'];
+                            if (Array.isArray(steps) && steps.length > 0) {
+                                let stepRows = steps.map(s => {
+                                    let timeStr = `${s.startDate.replace('T', ' ')} ~ ${s.endDate.replace('T', ' ')}`;
+                                    return `<tr class="border-b border-gray-200 hover:bg-purple-50 transition-colors">
+                                        <td class="p-1.5 text-center font-bold text-purple-700">${s.seq}</td>
+                                        <td class="p-1.5 font-bold text-gray-800">${s.name}</td>
+                                        <td class="p-1.5 text-gray-700 font-medium">${s.emp}</td>
+                                        <td class="p-1.5 text-xs text-gray-500 font-mono">${timeStr}</td>
+                                        <td class="p-1.5 text-blue-600 text-xs font-bold">${s.remark || '-'}</td>
+                                    </tr>`;
+                                }).join('');
+                                detailsHTML += `
+                                    <div class="mt-3 mb-3 bg-white p-3 rounded-lg border border-purple-200 shadow-xs">
+                                        <span class="font-bold text-xs text-purple-700 block mb-1.5">📋 本單已排定之生產工序與備註</span>
+                                        <table class="w-full text-left text-xs border-collapse">
+                                            <thead><tr class="bg-purple-50 text-purple-800 font-bold border-b border-purple-200"><th class="p-1.5 w-10 text-center">序</th><th class="p-1.5">工序 / 機台</th><th class="p-1.5 w-24">負責人</th><th class="p-1.5 w-48">排定時間</th><th class="p-1.5">特別指示 / 備註</th></tr></thead>
+                                            <tbody>${stepRows}</tbody>
+                                        </table>
+                                    </div>`;
+                            }
+                        } catch(e){ console.error("工序解析失敗:", e); }
+                    }
+
+                    // --- 補回 2. 【OMS 訂單管理】展開：示意圖預覽 ---
+                    if (currentSysName === 'OMS' && row['示意圖'] && String(row['示意圖']).trim() !== '') {
+                        try {
+                            let imgs = typeof row['示意圖'] === 'string' ? JSON.parse(row['示意圖']) : row['示意圖'];
+                            if (Array.isArray(imgs) && imgs.length > 0) {
+                                let imgTags = imgs.map(src => `<div class="flex-shrink-0 w-24 h-24 border border-gray-300 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 shadow-sm transition-opacity" onclick="openImageModal('${src}')" title="點擊放大"><img src="${src}" class="w-full h-full object-cover"></div>`).join('');
+                                detailsHTML += `
+                                    <div class="mt-2 mb-3 bg-white p-3 rounded-lg border border-gray-200 shadow-xs">
+                                        <span class="font-bold text-xs text-gray-600 block mb-2">🖼️ 估價示意圖與參考附件</span>
+                                        <div class="flex gap-3 overflow-x-auto pb-1">${imgTags}</div>
+                                    </div>`;
+                            }
+                        } catch(e){ console.error("圖片解析失敗:", e); }
+                    }
+
+                    
 
                     // 2. 【OMS 訂單管理】展開：強制無痕抓取儲存在 bom_details 的材料 JSON
                     if (currentSysName === 'OMS' && row['配料明細'] && String(row['配料明細']).trim() !== '') {
@@ -1772,44 +1902,100 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                             }
                         } catch(e){ console.error("配料解析失敗:", e); }
                     }
+                    
 
-                    // 3. 【ERP 物料庫存】展開：歷史進貨 LOG + 領料 LOG + 異常通報日誌
+                    // 3. 【ERP 物料庫存】展開：進行中補貨單 + 歷史進貨 LOG + 領料 LOG + 異常通報日誌
                     if (currentSysName === 'ERP') {
                         const matId = row['物料編號'];
+                        const pNameEncoded = encodeURIComponent((row['品名']||'') + ' ' + (row['規格']||''));
                         
-                        let rRows = currentRestocks.filter(l => l.matId === matId).map(l => 
-                            `<tr class="border-b"><td class="p-1.5 font-mono">${formatToLocalTime(l.time)}</td><td class="p-1.5 font-bold text-green-600">+${l.qty}</td><td class="p-1.5">$${parseFloat(l.amount || 0).toLocaleString()}</td><td class="p-1.5 text-gray-500">${l.supplier || ''}</td><td class="p-1.5 font-mono text-gray-400">${l.vendorShipId || ''}</td></tr>`
-                        ).join('');
+                        // 🚀 產生最上方的「進行中補貨單列表」與「列印/進貨按鈕」
+                        let activeRepRows = activeReps.map(l => {
+                            let remainQty = (parseFloat(l.reqQty) || 0) - (parseFloat(l.inQty) || 0);
+                            return `<tr class="border-b bg-yellow-50/40 hover:bg-yellow-100 transition-colors">
+                                <td class="p-1.5 font-mono text-yellow-800 font-bold">${l.repId}</td>
+                                <td class="p-1.5 font-mono text-gray-500">${formatToLocalTime(l.time)}</td>
+                                <td class="p-1.5 text-gray-700 font-bold">${l.supplier || '未指定'}</td>
+                                <td class="p-1.5 text-center font-bold text-red-600">${l.reqQty}</td>
+                                <td class="p-1.5 text-center font-bold text-green-600">${l.inQty || 0}</td>
+                                <td class="p-1.5 text-center font-bold text-blue-600">${remainQty}</td>
+                                <td class="p-1.5 text-right space-x-1 whitespace-nowrap">
+                                    <button onclick="printReplenishOrder('${l.repId}', '${matId}', '${pNameEncoded}', '${l.supplier}', ${l.reqQty}, '${l.reason || ''}')" class="px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-xs font-bold shadow-sm">🖨️ 列印</button>
+                                    <button onclick="openRestockFromRepl('${l.repId}', '${matId}', '${pNameEncoded}', '${l.supplier}', ${remainQty})" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold shadow-sm animate-pulse">🚚 進貨</button>
+                                </td>
+                            </tr>`;
+                        }).join('');
+
+                        let activeRepHtml = '';
+                        if (activeReps.length > 0) {
+                            activeRepHtml = `
+                            <div class="bg-white p-3 rounded-lg border shadow-sm text-xs mt-1 mb-3 border-yellow-300">
+                                <span class="font-bold text-yellow-800 block mb-1.5">🛒 進行中之補貨申請單 (請核對單號進行點收)</span>
+                                <table class="w-full text-left border-collapse">
+                                    <thead><tr class="bg-yellow-100 font-bold text-yellow-800"><th class="p-1.5 w-32">補貨單號</th><th class="p-1.5 w-32">申請時間</th><th class="p-1.5">對象供應商</th><th class="p-1.5 text-center w-14">申請量</th><th class="p-1.5 text-center w-14">已到量</th><th class="p-1.5 text-center w-14">待收量</th><th class="p-1.5 text-right w-36">單據操作</th></tr></thead>
+                                    <tbody>${activeRepRows}</tbody>
+                                </table>
+                            </div>`;
+                        }
+
+                        // 🚀 產生下方的「歷史進貨/退料/領用紀錄」並加入視覺化 Badge
+                        let rRows = currentRestocks.filter(l => l.matId === matId).map(l => {
+                            // 判斷這筆紀錄是不是退料
+                            let isReturn = l.supplier === 'OMS退料回庫' || l.supplier === '停工退料';
+                            let actionBadge = isReturn ? `<span class="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-[10px] font-bold">退料</span>` : `<span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-bold">進貨</span>`;
+                            let qtyColor = isReturn ? 'text-purple-600' : 'text-green-600';
+                            let orderBadge = l.vendorShipId ? `<span class="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded font-mono text-[10px] shadow-sm">${l.vendorShipId}</span>` : '';
+                            
+                            return `<tr class="border-b hover:bg-gray-50 transition-colors">
+                                <td class="p-1.5 font-mono text-gray-500">${formatToLocalTime(l.time)}</td>
+                                <td class="p-1.5 text-center">${actionBadge}</td>
+                                <td class="p-1.5 font-bold ${qtyColor}">+${l.qty}</td>
+                                <td class="p-1.5 text-gray-600 font-bold">${l.supplier || ''}</td>
+                                <td class="p-1.5">${orderBadge}</td>
+                            </tr>`;
+                        }).join('');
                         
                         let dRows = currentDeductLogs.filter(l => l.matId === matId).map(l => 
-                            `<tr class="border-b"><td class="p-1.5 font-mono">${formatToLocalTime(l.time)}</td><td class="p-1.5 font-bold text-red-500">-${l.qty}</td><td class="p-1.5 font-bold text-indigo-600">${l.orderId}</td></tr>`
+                            `<tr class="border-b hover:bg-gray-50 transition-colors">
+                                <td class="p-1.5 font-mono text-gray-500">${formatToLocalTime(l.time)}</td>
+                                <td class="p-1.5 text-center"><span class="bg-red-100 text-red-700 px-1.5 py-0.5 rounded text-[10px] font-bold">扣料</span></td>
+                                <td class="p-1.5 font-bold text-red-500">-${l.qty}</td>
+                                <td class="p-1.5 font-bold text-indigo-600 font-mono"><span class="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded font-mono text-[10px] shadow-sm">${l.orderId}</span></td>
+                                <td class="p-1.5 text-gray-500 font-bold text-[10px]">${l.op || '系統'}</td>
+                            </tr>`
                         ).join('');
 
                         let aRows = currentAnomalies.filter(l => l.matId === matId).map(l => 
-                            `<tr class="border-b text-red-600"><td class="p-1.5 font-mono">${formatToLocalTime(l.time)}</td><td class="p-1.5 font-bold">${l.qty}</td><td class="p-1.5">${l.reason}</td><td class="p-1.5 text-gray-500">${l.supplier}</td></tr>`
+                            `<tr class="border-b text-red-600 hover:bg-red-50 transition-colors">
+                                <td class="p-1.5 font-mono">${formatToLocalTime(l.time)}</td>
+                                <td class="p-1.5 font-bold">${l.qty}</td>
+                                <td class="p-1.5">${l.reason}</td>
+                                <td class="p-1.5 text-gray-500">${l.supplier}</td>
+                            </tr>`
                         ).join('');
 
-                        detailsHTML += `
+                        // 最終縫合：把補貨清單接在最前面，歷史紀錄跟在後面
+                        detailsHTML += activeRepHtml + `
                             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-1 text-xs">
                                 <div class="bg-white p-3 rounded-lg border shadow-xs">
-                                    <span class="font-bold text-moSide block mb-1.5">📈 過去歷史進貨紀錄 (LOG)</span>
+                                    <span class="font-bold text-moSide block mb-1.5">📈 進貨與退料紀錄 (LOG)</span>
                                     <table class="w-full text-left border-collapse">
-                                        <thead><tr class="bg-gray-100 font-bold text-gray-500"><th class="p-1.5">時間</th><th class="p-1.5">進貨量</th><th class="p-1.5">總金額</th><th class="p-1.5">供應商</th><th class="p-1.5">廠商單號</th></tr></thead>
-                                        <tbody>${rRows || '<tr><td colspan="5" class="p-2 text-center text-gray-400 italic">暫無進貨紀錄</td></tr>'}</tbody>
+                                        <thead><tr class="bg-gray-100 font-bold text-gray-500"><th class="p-1.5 w-24">時間</th><th class="p-1.5 text-center w-10">動作</th><th class="p-1.5 w-12">數量</th><th class="p-1.5">來源 / 對象</th><th class="p-1.5">備註單號</th></tr></thead>
+                                        <tbody>${rRows || '<tr><td colspan="5" class="p-3 text-center text-gray-400 italic">暫無進貨與退料紀錄</td></tr>'}</tbody>
                                     </table>
                                 </div>
                                 <div class="bg-white p-3 rounded-lg border shadow-xs">
-                                    <span class="font-bold text-moSide block mb-1.5">📉 過去生產領料紀錄 (LOG)</span>
+                                    <span class="font-bold text-moSide block mb-1.5">📉 生產領料紀錄 (LOG)</span>
                                     <table class="w-full text-left border-collapse">
-                                        <thead><tr class="bg-gray-100 font-bold text-gray-500"><th class="p-1.5">時間</th><th class="p-1.5">領用量</th><th class="p-1.5">關聯訂單</th></tr></thead>
-                                        <tbody>${dRows || '<tr><td colspan="3" class="p-2 text-center text-gray-400 italic">暫無領用紀錄</td></tr>'}</tbody>
+                                        <thead><tr class="bg-gray-100 font-bold text-gray-500"><th class="p-1.5 w-24">時間</th><th class="p-1.5 text-center w-10">動作</th><th class="p-1.5 w-12">數量</th><th class="p-1.5">關聯訂單</th><th class="p-1.5">操作人</th></tr></thead>
+                                        <tbody>${dRows || '<tr><td colspan="5" class="p-3 text-center text-gray-400 italic">暫無領用紀錄</td></tr>'}</tbody>
                                     </table>
                                 </div>
                                 <div class="bg-white p-3 rounded-lg border shadow-xs lg:col-span-2">
                                     <span class="font-bold text-red-700 block mb-1.5">⚠️ 材料進貨異常通報紀錄</span>
                                     <table class="w-full text-left border-collapse">
                                         <thead><tr class="bg-red-50 font-bold text-red-700"><th class="p-1.5">通報時間</th><th class="p-1.5">異常數量</th><th class="p-1.5">異常說明 / 原因</th><th class="p-1.5">來源廠商</th></tr></thead>
-                                        <tbody>${aRows || '<tr><td colspan="4" class="p-2 text-center text-gray-400 italic">常態優良，無異常通報紀錄</td></tr>'}</tbody>
+                                        <tbody>${aRows || '<tr><td colspan="4" class="p-3 text-center text-gray-400 italic">常態優良，無異常通報紀錄</td></tr>'}</tbody>
                                     </table>
                                 </div>
                             </div>`;
@@ -1899,7 +2085,12 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                             if (status === '估算中') { 
                                 htmlStr += `<button onclick="openMatModal('${oId}', 'estimate')" class="w-20 bg-indigo-500 text-white py-1 rounded font-bold shadow animate-pulse">📐 帶入配料</button>`; 
                             } 
+                            else if (status === '估算中') { 
+                                htmlStr += `<button onclick="openMatModal('${oId}', 'estimate')" class="w-20 bg-indigo-500 text-white py-1 rounded font-bold shadow animate-pulse">📐 帶入配料</button>`; 
+                            } 
                             else if (status === '待規劃') { 
+                                // 🚀 修正：改傳入 'view' 模式，確保排程人員點開只是純看配方，絕對不會觸發扣料
+                                htmlStr += `<button onclick="openMatModal('${oId}', 'view')" class="w-20 bg-gray-500 text-white py-1 rounded font-bold shadow">🔍 檢閱配料</button>`;
                                 htmlStr += `<button onclick="openPlanModal('${oId}')" class="w-20 bg-purple-600 text-white py-1 rounded font-bold shadow animate-pulse">📋 工序規劃</button>`; 
                             } 
                             else if (status === '待扣料') { 
@@ -1907,8 +2098,9 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                                 htmlStr += `<button onclick="openMatModal('${oId}', 'normal')" class="w-20 bg-yellow-500 text-white py-1 rounded font-bold shadow animate-pulse">📦 執行扣料</button>`; 
                             } 
                             else if (status === '原料不足') { 
-                                htmlStr += `<button onclick="openReplenishModal('', '', '')" class="w-20 bg-red-100 text-red-700 border border-red-300 py-1 rounded font-bold shadow">🛒 補貨</button>`;
-                                htmlStr += `<button onclick="openMatModal('${oId}', 'normal')" class="w-20 bg-yellow-500 text-white py-1 rounded font-bold shadow animate-pulse">📦 再次扣料</button>`; 
+                                // 🚀 將 oId (訂單編號) 傳入第 5 個參數，成功連動補貨原因！
+                                htmlStr += `<button onclick="openReplenishModal('', '', '', '', '${oId}')" class="w-20 bg-red-100 text-red-700 border border-red-300 py-1 rounded font-bold shadow animate-pulse">🛒 補貨</button>`;
+                                htmlStr += `<button onclick="openMatModal('${oId}', 'normal')" class="w-20 bg-yellow-500 text-white py-1 rounded font-bold shadow">📦 再次扣料</button>`; 
                             } 
                             else if (status === '待生產') { 
                                 htmlStr += `<button onclick="generateWoPDF('${oId}')" class="w-16 bg-gray-600 text-white py-1 rounded font-bold shadow">🖨️ 印工單</button>`;
@@ -1936,8 +2128,9 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                             
                             btnSlot1 = htmlStr;
                         } else if (currentSysName === 'ERP') {
-                            btnSlot4 = `<button onclick="openReplenishModal('${row['物料編號']}', '${encodeURIComponent(row['品名'] + ' ' + row['規格']||'')}', '${row['供應商']||''}')" class="w-24 bg-yellow-400 text-yellow-900 py-1 rounded hover:bg-yellow-500 font-bold shadow-sm">🛒 補貨申請</button>`; 
-                        }
+                        // 外層按鈕只保留純新增補貨的功能，[點收進貨] 已經安全移入展開日誌的單號列表裡了！
+                        btnSlot3 = `<button onclick="openReplenishModal('${row['物料編號']}', '${encodeURIComponent((row['品名']||'') + ' ' + (row['規格']||''))}', '${row['供應商']||''}')" class="w-24 bg-yellow-400 text-yellow-900 py-1 rounded hover:bg-yellow-500 font-bold shadow-sm">🛒 補貨申請</button>`; 
+                    }
                     }
 
                     // 宣告動態總跨欄數
@@ -2112,8 +2305,79 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
             let btnRow = document.getElementById('btn_row_' + idx);
             if(btnRow) {
                 btnRow.classList.toggle('hidden');
-                let isCollapse = btnRow.classList.contains('hidden'); el.innerText = isCollapse ? '▶' : '▼';
+                let isCollapse = btnRow.classList.contains('hidden'); 
+                el.innerText = isCollapse ? '▶' : '▼';
+                
+                // 🚀 關鍵修復：收起第一層時，強制連帶收起第二層的日誌詳情
+                if (isCollapse) {
+                    let detailRow = document.getElementById('detail_' + idx);
+                    if (detailRow && !detailRow.classList.contains('hidden')) {
+                        detailRow.classList.add('hidden');
+                        let detailBtn = document.getElementById('btn_detail_' + idx);
+                        if (detailBtn) {
+                            detailBtn.innerText = '查看 ▼';
+                            detailBtn.className = "w-20 bg-gray-200 border border-gray-300 text-gray-700 py-1 rounded font-bold hover:bg-gray-300 transition-colors shadow-sm";
+                        }
+                    }
+                }
             }
+        };
+        window.printReplenishOrder = function(repId, matId, pNameEncoded, supplier, reqQty, reason) {
+            let pName = decodeURIComponent(pNameEncoded);
+            let dateStr = new Date().toISOString().split('T')[0];
+            let op = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
+            let myCompany = "仕罡印刷事業有限公司";
+            
+            // 產生精緻的 PDF 補貨申請單 HTML
+            let html = `
+                <div style="padding:20px; font-family:'微軟正黑體', sans-serif; color:#374151; background:#fff; font-size:12px;">
+                    <h1 style="text-align:center; font-size:22px; font-weight:bold; margin:0 0 4px 0; letter-spacing:2px;">${myCompany}</h1>
+                    <h2 style="text-align:center; font-size:14px; margin:0 0 20px 0; border-bottom:1px solid #475569; padding-bottom:4px; color:#475569; letter-spacing:1px;">請購 / 補貨申請單 (Purchase Request)</h2>
+                    
+                    <table style="width:100%; margin-bottom:15px; border-collapse:collapse;">
+                        <tr style="vertical-align:top;">
+                            <td>
+                                <p style="margin:0 0 4px 0;"><strong>供應廠商：</strong> <span style="font-size:14px; font-weight:bold;">${supplier || '未指定'}</span> 御中</p>
+                                <p style="margin:0;"><strong>申請日期：</strong> ${dateStr}</p>
+                            </td>
+                            <td style="text-align:right; color:#64748B; font-size:11px;">
+                                <p style="margin:0; font-weight:bold; color:#000;">請購單號：${repId}</p>
+                                <p style="margin:2px 0 0 0;">申請人員：${op}</p>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <table style="width:100%; border-collapse:collapse; border:1px solid #475569; font-size:12px; text-align:left; margin-bottom:15px;">
+                        <thead style="background:#f1f5f9;">
+                            <tr style="border-b:1px solid #475569;">
+                                <th style="padding:8px; border:1px solid #475569; width:120px;">物料編號</th>
+                                <th style="padding:8px; border:1px solid #475569;">物料規格與品名</th>
+                                <th style="padding:8px; border:1px solid #475569; text-align:center; width:80px;">請購數量</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding:10px; border:1px solid #475569; font-family:monospace; font-weight:bold;">${matId}</td>
+                                <td style="padding:10px; border:1px solid #475569; font-weight:bold;">${pName}</td>
+                                <td style="padding:10px; border:1px solid #475569; text-align:center; font-weight:bold; font-size:14px; color:#b91c1c;">${reqQty}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <div style="font-size:11px; color:#64748B; margin-top:15px; border-top:1px dashed #cbd5e1; padding-top:8px;">
+                        <p style="font-weight:bold; margin:0 0 2px 0; color:#475569;">【請購原因與特別指示】</p>
+                        <p style="margin:0; white-space:pre-wrap;">${reason || '常規庫存安全存量補充'}</p>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; margin-top:60px;">
+                        <div style="width:30%; text-align:center; border-top:1px solid #000; padding-top:5px; font-size:11px;">申請人簽章</div>
+                        <div style="width:30%; text-align:center; border-top:1px solid #000; padding-top:5px; font-size:11px;">單位主管核准</div>
+                        <div style="width:30%; text-align:center; border-top:1px solid #000; padding-top:5px; font-size:11px;">廠商點收確認</div>
+                    </div>
+                </div>`;
+            
+            // 呼叫系統內建的 PDF 渲染引擎導出下載
+            execHTML2PDF(html, `仕罡_補貨申請單_${repId}.pdf`);
         };
 
         function generateErpMatId(supName) {
@@ -2178,25 +2442,187 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
             }, 50);
         };
 
-        window.addMatRow = function(matId = '', baseQty = '', matName = '', note = '', cost = '', sell = '') {
-            let initVal = matName ? matName : ''; const div = document.createElement('div'); 
-            div.className = 'flex gap-2 mat-row items-center border-b border-gray-100 pb-2 mb-2 px-1 hover:bg-gray-50 transition-colors relative';
+        window.addMatRow = function(matId = '', qty = '', matName = '', note = '', cost = '', sell = '') {
+            let initVal = matName ? matName : ''; const div = document.createElement('div');
+            div.className = 'flex gap-2 mat-row items-center border-b border-gray-100 pb-2 mb-2 px-1 relative';
             div.innerHTML = `
-                <input type="text" value="${note}" class="mat-note w-20 p-2 border border-gray-300 rounded focus:ring-1 focus:ring-moSide text-xs text-center" placeholder="備註">
+                <input type="text" value="${note}" readonly class="mat-note w-20 p-2 border border-gray-200 bg-gray-100 rounded text-xs text-center cursor-not-allowed text-gray-500">
                 <div class="flex-1 relative">
                     <input type="hidden" class="mat-real-id" value="${matId}">
-                    <input type="text" value="${initVal}" class="mat-sel-input w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-moSide text-sm font-bold text-gray-700 tracking-wide" placeholder="搜尋料號或品名 (%多條件)..." onfocus="this.closest('.mat-row').style.zIndex='9999'; filterCustomMat(this);" onblur="setTimeout(()=>this.closest('.mat-row').style.zIndex='1', 250);" oninput="filterCustomMat(this); calcMatCost();" onchange="calcMatCost()" autocomplete="off">
-                    <div class="mat-custom-dl absolute left-0 top-full mt-1 z-[9999] w-full bg-white border border-gray-300 rounded shadow-2xl max-h-56 overflow-y-auto hidden"></div>
+                    <input type="text" value="${initVal}" readonly class="mat-sel-input w-full p-2 border border-gray-200 bg-gray-100 rounded text-sm font-bold text-gray-500 tracking-wide cursor-not-allowed">
                 </div>
                 <div class="w-16 text-center text-blue-700 font-bold text-sm mat-stock-display flex items-center justify-center bg-blue-50 border border-blue-100 rounded h-[38px]">-</div>
-                <input type="number" value="${cost}" class="mat-cost w-16 p-2 border border-red-200 rounded focus:ring-1 focus:ring-red-400 text-sm text-red-600 text-center font-bold bg-red-50 h-[38px]" placeholder="0" oninput="calcMatCost()">
-                <input type="number" value="${sell}" class="mat-sell w-16 p-2 border border-green-200 rounded focus:ring-1 focus:ring-green-400 text-sm text-green-700 text-center font-bold bg-green-50 h-[38px]" placeholder="0" oninput="calcMatCost()">
-                <input type="number" value="${baseQty}" class="mat-qty w-16 p-2 border border-gray-300 rounded focus:ring-1 focus:ring-moSide text-sm text-center font-bold h-[38px]" placeholder="0" oninput="calcMatCost()" onchange="calcMatCost()" min="0">
-                <div class="w-12 text-center actual-qty-display text-gray-800 font-bold text-sm h-[38px] flex items-center justify-center">0</div>
-                <button onclick="this.closest('.mat-row').remove(); calcMatCost();" class="w-6 text-gray-300 hover:text-red-500 font-bold text-xl leading-none transition-colors flex items-center justify-center h-[38px]">&times;</button>
+                <input type="number" value="${cost}" readonly class="mat-cost w-16 p-2 border border-red-100 bg-gray-100 rounded text-sm text-gray-500 text-center font-bold h-[38px] cursor-not-allowed">
+                <input type="number" value="${sell}" readonly class="mat-sell w-16 p-2 border border-green-100 bg-gray-100 rounded text-sm text-gray-500 text-center font-bold h-[38px] cursor-not-allowed">
+                <div class="w-16 text-center actual-qty-display text-indigo-700 font-bold text-sm bg-indigo-50 border border-indigo-100 rounded h-[38px] flex items-center justify-center">${qty || 0}</div>
             `;
             document.getElementById('matList').appendChild(div);
         };
+
+        function calcMatCost() {
+            const targetQty = parseFloat(document.getElementById('estTargetQty').value) || 0;
+            let totalCostSum = 0;
+            let totalSellSum = 0;
+
+            const rows = document.querySelectorAll('#matList .mat-row');
+            rows.forEach(row => {
+                const cost = parseFloat(row.querySelector('.mat-cost').value) || 0;
+                const sell = parseFloat(row.querySelector('.mat-sell').value) || 0;
+                // 實際需扣直接採用 UI 上的值，不再乘上投產量
+                const actualDeduct = parseFloat(row.querySelector('.actual-qty-display').innerText) || 0;
+
+                totalCostSum += cost * actualDeduct;
+                totalSellSum += sell * actualDeduct;
+
+                const stockDisplay = row.querySelector('.mat-stock-display');
+                const matId = row.querySelector('.mat-real-id').value;
+                if (matId && stockDisplay && stockDisplay.innerText === '-') {
+                    const matched = (currentDropdowns['物料編號'] || []).find(opt => opt.id === matId);
+                    if (matched) {
+                        let cat = String(matched.category || '');
+                        let isService = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('代工') || cat.includes('費');
+                        stockDisplay.innerText = isService ? '∞' : matched.stock;
+
+                        if (!isService && matched.stock < actualDeduct) {
+                            stockDisplay.className = 'w-16 text-center text-red-600 font-bold text-sm mat-stock-display flex items-center justify-center bg-red-50 border border-red-200 rounded h-[38px] animate-pulse';
+                        } else {
+                            stockDisplay.className = 'w-16 text-center text-blue-700 font-bold text-sm mat-stock-display flex items-center justify-center bg-blue-50 border border-blue-100 rounded h-[38px]';
+                        }
+                    }
+                }
+            });
+
+            const finalProfit = totalSellSum - totalCostSum;
+            const finalUnitPrice = targetQty > 0 ? Number((totalSellSum / targetQty).toFixed(2)) : 0;
+
+            document.getElementById('estTotalProductSum').innerText = `$ ${Math.round(totalSellSum).toLocaleString()}`;
+            document.getElementById('estUnitPrice').innerText = `$ ${finalUnitPrice.toLocaleString()}`;
+            document.getElementById('matTotalCost').innerText = Math.round(totalCostSum).toLocaleString();
+
+            const profitEl = document.getElementById('estEstProfit');
+            if (profitEl) {
+                profitEl.innerText = `$ ${Math.round(finalProfit).toLocaleString()}`;
+                profitEl.className = finalProfit < 0 ? 'text-red-600 text-xl font-bold leading-relaxed' : 'text-green-600 text-xl font-bold leading-relaxed';
+            }
+        }
+
+        function openMatModal(orderId, actionType) {
+            document.getElementById('matOrderId').innerText = orderId;
+            document.getElementById('matActionType').value = actionType;
+            window.activeMatOrderId = orderId;
+            document.getElementById('matList').innerHTML = '';
+
+            const isNormal = (actionType === 'normal');
+            const isView = (actionType === 'view'); // 🚀 新增純檢閱模式
+            
+            let title = "📐 訂單配料成本與商務估價"; 
+            let btnText = "儲存明細";
+            
+            if (isNormal) { title = "📦 最終確認：檢視配料與執行實體扣料"; btnText = "確認配料無誤，執行扣料"; }
+            if (isView) { title = "🔍 檢閱配料明細 (供排程參考，不可編輯)"; btnText = "關閉檢閱"; }
+            
+            document.getElementById('matModalTitle').innerText = title; 
+            const submitBtn = document.getElementById('matSubmitBtn');
+            submitBtn.innerText = btnText;
+            
+            // 🚀 防呆機制：如果是純檢閱，按鈕只執行關閉，並將備註欄位上鎖
+            if (isView) {
+                submitBtn.onclick = () => closeModal('matModal');
+                document.getElementById('estFinalDetailsText').readOnly = true;
+                document.getElementById('estFinalDetailsText').classList.add('bg-gray-100', 'cursor-not-allowed', 'text-gray-500');
+            } else {
+                submitBtn.onclick = () => submitMaterialCheck(submitBtn);
+                document.getElementById('estFinalDetailsText').readOnly = false;
+                document.getElementById('estFinalDetailsText').classList.remove('bg-gray-100', 'cursor-not-allowed', 'text-gray-500');
+            }
+
+            let rowData = currentTableData.find(r => r['訂單編號'] === orderId) || {};
+            let targetQty = parseFloat(rowData['交貨量']) || parseFloat(rowData['數量']) || 1; 
+            let yieldRate = parseFloat(rowData['預估良率']) || 100; 
+            let prodQty = parseFloat(rowData['投產量']) || parseFloat(rowData['訂購數量']) || targetQty;
+
+            document.getElementById('estTargetQty').value = targetQty; 
+            document.getElementById('estYieldRate').value = yieldRate; 
+            document.getElementById('estQty').value = prodQty;
+            document.getElementById('estFinalDetailsText').value = rowData['訂單細項'] || '';
+
+            let savedMats = []; try { savedMats = JSON.parse(rowData['配料明細'] || '[]'); } catch(e){}
+
+            if (savedMats.length > 0) {
+                savedMats.forEach(m => {
+                    let matObj = (currentDropdowns['物料編號']||[]).find(opt => opt.id === m.id);
+                    let mName = matObj ? matObj.name : (m.customName ? m.customName : '');
+                    let costVal = m.cost !== undefined ? m.cost : (matObj ? matObj.price : 0);
+                    let sellVal = m.sell !== undefined ? m.sell : (matObj ? matObj.sellPrice : 0);
+                    addMatRow(m.id, m.qty, mName, m.note || '', costVal, sellVal);
+                });
+            }
+
+            window.estImagesData = [];
+            try { window.estImagesData = JSON.parse(rowData['示意圖'] || '[]'); } catch(e){}
+            if (typeof renderEstImagesPreview === 'function') {
+                renderEstImagesPreview(true);
+            }
+
+            setTimeout(() => { calcMatCost(); }, 100);
+            document.getElementById('matModal').classList.remove('hidden');
+        }
+
+        function submitMaterialCheck(btn) {
+            const orderId = document.getElementById('matOrderId').innerText;
+            const actionType = document.getElementById('matActionType').value;
+            const op = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
+
+            let materialsArr = [];
+            const rows = document.querySelectorAll('#matList .mat-row');
+
+            rows.forEach(row => {
+                const id = row.querySelector('.mat-real-id').value;
+                const customName = row.querySelector('.mat-sel-input').value.trim();
+                const note = row.querySelector('.mat-note').value.trim();
+                const cost = parseFloat(row.querySelector('.mat-cost').value) || 0;
+                const sell = parseFloat(row.querySelector('.mat-sell').value) || 0;
+                const actualQty = parseFloat(row.querySelector('.actual-qty-display').innerText) || 0;
+
+                if (id || customName) {
+                    materialsArr.push({
+                        id: id, customName: customName, note: note, cost: cost, sell: sell, qty: actualQty
+                    });
+                }
+            });
+
+            const targetQty = parseFloat(document.getElementById('estTargetQty').value) || 1;
+            const yieldRate = parseFloat(document.getElementById('estYieldRate').value) || 100;
+            const qty = parseFloat(document.getElementById('estQty').value) || targetQty;
+            const details = document.getElementById('estFinalDetailsText').value;
+
+            let totalCostSum = 0; let totalSellSum = 0;
+            materialsArr.forEach(m => { totalCostSum += m.cost * m.qty; totalSellSum += m.sell * m.qty; });
+            const unitPrice = targetQty > 0 ? Number((totalSellSum / targetQty).toFixed(2)) : 0;
+
+            const estParams = {
+                targetQty: targetQty, yieldRate: yieldRate, qty: qty, unitPrice: unitPrice,
+                totalAmount: totalSellSum, freightCost: 0, freightPrice: 0, details: details
+            };
+
+            btn.disabled = true; btn.innerText = "資料傳輸中...";
+            const executeDeduct = (actionType !== 'estimate');
+
+            google.script.run.withSuccessHandler(res => {
+                // 根據後端回傳的狀態，決定跳出的警示框類型
+                if (res.success === false) {
+                    showCustomAlert("⚠️ 庫存不足警告", res.msg);
+                } else {
+                    showCustomAlert("系統提示", res.msg);
+                }
+                closeModal('matModal'); 
+                refreshSystem();
+                btn.disabled = false; btn.innerText = "確認送出";
+            }).withFailureHandler(err => {
+                alert("儲存失敗：" + err); 
+                btn.disabled = false; btn.innerText = "確認送出";
+            }).checkAndDeductMaterials(orderId, materialsArr, executeDeduct, actionType, [], op, estParams);
+        }
 
         window.filterCustomMat = function(inputEl) {
             let q = inputEl.value.toLowerCase(); let keywords = q.split('%').map(k => k.trim()).filter(k=>k); let dl = inputEl.nextElementSibling;
@@ -2346,75 +2772,189 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
             document.getElementById(`input_${headerName}`).value = selectedValues.join(',');
         }
 
-        function openMatModal(orderId, actionType) {
-            document.getElementById('matOrderId').innerText = orderId; 
-            document.getElementById('matActionType').value = actionType;
-            window.activeMatOrderId = orderId; 
-            document.getElementById('matList').innerHTML = '';
-            
-            const isEst = (actionType === 'estimate'); const isNormal = (actionType === 'normal');
-            const isAddonOrRework = (actionType === 'addon' || actionType === 'rework'); const isReadOnly = isNormal;
-
-            document.getElementById('estTopBusinessGroup').classList.toggle('hidden', isAddonOrRework);
-            let oldGroup = document.getElementById('addonTypeGroup'); if(oldGroup) oldGroup.remove();
-
-            let title = "📐 訂單配料成本與商務估價"; let btnText = "儲存估價配料";
-            if (isNormal) { title = "📦 最終確認：檢視配料與執行實體扣料"; btnText = "確認配料無誤，執行扣料"; }
-            if (actionType === 'addon') { 
-                title = "➕ 追加備料扣料"; btnText = "確認追加並扣料"; 
-                let addonTypeHtml = `<div id="addonTypeGroup" class="p-3 bg-red-50 border border-red-200 rounded-lg mb-2 text-xs font-bold text-red-700 shadow-sm">⚠️ 系統提示：此追加備料將全數定義為 [加工損失製程耗損]，成本會自動轉嫁計入內部專案成本中。<input type="radio" name="addonType" value="loss" checked class="hidden"></div>`;
-                document.getElementById('matList').insertAdjacentHTML('beforebegin', addonTypeHtml);
-            }
-            if (actionType === 'rework') { title = "🔄 重工備料扣料"; btnText = "確認重工並扣料"; }
-
-            document.getElementById('matModalTitle').innerText = title; document.getElementById('matSubmitBtn').innerText = btnText;
-            document.getElementById('addMatBtn').classList.toggle('hidden', isReadOnly);
-
-            let rowData = currentTableData.find(r => r['訂單編號'] === orderId) || {};
-            let targetQty = parseFloat(rowData['數量']) || 1; let yieldRate = parseFloat(rowData['預估良率']) || 100; let prodQty = parseFloat(rowData['訂購數量']) || targetQty;
-            
-            document.getElementById('estTargetQty').value = targetQty; document.getElementById('estYieldRate').value = yieldRate; document.getElementById('estQty').value = prodQty;
-            document.getElementById('estUnitPrice').innerText = "$ " + parseFloat(rowData['單價'] || 0).toLocaleString();
-            document.getElementById('estFreightCost').value = rowData['運費成本'] || 0; document.getElementById('estFreightPrice').value = rowData['運費報價'] || 0;
-            document.getElementById('estFinalDetailsText').value = rowData['訂單細項'] || ''; document.getElementById('estFinalDetailsText').disabled = isReadOnly;
-
-            let savedMats = []; try { savedMats = JSON.parse(rowData['配料明細'] || '[]'); } catch(e){}
-
-            if ((isEst || isNormal) && savedMats.length > 0) {
-                savedMats.forEach(m => {
-                    let matObj = (currentDropdowns['物料編號']||[]).find(opt => opt.id === m.id); let bq = m.baseQty !== undefined ? m.baseQty : m.qty;
-                    let mName = matObj ? matObj.name : (m.customName ? m.customName : '');
-                    let costVal = m.cost !== undefined ? m.cost : (matObj ? matObj.price : 0);
-                    let sellVal = m.sell !== undefined ? m.sell : (matObj ? matObj.sellPrice : 0);
-                    addMatRow(m.id, bq, mName, m.note || '', costVal, sellVal);
-                });
-            } else { addMatRow(); }
-
-            setTimeout(() => {
-                if (isReadOnly) { document.querySelectorAll('#estTopBusinessGroup input, .mat-row input, .mat-row button').forEach(el => { el.disabled = true; }); } 
-                else if (isAddonOrRework) { 
-                    document.querySelectorAll('#estTopBusinessGroup input').forEach(el => { el.disabled = true; }); 
-                    document.querySelectorAll('.mat-row input, .mat-row button').forEach(el => { el.disabled = false; }); 
-                } 
-                else { document.querySelectorAll('#estTopBusinessGroup input, .mat-row input, .mat-row button').forEach(el => { el.disabled = false; }); }
-                calcMatCost();
-            }, 100);
-            // 【✨ 舊精華精密復活點】開啟彈窗時，自動解析並還原 Supabase 中已存好的示意圖縮圖
-            window.estImagesData = [];
-            if (rowData['示意圖'] && String(rowData['示意圖']).trim() !== '') {
-                try {
-                    let imgs = typeof rowData['示意圖'] === 'string' ? JSON.parse(rowData['示意圖']) : rowData['示意圖'];
-                    if (Array.isArray(imgs)) {
-                        window.estImagesData = [...imgs];
-                    }
-                } catch(e){ console.error("彈窗還原圖片失敗:", e); }
-            }
-            // 執行渲染，若是正常/唯讀扣料狀態（isNormal）則將刪除紐鎖定隱藏
-            renderEstImagesPreview(isNormal);
-            document.getElementById('matModal').classList.remove('hidden');
-        }
+        
 
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        // 🚀 1. 【退料功能】回到上一動，退回庫存並將狀態改回 [待扣料]
+        window.revertOmsDeduction = function(orderId) {
+            if(!confirm(`⚠️ 確定要對訂單 [${orderId}] 執行退料嗎？\n這將會把本單已扣除的實體庫存全數加回，並將狀態退回至 [待扣料]。`)) return;
+            
+            const btn = event.currentTarget;
+            btn.innerHTML = '退料中...'; btn.disabled = true;
+            const op = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
+            
+            google.script.run.withSuccessHandler(res => {
+                showCustomAlert("🔙 退料成功", res.msg);
+                refreshSystem();
+            }).withFailureHandler(err => {
+                showCustomAlert("退料失敗", err);
+                btn.innerHTML = '🔙 退料'; btn.disabled = false;
+            }).revertDeductionOrder(orderId, op);
+        };
+
+        // 🚀 2. 【開始生產功能】正式啟動機台，推進第一道工序
+        window.startProduction = function(orderId) {
+            if(!confirm(`🚀 確定要正式啟動訂單 [${orderId}] 投入生產嗎？\n啟動後，現場將可開始回報機台產出進度。`)) return;
+            
+            const btn = event.currentTarget;
+            btn.innerHTML = '啟動中...'; btn.disabled = true;
+            const op = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
+            
+            google.script.run.withSuccessHandler(res => {
+                showCustomAlert("🚀 生產啟動", res.msg);
+                refreshSystem();
+            }).withFailureHandler(err => {
+                showCustomAlert("啟動失敗", err);
+                btn.innerHTML = '🚀 開始生產'; btn.disabled = false;
+            }).startProductionWO(orderId, op);
+        };
+
+        // 🚀 3. 【產出實體生產工單 PDF】(橫式滿版 + 智慧防切斷分頁引擎)
+        window.generateWoPDF = function(orderId) {
+            let rowData = currentTableData.find(r => r['訂單編號'] === orderId) || (systemCache['訂單管理']?.data || []).find(o => o['訂單編號'] === orderId);
+            if (!rowData) return alert("找不到訂單資料！");
+
+            let steps = [];
+            try { steps = JSON.parse(rowData['工序規劃紀錄'] || '[]'); } catch(e){}
+            if (steps.length === 0) return alert("此單尚未進行工序規劃，沒有東西可以印！");
+
+            let imgs = [];
+            try { imgs = JSON.parse(rowData['示意圖'] || '[]'); } catch(e){}
+
+            let bom = [];
+            try { bom = JSON.parse(rowData['配料明細'] || '[]'); } catch(e){}
+
+            // 將工序陣列轉換為 PDF 內的表格列
+            let stepsHtml = steps.map(s => {
+                let matText = (s.requiredMats || []).map(matKey => {
+                    let mId = matKey.split('@@')[0]; 
+                    let bomItem = bom.find((b, idx) => `${b.id}@@${idx}` === matKey || b.id === matKey);
+                    if (bomItem) {
+                        return `<div style="margin-bottom: 3px;">• <span style="font-weight: bold; color: #1e3a8a;">[${mId}]</span> ${bomItem.customName || mId} <span style="color: #b91c1c; font-weight: bold;">(領料量: ${bomItem.qty})</span></div>`;
+                    } else {
+                        return `<div>• ${mId}</div>`;
+                    }
+                }).join('');
+                
+                if (!matText) matText = '<span style="color:#999; font-style:italic;">(無額外消耗料件)</span>';
+                let timeStr = `${(s.startDate||'').replace('T', ' ')} <br>~<br> ${(s.endDate||'').replace('T', ' ')}`;
+
+                // 🚀 加入 page-break-inside: avoid 讓這一列「同進同出」，絕不被切斷
+                return `
+                    <tr class="print-avoid-break" style="page-break-inside: avoid; break-inside: avoid; border-bottom: 1px solid #000; background-color: ${s.seq % 2 === 0 ? '#f8fafc' : '#fff'};">
+                        <td style="padding: 10px; text-align: center; border-right: 1px solid #000; font-weight: bold; font-size: 16px;">${s.seq}</td>
+                        <td style="padding: 10px; border-right: 1px solid #000;">
+                            <div style="font-weight: bold; font-size: 15px; color: #1e3a8a; margin-bottom: 4px;">${s.name}</div>
+                            <div style="font-size: 12px; color: #555;">機台: ${s.mac}</div>
+                            <div style="font-size: 12px; color: #555;">負責人: <span style="font-weight:bold; color:#000;">${s.emp}</span></div>
+                        </td>
+                        <td style="padding: 10px; border-right: 1px solid #000; font-size: 11px; font-family: monospace; color: #444; text-align:center;">${timeStr}</td>
+                        <td style="padding: 10px; border-right: 1px solid #000; font-size: 13px; line-height: 1.4;">${matText}</td>
+                        <td style="padding: 10px; font-size: 14px; color: #b91c1c; font-weight: bold; vertical-align: top; line-height: 1.4;">${s.remark || ''}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            // 處理底部示意圖
+            let imgHtml = '';
+            if (imgs.length > 0) {
+                let imgTags = imgs.map(src => `<img src="${src}" style="max-height: 280px; max-width: 48%; border: 2px solid #ccc; margin-right: 15px; border-radius: 8px; object-fit: contain;">`).join('');
+                // 🚀 圖片區塊也加入防切斷保護
+                imgHtml = `
+                    <div class="print-avoid-break" style="page-break-inside: avoid; break-inside: avoid; margin-top: 20px;">
+                        <h3 style="font-size: 16px; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 12px; color: #333;">🖼️ 產品示意圖與參考附件</h3>
+                        <div style="display: flex;">${imgTags}</div>
+                    </div>
+                `;
+            }
+
+            let printOp = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
+            let printTime = new Date().toLocaleString('zh-TW', { hour12: false });
+
+            let html = `
+                <div style="width: 270mm; padding: 15px; font-family: '微軟正黑體', sans-serif; color: #000; background: #fff; box-sizing: border-box;">
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <h1 style="font-size: 28px; font-weight: 900; margin: 0; letter-spacing: 4px;">仕罡印刷事業 - 現場生產工單</h1>
+                        <p style="font-size: 11px; color: #666; margin-top: 5px;">列印時間: ${printTime} / 列印人: ${printOp}</p>
+                    </div>
+                    
+                    <div class="print-avoid-break" style="page-break-inside: avoid; break-inside: avoid;">
+                        <table style="width: 100%; border: 2px solid #000; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
+                            <tr>
+                                <th style="padding: 10px; border: 1px solid #000; background: #e2e8f0; width: 100px; text-align: right;">生產單號</th>
+                                <td style="padding: 10px; border: 1px solid #000; font-weight: bold; font-family: monospace; font-size: 18px; color: #000;">${rowData['訂單編號']}</td>
+                                <th style="padding: 10px; border: 1px solid #000; background: #e2e8f0; width: 100px; text-align: right;">客戶名稱</th>
+                                <td style="padding: 10px; border: 1px solid #000; font-weight: bold; font-size: 16px;">${rowData['客戶名稱'] || ''}</td>
+                            </tr>
+                            <tr>
+                                <th style="padding: 10px; border: 1px solid #000; background: #e2e8f0; text-align: right;">產品名稱</th>
+                                <td colspan="3" style="padding: 10px; border: 1px solid #000; font-weight: bold; font-size: 18px; color: #1e3a8a;">
+                                    ${rowData['產品名稱'] || ''} <span style="font-size: 13px; color: #555; font-weight: normal; margin-left: 10px;">(完成尺寸: ${rowData['完成尺寸']||'依原稿'})</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th style="padding: 10px; border: 1px solid #000; background: #e2e8f0; text-align: right;">預計產出</th>
+                                <td style="padding: 10px; border: 1px solid #000; font-weight: bold; color: #b91c1c; font-size: 16px;">${parseFloat(rowData['投產量'] || rowData['訂購數量'] || 0).toLocaleString()} 件</td>
+                                <th style="padding: 10px; border: 1px solid #000; background: #e2e8f0; text-align: right;">訂單備註</th>
+                                <td style="padding: 10px; border: 1px solid #000; font-size: 13px; line-height: 1.5;">${rowData['訂單細項'] || '無'}</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <h3 style="font-size: 16px; margin: 15px 0 8px 0; color: #111; font-weight: bold;">📋 生產排程與工序用料明細</h3>
+                    <table style="width: 100%; border: 2px solid #000; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr style="background: #cbd5e1; border-bottom: 2px solid #000;">
+                                <th style="padding: 10px; border-right: 1px solid #000; text-align: center; width: 40px;">序</th>
+                                <th style="padding: 10px; border-right: 1px solid #000; width: 160px;">工序 / 機台</th>
+                                <th style="padding: 10px; border-right: 1px solid #000; width: 140px; text-align:center;">排定時間</th>
+                                <th style="padding: 10px; border-right: 1px solid #000; width: 300px;">本道消耗配料</th>
+                                <th style="padding: 10px;">現場生產特別指示</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${stepsHtml}
+                        </tbody>
+                    </table>
+                    
+                    ${imgHtml}
+                    
+                    <div class="print-avoid-break" style="page-break-inside: avoid; break-inside: avoid; margin-top: 40px; display: flex; justify-content: space-between; font-size: 14px; font-weight: bold;">
+                        <div style="border-top: 1px solid #000; width: 28%; text-align: center; padding-top: 10px;">廠務排程簽核</div>
+                        <div style="border-top: 1px solid #000; width: 28%; text-align: center; padding-top: 10px;">生管覆核</div>
+                        <div style="border-top: 1px solid #000; width: 28%; text-align: center; padding-top: 10px;">現場小組長簽收</div>
+                    </div>
+                </div>
+            `;
+            
+            const element = document.getElementById('pdfContent');
+            element.innerHTML = html;
+            
+            let loadingEl = document.createElement('div');
+            loadingEl.id = 'pdfLoadingToast';
+            loadingEl.className = 'fixed top-10 left-1/2 transform -translate-x-1/2 bg-moSide text-white px-6 py-3 rounded-lg shadow-2xl z-[9999] flex items-center gap-3 font-bold tracking-wider text-sm';
+            loadingEl.innerHTML = '<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> 正在產出橫式生產工單，請稍候...';
+            document.body.appendChild(loadingEl);
+
+            // 🚀 關鍵升級：啟動 pagebreak 模組，並指定規避 'tr' 以及 '.print-avoid-break' 類別
+            const opt = { 
+                margin: 10, 
+                filename: `仕罡_現場生產工單_${rowData['訂單編號']}.pdf`, 
+                image: { type: 'jpeg', quality: 0.98 }, 
+                html2canvas: { scale: 2, useCORS: true, logging: false }, 
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+                pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.print-avoid-break', 'h3', 'img'] }
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                const toast = document.getElementById('pdfLoadingToast');
+                if(toast) toast.remove();
+            }).catch(err => {
+                alert("單據生成失敗：" + err);
+                const toast = document.getElementById('pdfLoadingToast');
+                if(toast) toast.remove();
+            });
+        };
         // [追加] 全員勾選狀態連動控制開關
 window.toggleHandoverAssignAll = function(el) {
     const gridContainer = document.getElementById('hoAssigneeGridContainer');
@@ -2656,16 +3196,16 @@ function smartSafeLinePush(creator, assigneeText, priority, lineContent) {
             btn.innerHTML = '<span class="btn-spinner"></span>儲存中...';
 
             let rowDataObj = {};
-            
-            // 遍歷當前載入的表頭，安全抓取數值
             currentHeaders.forEach(h => { 
                 let el = document.getElementById(`input_${h}`); 
-                if (el) {
-                    rowDataObj[h] = el.value; 
-                }
+                if (el) rowDataObj[h] = el.value; 
             });
 
-            // 【核心防呆卡控】如果是 OMS 創單，強行將一鍵牽引的 [配料明細] 與 [示意圖] 打包掛載
+            // 🚀 動態修補表頭對照：拯救失蹤的示意圖，強迫對接資料庫的 images 欄位！
+            if (!schemaMaps['訂單管理'].fields['示意圖']) {
+                schemaMaps['訂單管理'].fields['示意圖'] = 'images';
+            }
+
             if (currentSysName === 'OMS' && editingRowIndex === -1) {
                 if (window.tempPulledBomDetails) {
                     rowDataObj['配料明細'] = JSON.stringify(window.tempPulledBomDetails);
@@ -2679,23 +3219,16 @@ function smartSafeLinePush(creator, assigneeText, priority, lineContent) {
             const target = editingRowIndex !== -1 ? 'updateSheetData' : 'addSheetData';
             const args = editingRowIndex !== -1 ? [currentSheet, editingRowIndex, rowDataObj, op] : [currentSheet, rowDataObj, op];
 
-            // 呼叫 Google Script / Supabase 傳輸層
             google.script.run.withSuccessHandler(res => { 
-                showCustomAlert("ℹ️ 系統提示", "資料已成功與雲端安全同步存檔！");
+                showCustomAlert("ℹ️ 系統提示", "訂單已成功與雲端安全同步存檔！");
                 closeModal('formModal'); 
-                
-                // 創單存檔成功後，徹底清空全域牽引暫存暫存器
                 window.tempPulledBomDetails = null; 
                 window.tempPulledImages = null;
-                
-                // 🔥 【按鈕解鎖修復】成功後將按鈕狀態與文字徹底復原，避免下次開啟時卡死
                 btn.disabled = false;
                 btn.innerHTML = '儲存送出';
-                
                 refreshSystem(); 
             }).withFailureHandler(err => {
                 alert("存檔傳輸發生隱藏異常：" + err);
-                // 失敗時原本就有做解鎖
                 btn.disabled = false;
                 btn.innerHTML = '儲存送出';
             })[target](...args);
@@ -2724,34 +3257,159 @@ function smartSafeLinePush(creator, assigneeText, priority, lineContent) {
             }).updateUserPassword(userName, oldP, newP);
         }
         
+        window.currentShortageMap = {}; // 建立全域暫存，供彈窗選取時連動數量
+
         window.openReplenishModal = function(matId, pNameEncoded, supplier, shortageQty = '', relatedOrderId = '') {
-            document.getElementById('replMatId').value = matId; document.getElementById('replSupplier').value = supplier;
-            document.getElementById('replMatName').innerText = matId + " (" + decodeURIComponent(pNameEncoded) + ")";
-            document.getElementById('replQty').value = shortageQty;
+            const fixedGroup = document.getElementById('replMatFixedGroup');
+            const selectGroup = document.getElementById('replMatSelectGroup');
+            const searchInput = document.getElementById('replMatSearchInput');
+            const datalist = document.getElementById('dl_repl_mats');
+            const qtyInput = document.getElementById('replQty');
+            
+            window.currentShortageMap = {}; // 每次開啟前重置缺料快取
+
+            if (matId) {
+                // 模式 A: 固定料號 (由 ERP 庫存低於安全存量時開啟)
+                fixedGroup.classList.remove('hidden');
+                selectGroup.classList.add('hidden');
+                
+                document.getElementById('replMatId').value = matId; 
+                document.getElementById('replSupplier').value = supplier || '';
+                document.getElementById('replMatName').innerText = matId + " (" + decodeURIComponent(pNameEncoded) + ")";
+                searchInput.value = ''; 
+                qtyInput.value = shortageQty;
+            } else {
+                // 模式 B: 自選料號 (由 OMS 訂單缺料時開啟)
+                fixedGroup.classList.add('hidden');
+                selectGroup.classList.remove('hidden');
+                
+                document.getElementById('replMatId').value = ''; 
+                document.getElementById('replSupplier').value = '';
+                searchInput.value = '';
+                qtyInput.value = ''; 
+                
+                let opts = '';
+                let allMats = currentDropdowns['物料編號'] || [];
+
+                if (relatedOrderId) {
+                    // 🚀 啟動智慧缺料偵測引擎
+                    let rowData = currentTableData.find(r => r['訂單編號'] === relatedOrderId) || {};
+                    let bom = [];
+                    try { bom = JSON.parse(rowData['配料明細'] || '[]'); } catch(e){}
+
+                    // 1. 聚合訂單內所有同 ID 的材料數量
+                    let aggregatedBom = {};
+                    bom.forEach(m => {
+                        if (!aggregatedBom[m.id]) aggregatedBom[m.id] = 0;
+                        aggregatedBom[m.id] += (parseFloat(m.qty) || 0);
+                    });
+
+                    // 2. 比對當前庫存，精算缺貨量
+                    for (let id in aggregatedBom) {
+                        let reqQty = aggregatedBom[id];
+                        let matObj = allMats.find(opt => opt.id === id);
+                        if (matObj) {
+                            let cat = String(matObj.category || '');
+                            let isService = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('代工') || cat.includes('費');
+                            
+                            if (!isService) {
+                                let currentStock = parseFloat(matObj.stock) || 0;
+                                if (currentStock < reqQty) {
+                                    // 算出差額並無條件進位，存入快取
+                                    window.currentShortageMap[id] = {
+                                        name: matObj.name,
+                                        shortage: Math.ceil(reqQty - currentStock),
+                                        supplier: matObj.supplier || ''
+                                    };
+                                }
+                            }
+                        }
+                    }
+
+                    // 3. 根據缺貨結果渲染選單
+                    let shortIds = Object.keys(window.currentShortageMap);
+                    if (shortIds.length > 0) {
+                        searchInput.placeholder = `💡 偵測到 ${shortIds.length} 項缺料，請點選...`;
+                        shortIds.forEach(id => {
+                            let s = window.currentShortageMap[id];
+                            opts += `<option value="${id} - ${s.name.replace(/\[|\]/g, '')}"></option>`;
+                        });
+                        
+                        // 🎁 UX 極致優化：如果只有 1 項缺料，直接全自動帶入，免手動選！
+                        if (shortIds.length === 1) {
+                            let onlyId = shortIds[0];
+                            let onlyData = window.currentShortageMap[onlyId];
+                            searchInput.value = `${onlyId} - ${onlyData.name.replace(/\[|\]/g, '')}`;
+                            document.getElementById('replMatId').value = onlyId;
+                            document.getElementById('replSupplier').value = onlyData.supplier;
+                            qtyInput.value = onlyData.shortage;
+                        }
+                    } else {
+                        // 防呆：若查無缺料(可能別人剛進完貨)，恢復顯示全品項
+                        searchInput.placeholder = "目前試算無缺料，可手動輸入料號...";
+                        allMats.forEach(m => { opts += `<option value="${m.id} - ${m.name.replace(/\[|\]/g, '')}"></option>`; });
+                    }
+                } else {
+                    // 無關聯訂單的常規模式
+                    searchInput.placeholder = "請點擊選擇或輸入料號搜尋...";
+                    allMats.forEach(m => { opts += `<option value="${m.id} - ${m.name.replace(/\[|\]/g, '')}"></option>`; });
+                }
+                datalist.innerHTML = opts;
+            }
+            
             if (relatedOrderId) { document.getElementById('replReason').value = `訂單 [${relatedOrderId}] 生產備料不足`; } 
             else { document.getElementById('replReason').value = ''; }
+            
             document.getElementById('replenishModal').classList.remove('hidden');
-        }
+        };
+
+        // 捕捉下拉選單選擇後的連動資料
+        window.handleReplMatSelect = function(input) {
+            let val = input.value;
+            let parts = val.split(' - ');
+            if (parts.length > 0 && parts[0]) {
+                let matId = parts[0].trim();
+                document.getElementById('replMatId').value = matId;
+                
+                // 🚀 優先從缺料快取反查，瞬間填入「建議補貨量」與「供應商」
+                if (window.currentShortageMap && window.currentShortageMap[matId]) {
+                    document.getElementById('replSupplier').value = window.currentShortageMap[matId].supplier;
+                    document.getElementById('replQty').value = window.currentShortageMap[matId].shortage;
+                } else {
+                    // 若不在缺貨清單內(手動選了其他料)，只帶入供應商，數量留空自填
+                    let matObj = (currentDropdowns['物料編號'] || []).find(m => m.id === matId);
+                    if (matObj) {
+                        document.getElementById('replSupplier').value = matObj.supplier || '';
+                        document.getElementById('replQty').value = ''; 
+                    }
+                }
+            }
+        };
 
         function submitReplenish(btn) {
-            const matId = document.getElementById('replMatId').value; const qty = document.getElementById('replQty').value;
-            const supplier = document.getElementById('replSupplier').value; const reason = document.getElementById('replReason').value; 
+            const matId = document.getElementById('replMatId').value; 
+            const qty = document.getElementById('replQty').value;
+            const supplier = document.getElementById('replSupplier').value; 
+            const reason = document.getElementById('replReason').value; 
             const op = document.getElementById('userNameDisplay').innerText;
-            if(!qty || parseFloat(qty) <= 0) {
-                showCustomAlert("輸入錯誤", "請輸入正確的申請數量！");
-                return;
-            }
-            if(!reason.trim()) {
-                showCustomAlert("輸入錯誤", "請輸入補貨申請原因！"); 
-                return;
-            }
+            
+            if(!matId) { showCustomAlert("輸入錯誤", "請確實搜尋並選擇要補貨的物料！"); return; }
+            if(!qty || parseFloat(qty) <= 0) { showCustomAlert("輸入錯誤", "請輸入正確的申請數量！"); return; }
+            if(!reason.trim()) { showCustomAlert("輸入錯誤", "請輸入補貨申請原因！"); return; }
 
             btn.innerHTML = '請稍候...'; btn.disabled = true;
+            
+            // 🚀 加入 .withFailureHandler 捕捉錯誤，系統不再假裝成功！
             google.script.run.withSuccessHandler(res => {
-                showCustomAlert("系統提示", "補貨申請已成功送出！");
-                closeModal('replenishModal'); refreshSystem(); 
+                showCustomAlert("系統提示", "補貨申請單已成功送出！");
+                closeModal('replenishModal'); 
+                refreshSystem(); 
+            }).withFailureHandler(err => {
+                showCustomAlert("⚠️ 雲端寫入失敗", "Supabase 發生錯誤，請檢查資料表：\n" + err);
+                btn.innerHTML = '產生單號並存檔'; btn.disabled = false;
             }).addReplenish(matId, qty, supplier, op, reason); 
         }
+
 
         function openRestockFromRepl(repId, matId, pNameEncoded, supplier, maxQty) {
             document.getElementById('rsMatId').value = matId; document.getElementById('rsMatName').innerText = matId + " (" + decodeURIComponent(pNameEncoded) + ")";
@@ -2832,9 +3490,11 @@ function smartSafeLinePush(creator, assigneeText, priority, lineContent) {
             if(currentDropdowns['作業機台']) { currentDropdowns['作業機台'].forEach(m => { mOpts += `<option value="${m.id} - ${m.name.replace(/\[|\]/g, '')}"></option>`; }); }
             if(currentDropdowns['員工姓名']) { currentDropdowns['員工姓名'].forEach(e => { eOpts += `<option value="${typeof e === 'object' ? e.name : e}">${typeof e === 'object' ? e.name : e}</option>`; }); }
             
-            let initMac = stepData ? `${stepData.mac} - ${stepData.name}` : ""; let initEmp = stepData ? stepData.emp : "";
+            let initMac = stepData ? (stepData.name === stepData.mac ? stepData.name : `${stepData.mac} - ${stepData.name}`) : ""; 
+            let initEmp = stepData ? stepData.emp : "";
             let defaultStartDate = new Date(new Date().getTime() + 8*60*60*1000).toISOString().split('T')[0]; let defaultStartTime = "08:00";
             let defaultEndDate = new Date(new Date().getTime() + 8*60*60*1000 + 24*60*60*1000).toISOString().split('T')[0]; let defaultEndTime = "08:00";
+            let initRemark = stepData && stepData.remark ? stepData.remark : "";
 
             if (stepData) {
                 if (stepData.startDate && stepData.startDate.includes(' ')) { let parts = stepData.startDate.split(' '); defaultStartDate = parts[0]; defaultStartTime = parts[1]; }
@@ -2842,12 +3502,25 @@ function smartSafeLinePush(creator, assigneeText, priority, lineContent) {
             }
 
             let checkedMats = stepData ? (stepData.requiredMats || []) : [];
-            let matOptionTags = window.tempBomForPlan.map(m => {
-                let matObj = (currentDropdowns['物料編號']||[]).find(opt => opt.id === m.id); let n = matObj ? matObj.name.replace(m.id+' - ', '') : m.id;
-                let matVal = `${n} (${m.qty})`; let isChecked = checkedMats.includes(matVal) ? 'checked' : '';
-                return `<label class="flex items-center gap-1"><input type="checkbox" value="${matVal}" class="step-mat-cb w-4 h-4 text-indigo-600" ${isChecked}> <span class="text-gray-700">${n} (量: ${m.qty})</span></label>`;
+            let matOptionTags = window.tempBomForPlan.map((m, mIndex) => {
+                let matObj = (currentDropdowns['物料編號']||[]).find(opt => opt.id === m.id); 
+                let n = matObj ? matObj.name.replace(m.id+' - ', '') : (m.customName || m.id);
+                
+                // 🚀 終極修復：綁定「索引 + ID」確保即使有重複料號，打勾狀態也絕對不會錯位！
+                let exactKey = `${m.id}@@${mIndex}`;
+                let legacyVal1 = `${n} (${m.qty})`;
+                let legacyVal2 = `${n} (量: ${m.qty})`;
+                
+                // 相容舊資料或精準對齊新資料
+                let isChecked = (checkedMats.includes(exactKey) || checkedMats.includes(m.id) || checkedMats.includes(legacyVal1) || checkedMats.includes(legacyVal2)) ? 'checked' : '';
+                
+                return `<label class="flex items-center gap-1.5 hover:bg-indigo-50 p-1.5 rounded cursor-pointer transition-colors border border-transparent hover:border-indigo-100">
+                    <input type="checkbox" value="${exactKey}" class="step-mat-cb w-4 h-4 text-indigo-600 rounded" ${isChecked}> 
+                    <span class="text-gray-700 font-medium text-xs">${n} <span class="text-indigo-600 font-bold ml-1">(量: ${m.qty})</span></span>
+                </label>`;
             }).join('');
-            if(!matOptionTags) matOptionTags = '<span class="text-red-400">估算階段無配料，不需提示。</span>';
+            
+            if(!matOptionTags) matOptionTags = '<span class="text-gray-400 text-xs italic p-1">本單無配料，不需勾選。</span>';
 
             const genTimeOpts = (selected) => {
                 let opts = '';
@@ -2860,21 +3533,136 @@ function smartSafeLinePush(creator, assigneeText, priority, lineContent) {
                 return opts;
             };
 
-            let div = document.createElement('div'); div.className = 'plan-row border border-indigo-200 bg-white p-4 rounded-lg flex flex-col gap-3 relative shadow-sm';
+            let div = document.createElement('div'); div.className = 'plan-row border border-indigo-200 bg-white p-4 rounded-lg flex flex-col gap-3 relative shadow-sm transition-all';
             div.innerHTML = `
                 <div class="absolute -top-3 -left-3 bg-indigo-600 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm shadow-md border-2 border-white num-icon">${idx}</div>
-                <button onclick="this.closest('.plan-row').remove(); updatePlanSequence();" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 font-bold text-lg">&times;</button>
+                <button onclick="this.closest('.plan-row').remove(); updatePlanSequence();" class="absolute top-2 right-2 text-gray-300 hover:text-red-500 font-bold text-xl">&times;</button>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-1">
-                    <div><label class="block text-[10px] text-moSide font-bold mb-1">🔍 選擇工序機台</label><input type="text" list="${listId}" class="step-mac w-full p-2 border border-gray-300 rounded focus:ring-1 text-indigo-900 text-sm font-bold" value="${initMac}"><datalist id="${listId}">${mOpts}</datalist></div>
-                    <div><label class="block text-[10px] text-moSide font-bold mb-1">👤 負責人員</label><input type="text" list="${empListId}" class="step-emp w-full p-2 border border-gray-300 rounded focus:ring-1 text-sm" value="${initEmp}"><datalist id="${empListId}">${eOpts}</datalist></div>
+                    <div>
+                        <label class="block text-[10px] text-moSide font-bold mb-1">🔍 機台 / 自訂人工序名 <span class="text-red-500">*</span></label>
+                        <input type="text" list="${listId}" class="step-mac w-full p-2 border border-gray-300 rounded focus:ring-1 text-indigo-900 text-sm font-bold placeholder-gray-400" value="${initMac}" placeholder="選擇機台 或 手填人工序(例:手工包裝)">
+                        <datalist id="${listId}">${mOpts}</datalist>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-moSide font-bold mb-1">👤 負責人員 <span class="text-red-500">*</span></label>
+                        <input type="text" list="${empListId}" class="step-emp w-full p-2 border border-gray-300 rounded focus:ring-1 text-sm placeholder-gray-400" value="${initEmp}" placeholder="請選擇負責人或小組">
+                        <datalist id="${empListId}">${eOpts}</datalist>
+                    </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div><label class="block text-[10px] text-moSide font-bold mb-1">📅 預計開始時間</label><div class="flex gap-1"><input type="date" class="step-start-date w-2/3 p-2 border rounded text-sm" value="${defaultStartDate}"><select class="step-start-time w-1/3 p-2 border rounded text-sm">${genTimeOpts(defaultStartTime)}</select></div></div>
                     <div><label class="block text-[10px] text-moSide font-bold mb-1">📅 預計完成時間</label><div class="flex gap-1"><input type="date" class="step-end-date w-2/3 p-2 border rounded text-sm" value="${defaultEndDate}"><select class="step-end-time w-1/3 p-2 border rounded text-sm">${genTimeOpts(defaultEndTime)}</select></div></div>
                 </div>
-                <div class="p-3 bg-indigo-50 rounded border border-dashed border-indigo-200 text-xs"><span class="block mb-2 font-bold text-indigo-800 border-b pb-1">📦 勾選材料提示</span><div class="flex flex-col gap-2">${matOptionTags}</div></div>
+                <div>
+                    <label class="block text-[10px] text-moSide font-bold mb-1">📝 工序備註 / 生產特別指示</label>
+                    <input type="text" class="step-remark w-full p-2 border border-gray-300 rounded focus:ring-1 text-sm text-gray-700 bg-gray-50 focus:bg-white" value="${initRemark}" placeholder="例如：需特別注意對位、油墨未乾請勿重疊...">
+                </div>
+                <div class="p-3 bg-indigo-50/50 rounded border border-dashed border-indigo-200 text-xs">
+                    <span class="block mb-2 font-bold text-indigo-800 border-b border-indigo-100 pb-1">📦 勾選本道工序會消耗的料件 (防呆提醒用)</span>
+                    <div class="flex flex-col gap-0.5">${matOptionTags}</div>
+                </div>
             `;
             document.getElementById('planStepsContainer').appendChild(div);
+        };
+
+        window.submitProcessPlan = function(btn) {
+            let orderId = document.getElementById('planOrderId').innerText; 
+            let rows = document.querySelectorAll('.plan-row'); 
+            let planSteps = [];
+            let allCheckedMats = new Set(); 
+
+            for(let i=0; i<rows.length; i++) {
+                let macInput = rows[i].querySelector('.step-mac').value.trim(); 
+                let parts = macInput.split(/[-|]/); 
+                let macId = parts[0].trim();
+                let name = parts.length > 1 ? parts[1].trim() : macInput; 
+                let emp = rows[i].querySelector('.step-emp').value.trim();
+                
+                let startDateStr = rows[i].querySelector('.step-start-date').value;
+                let startTimeStr = rows[i].querySelector('.step-start-time').value;
+                let endDateStr = rows[i].querySelector('.step-end-date').value;
+                let endTimeStr = rows[i].querySelector('.step-end-time').value;
+                
+                let startDate = startDateStr + " " + startTimeStr;
+                let endDate = endDateStr + " " + endTimeStr;
+                let startObj = new Date(startDateStr + "T" + startTimeStr);
+                let endObj = new Date(endDateStr + "T" + endTimeStr);
+
+                let remark = rows[i].querySelector('.step-remark').value.trim();
+
+                if(!name || !emp) {
+                    showCustomAlert("系統提示", `第 ${i+1} 道工序填寫不完整！\n請務必輸入「工序機台/名稱」與「負責人員」。`);
+                    return;
+                }
+
+                let mats = Array.from(rows[i].querySelectorAll('.step-mat-cb:checked')).map(cb => {
+                    allCheckedMats.add(cb.value); // cb.value 現在是 ID@@Index
+                    return cb.value;
+                });
+                
+                planSteps.push({ 
+                    seq: i+1, name: name, mac: macId, emp: emp, 
+                    startDate: startDate, endDate: endDate, 
+                    startObj: startObj, endObj: endObj, 
+                    requiredMats: mats, remark: remark 
+                });
+            }
+
+            // 【防呆】比對時同樣使用 ID@@Index
+            let unusedMats = [];
+            if (window.tempBomForPlan && window.tempBomForPlan.length > 0) {
+                window.tempBomForPlan.forEach((m, mIndex) => {
+                    let exactKey = `${m.id}@@${mIndex}`;
+                    if (!allCheckedMats.has(exactKey)) {
+                        let matObj = (currentDropdowns['物料編號']||[]).find(opt => opt.id === m.id);
+                        let n = matObj ? matObj.name.replace(m.id+' - ', '') : (m.customName || m.id);
+                        unusedMats.push(`• ${n} (量: ${m.qty})`);
+                    }
+                });
+            }
+
+            let timeWarnings = [];
+            for (let i = 0; i < planSteps.length; i++) {
+                let sTime = planSteps[i].startObj.getTime();
+                let eTime = planSteps[i].endObj.getTime();
+                if (!isNaN(sTime) && !isNaN(eTime)) {
+                    if (eTime <= sTime) timeWarnings.push(`• [第 ${i+1} 站 - ${planSteps[i].name}] 結束時間早於或等於開始時間！`);
+                }
+                if (i > 0) {
+                    let prevETime = planSteps[i-1].endObj.getTime();
+                    if (!isNaN(sTime) && !isNaN(prevETime)) {
+                        if (sTime < prevETime) timeWarnings.push(`• [第 ${i+1} 站 - ${planSteps[i].name}] 開始時間早於 [上一站] 的結束時間！`);
+                    }
+                }
+            }
+
+            planSteps.forEach(p => { delete p.startObj; delete p.endObj; });
+
+            const executeSave = () => {
+                closeModal('smartChoiceModal');
+                closeModal('planModal'); 
+                document.getElementById('loadingIndicator').classList.remove('hidden'); 
+                
+                google.script.run.withSuccessHandler(res => {
+                    document.getElementById('loadingIndicator').classList.add('hidden');
+                    showCustomAlert("📋 規劃儲存成功", res.msg); 
+                    refreshSystem();
+                }).saveProcessPlan(orderId, planSteps);
+            };
+
+            let combinedWarnings = "";
+            if (unusedMats.length > 0) combinedWarnings += `📦 【用料遺漏提示】\n以下配料未分配到工序中：\n${unusedMats.join('\n')}\n\n`;
+            if (timeWarnings.length > 0) combinedWarnings += `⏳ 【排程時間重疊提示】\n以下時間可能有衝突：\n${timeWarnings.join('\n')}\n\n`;
+
+            if (combinedWarnings !== "") {
+                combinedWarnings += `您要返回修改，還是確認無誤並強制存檔？`;
+                showSmartChoice("⚠️ 規劃防呆提醒", combinedWarnings, [
+                    { text: "返回檢查修改", class: "px-4 py-2 border hover:bg-gray-100 text-gray-600 rounded-lg text-xs font-bold transition", callback: null },
+                    { text: "我確定，強制存檔", class: "px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold shadow transition", callback: executeSave }
+                ]);
+            } else {
+                executeSave();
+            }
         };
 
         window.updatePlanSequence = function() {
@@ -2889,12 +3677,18 @@ function smartSafeLinePush(creator, assigneeText, priority, lineContent) {
                 let emp = rows[i].querySelector('.step-emp').value.trim();
                 let startDate = rows[i].querySelector('.step-start-date').value + " " + rows[i].querySelector('.step-start-time').value;
                 let endDate = rows[i].querySelector('.step-end-date').value + " " + rows[i].querySelector('.step-end-time').value;
+                
+                // 🚀 抓取備註文字
+                let remark = rows[i].querySelector('.step-remark').value.trim();
+
                 if(!macId || !emp) {
                     showCustomAlert("系統提示", "請完整填寫工序規劃資料！");
                     return;
                 }
                 let mats = Array.from(rows[i].querySelectorAll('.step-mat-cb:checked')).map(cb => cb.value);
-                planSteps.push({ seq: i+1, name: name, mac: macId, emp: emp, startDate: startDate, endDate: endDate, requiredMats: mats });
+                
+                // 🚀 存入 planSteps 陣列中
+                planSteps.push({ seq: i+1, name: name, mac: macId, emp: emp, startDate: startDate, endDate: endDate, requiredMats: mats, remark: remark });
             }
             btn.innerHTML = '請稍候...'; btn.disabled = true;
             google.script.run.withSuccessHandler(res => {
@@ -3218,100 +4012,25 @@ function smartSafeLinePush(creator, assigneeText, priority, lineContent) {
         }
 
         function showSmartChoice(title, desc, options) {
-            document.getElementById('smartTitle').innerText = title; document.getElementById('smartDesc').innerText = desc;
-            const container = document.getElementById('smartBtnContainer'); container.innerHTML = '';
+            document.getElementById('smartTitle').innerText = title; 
+            document.getElementById('smartDesc').innerText = desc;
+            const container = document.getElementById('smartBtnContainer'); 
+            container.innerHTML = '';
             options.forEach(opt => {
                 let btn = document.createElement('button'); btn.className = opt.class || "px-3 py-1 bg-gray-200 text-xs font-bold rounded";
                 btn.innerText = opt.text; btn.onclick = () => { closeModal('smartChoiceModal'); if(opt.callback) opt.callback(); };
                 container.appendChild(btn);
             });
-            document.getElementById('smartChoiceModal').classList.remove('hidden');
+            // 🚀 強制解除 Z-index 封印，確保絕對在最上層
+            const modal = document.getElementById('smartChoiceModal');
+            modal.style.zIndex = '999999';
+            modal.classList.remove('hidden');
         }
 
         async function loadMorningReport() {
             generateMorningReport();
         }
-        function calcMatCost() {
-            // 1. 取得商務層級的基本乘數
-            const targetQty = parseFloat(document.getElementById('estTargetQty').value) || 0;
-            const yieldRate = parseFloat(document.getElementById('estYieldRate').value) || 100;
-            
-            // 計算實際投產量：目標出貨量 / (良率 / 100)
-            let realProductionQty = targetQty;
-            if (yieldRate > 0) {
-                realProductionQty = Math.ceil(targetQty / (yieldRate / 100));
-            }
-            document.getElementById('estQty').value = realProductionQty;
-
-            const freightCost = parseFloat(document.getElementById('estFreightCost').value) || 0;
-            const freightPrice = parseFloat(document.getElementById('estFreightPrice').value) || 0;
-
-            let totalCostSum = 0;
-            let totalSellSum = 0;
-
-            // 2. 遍歷每一行配料物料
-            const rows = document.querySelectorAll('#matList .mat-row');
-            rows.forEach(row => {
-                const costInput = row.querySelector('.mat-cost');
-                const sellInput = row.querySelector('.mat-sell');
-                const qtyInput = row.querySelector('.mat-qty');
-                const actualQtyDisplay = row.querySelector('.actual-qty-display');
-                const stockDisplay = row.querySelector('.mat-stock-display');
-
-                const cost = parseFloat(costInput.value) || 0;
-                const sell = parseFloat(sellInput.value) || 0;
-                const baseQty = parseFloat(qtyInput.value) || 0;
-
-                // 計算實際需扣：基準量 * 實際投產量
-                const actualDeduct = Number((baseQty * realProductionQty).toFixed(2));
-                if (actualQtyDisplay) {
-                    actualQtyDisplay.innerText = actualDeduct;
-                }
-
-                // 累加總材料成本與產品售價（依據實際需扣量計算）
-                totalCostSum += cost * actualDeduct;
-                totalSellSum += sell * actualDeduct;
-
-                // 同步即時顯示庫存狀態提示（若有選擇標準料號）
-                const matId = row.querySelector('.mat-real-id').value;
-                if (matId && stockDisplay && stockDisplay.innerText === '-') {
-                    const matched = (currentDropdowns['物料編號'] || []).find(opt => opt.id === matId);
-                    if (matched) {
-                        let cat = String(matched.category || '');
-                        let isService = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('代工') || cat.includes('費');
-                        stockDisplay.innerText = isService ? '∞' : matched.stock;
-                        
-                        // 庫存不足時自動變更顏色警示
-                        if (!isService && matched.stock < actualDeduct) {
-                            stockDisplay.className = 'w-16 text-center text-red-600 font-bold text-sm mat-stock-display flex items-center justify-center bg-red-50 border border-red-200 rounded h-[38px] animate-pulse';
-                        } else {
-                            stockDisplay.className = 'w-16 text-center text-blue-700 font-bold text-sm mat-stock-display flex items-center justify-center bg-blue-50 border border-blue-100 rounded h-[38px]';
-                        }
-                    }
-                }
-            });
-
-            // 3. 加上運費並渲染至主畫面
-            const finalProductTotal = totalSellSum + freightPrice;
-            const finalCostTotal = totalCostSum + freightCost;
-            const finalProfit = finalProductTotal - finalCostTotal;
-            const finalUnitPrice = targetQty > 0 ? Number((finalProductTotal / targetQty).toFixed(2)) : 0;
-
-            // 渲染總計金額
-            document.getElementById('estTotalProductSum').innerText = `$ ${Math.round(finalProductTotal).toLocaleString()}`;
-            document.getElementById('estUnitPrice').innerText = `$ ${finalUnitPrice.toLocaleString()}`;
-            document.getElementById('matTotalCost').innerText = Math.round(finalCostTotal).toLocaleString();
-            
-            const profitEl = document.getElementById('estEstProfit');
-            if (profitEl) {
-                profitEl.innerText = `$ ${Math.round(finalProfit).toLocaleString()}`;
-                if (finalProfit < 0) {
-                    profitEl.className = 'text-red-600 text-xl font-bold leading-relaxed';
-                } else {
-                    profitEl.className = 'text-green-600 text-xl font-bold leading-relaxed';
-                }
-            }
-        }
+        
 
         // --- 📅 仕罡營運月曆核心排版與關聯高亮模組 ---
         window.currentCalendarYear = new Date().getFullYear();
@@ -3608,86 +4327,7 @@ function smartSafeLinePush(creator, assigneeText, priority, lineContent) {
             }
         }
 
-        function submitMaterialCheck(btn) {
-            const orderId = document.getElementById('matOrderId').innerText;
-            const actionType = document.getElementById('matActionType').value;
-            const op = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
-
-            // 1. 蒐集目前畫面上所有配料列的數據
-            let materialsArr = [];
-            const rows = document.querySelectorAll('#matList .mat-row');
-            
-            rows.forEach(row => {
-                const id = row.querySelector('.mat-real-id').value;
-                const customName = row.querySelector('.mat-sel-input').value.trim();
-                const note = row.querySelector('.mat-note').value.trim();
-                const cost = parseFloat(row.querySelector('.mat-cost').value) || 0;
-                const sell = parseFloat(row.querySelector('.mat-sell').value) || 0;
-                const baseQty = parseFloat(row.querySelector('.mat-qty').value) || 0;
-                const actualQty = parseFloat(row.querySelector('.actual-qty-display').innerText) || 0;
-
-                // 只要有填品名或選有料號就納入配料清單
-                if (id || customName) {
-                    materialsArr.push({
-                        id: id,
-                        customName: customName,
-                        note: note,
-                        cost: cost,
-                        sell: sell,
-                        baseQty: baseQty,
-                        qty: actualQty // 實際需扣量
-                    });
-                }
-            });
-
-            // 2. 彙整估價主參數
-            const targetQty = parseFloat(document.getElementById('estTargetQty').value) || 1;
-            const yieldRate = parseFloat(document.getElementById('estYieldRate').value) || 100;
-            const qty = parseFloat(document.getElementById('estQty').value) || targetQty;
-            const freightCost = parseFloat(document.getElementById('estFreightCost').value) || 0;
-            const freightPrice = parseFloat(document.getElementById('estFreightPrice').value) || 0;
-            const details = document.getElementById('estFinalDetailsText').value;
-
-            // 逆推總成本與計算單價
-            let totalCostSum = freightCost;
-            let totalSellSum = freightPrice;
-            materialsArr.forEach(m => {
-                totalCostSum += m.cost * m.qty;
-                totalSellSum += m.sell * m.qty;
-            });
-            const unitPrice = targetQty > 0 ? Number((totalSellSum / targetQty).toFixed(2)) : 0;
-
-            const estParams = {
-                targetQty: targetQty,
-                yieldRate: yieldRate,
-                qty: qty,
-                unitPrice: unitPrice,
-                totalAmount: totalSellSum,
-                freightCost: freightCost,
-                freightPrice: freightPrice,
-                details: details
-            };
-
-            // 3. 根據操作類型，對接實體扣料或單純儲存配料數據
-            btn.disabled = true;
-            btn.innerText = "資料傳輸中...";
-
-            // 判定是否執行扣料：非 estimate 且非唯讀狀態才扣庫存
-            const executeDeduct = (actionType !== 'estimate');
-
-            // 【精準修正】將原本的空陣列 [] 替換為全域暫存的實際圖片陣列 window.estImagesData，確保圖片能完整存入 Supabase
-            google.script.run.withSuccessHandler(res => {
-                showCustomAlert("📐 雲端儲存成功", res.msg);
-                closeModal('matModal');
-                refreshSystem();
-                btn.disabled = false;
-                btn.innerText = "確認送出";
-            }).withFailureHandler(err => {
-                alert("儲存失敗：" + err);
-                btn.disabled = false;
-                btn.innerText = "確認送出";
-            }).checkAndDeductMaterials(orderId, materialsArr, executeDeduct, actionType, window.estImagesData || [], op, estParams);
-        }
+        
 
         // =========================================================================
         // ================== 👑 舊程式精華補回：商務 PDF 輸出與毛利計算模組 ==================
@@ -3987,142 +4627,118 @@ function smartSafeLinePush(creator, assigneeText, priority, lineContent) {
         renderEstImagesPreview(false);
         if(typeof calcMatCost === 'function') calcMatCost();
     }
-    // 【✨ 牽引讀不到終極修復】雙重保險防護網：完美解碼 Vue 嵌套 JSON，徹底消滅 NaN 與空白盲點
-        async function pullEstimateDataToOmsForm() {
+    window.pullEstimateDataToOmsForm = async function() {
             const estNo = document.getElementById('smart_pull_estimate_no').value.trim().toUpperCase();
-          if (!estNo) return alert("請先輸入欲調閱的估價單號！");
-          
-          document.getElementById('loadingIndicator').classList.remove('hidden');
-          
-          try {
-              const { data, error } = await sbClient.from('estimates').select('*').eq('estimate_no', estNo).maybeSingle();
-              document.getElementById('loadingIndicator').classList.add('hidden');
-              
-              if (error || !data) {
-                  alert(`⚠️ 雲端調閱失敗：找不到估價單號 [${estNo}]，請確認初算端已按儲存。`);
-                  return;
-              }
-              
-              const d = data.details || {};
-              
-              // 1. 自動灌入標準字串欄位
-              if(document.getElementById('input_關聯估價單號')) document.getElementById('input_關聯估價單號').value = estNo;
-              if(document.getElementById('input_產品名稱')) document.getElementById('input_產品名稱').value = d.global_product_name || (d.assemblies && d.assemblies[0]?.name) || '未定義印刷品';
-              if(document.getElementById('input_客戶名稱')) document.getElementById('input_客戶名稱').value = d.quote_customer?.customer_name || '';
-              if(document.getElementById('input_完成尺寸')) document.getElementById('input_完成尺寸').value = d.global_finished_size || '依各總成規格';
-              if(document.getElementById('input_業務')) document.getElementById('input_業務').value = d.global_sales_rep || '未指定';
-              if(document.getElementById('input_訂單狀態')) document.getElementById('input_訂單狀態').value = '估算中';
+            if (!estNo) return showCustomAlert("系統提示", "請先輸入欲調閱的估價單號！");
+            
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+            
+            try {
+                const { data, error } = await sbClient.from('estimates').select('*').eq('estimate_no', estNo).maybeSingle();
+                document.getElementById('loadingIndicator').classList.add('hidden');
+                
+                if (error || !data) {
+                    return showCustomAlert("錯誤", `找不到估價單號 [${estNo}]，請確認雲端已儲存。`);
+                }
+                
+                const d = data.details || {};
+                
+                // 1. 寫入基礎欄位
+                if(document.getElementById('input_關聯估價單號')) document.getElementById('input_關聯估價單號').value = estNo;
+                if(document.getElementById('input_產品名稱')) document.getElementById('input_產品名稱').value = d.global_product_name || (d.assemblies && d.assemblies[0]?.name) || '未定義印刷品';
+                if(document.getElementById('input_客戶名稱')) document.getElementById('input_客戶名稱').value = d.quote_customer?.customer_name || '';
+                if(document.getElementById('input_完成尺寸')) document.getElementById('input_完成尺寸').value = d.global_finished_size || '依各總成規格';
+                if(document.getElementById('input_訂單狀態')) document.getElementById('input_訂單狀態').value = '待規劃';
+                
+                let finalDeliveryQty = data.quantity || (d.assemblies && d.assemblies[0]?.params?.quantity) || 1000;
+                if(document.getElementById('input_交貨量')) document.getElementById('input_交貨量').value = String(finalDeliveryQty);
+                
+                let finalYield = data.yield_rate || d.profit_margin_yield || 100;
+                if(document.getElementById('input_預估良率')) document.getElementById('input_預估良率').value = String(finalYield);
+                
+                let finalProductionQty = data.production_qty || Math.ceil(finalDeliveryQty / (finalYield / 100));
+                if(document.getElementById('input_投產量')) document.getElementById('input_投產量').value = String(finalProductionQty);
 
-              // 2. 智慧提取【交貨量】➔ 完美注入唯讀文字鎖定格
-let finalDeliveryQty = data.quantity || (d.assemblies && d.assemblies[0]?.params?.quantity) || 1000;
-if(document.getElementById('input_交貨量')) {
-    document.getElementById('input_交貨量').value = String(finalDeliveryQty);
-}
+                // 🌟 關鍵修正：抓取初算端設定的利潤率 (若無則預設 40%)
+                let paperMargin = Number(d.profit_margin) || 40;
+                let printMargin = Number(d.print_profit_margin) || 40;
 
-// 3. 【智慧雙保險】解開初算系統的良率安全鎖
-let finalYield = data.yield_rate || d.profit_margin_yield || (d.assemblies && d.assemblies[0]?.params?.yield_rate);
-if (!finalYield && d.assemblies?.[0]?.calc?.result) {
-    finalYield = 100; // 預設安全值
-}
-finalYield = parseFloat(finalYield) || 100; 
-if(document.getElementById('input_預估良率')) {
-    document.getElementById('input_預估良率').value = String(finalYield);
-}
+                // 2. 深度解析配料 BOM
+                let mergedBom = [];
+                if (d.assemblies && d.assemblies.length > 0) {
+                    d.assemblies.forEach(asm => {
+                        let asmProdQty = Math.ceil((asm.params?.quantity || finalDeliveryQty) / (finalYield / 100));
+                        
+                        // 紙板解析 (🌟 乘上紙材利潤率)
+                        if (asm.calc?.result?.board && asm.calc.result.board.type !== '無') {
+                            let b = asm.calc.result.board;
+                            mergedBom.push({
+                                id: b.type === '全紙' ? 'PAPER-FULL' : 'PAPER-SMALL',
+                                customName: `${asm.name} 紙板 - ${b.paperSize}`,
+                                note: b.desc || '現場開料',
+                                cost: Number((b.perModCost || 0).toFixed(4)),
+                                sell: Number((b.perModCost * (1 + paperMargin / 100)).toFixed(4)), // 外價報價對齊
+                                qty: asmProdQty
+                            });
+                        }
+                        
+                        // 印刷解析 (🌟 乘上印刷利潤率)
+                        if (asm.params?.needPrint && asm.calc?.result?.print && asm.calc.result.print.total > 0) {
+                            let p = asm.calc.result.print;
+                            mergedBom.push({
+                                id: 'PRINT-FEE',
+                                customName: `${asm.name} 印刷 - ${asm.params.printColors}色`,
+                                note: p.currentModeDesc || '',
+                                cost: Number(p.total),
+                                sell: Number(p.total * (1 + printMargin / 100)), // 外價報價對齊
+                                qty: 1, 
+                                calc_type: 'total'
+                            });
+                        }
 
-// 4. 精算並注入【投產量】
-let finalProductionQty = data.production_qty || (d.assemblies && d.assemblies[0]?.calc?.result?.production_qty);
-if (!finalProductionQty) {
-    // 若資料庫最外層沒開欄位，則現場即時依據良率精算公式逆推
-    finalProductionQty = Math.ceil(finalDeliveryQty / (finalYield / 100));
-}
-if(document.getElementById('input_投產量')) {
-    document.getElementById('input_投產量').value = String(finalProductionQty);
-}
-
-              // 5. 材料 BOM 自動融合成型
-              let mergedBom = [];
-              if (d.assemblies && d.assemblies.length > 0) {
-                  d.assemblies.forEach(asm => {
-                      if (asm.calc && asm.calc.result && asm.calc.result.board) {
-                          let b = asm.calc.result.board;
-                          let asmProdQty = Math.ceil((asm.params?.quantity || finalDeliveryQty) / (finalYield / 100));
-                          mergedBom.push({
-                              id: b.type === '全紙' ? 'PAPER-FULL' : 'PAPER-SMALL',
-                              customName: `${asm.name} 紙板 - ${b.paperSize || '客製尺寸'}`,
-                              note: b.desc || '現場開料提示',
-                              cost: Number((b.perModCost || 0).toFixed(4)),
-                              sell: Number((b.perModCost || 0).toFixed(4)),
-                              baseQty: 1,
-                              qty: asmProdQty
-                          });
-                      }
-                      // 5. 材料 BOM 自動融合成型 (升級版：精準分流【單個/整單】計算，強制加工類不扣庫存)
-                      if (asm.params && asm.params.addedMaterials) {
-                          asm.params.addedMaterials.forEach(m => {
-                              let asmProdQty = Math.ceil((asm.params?.quantity || finalDeliveryQty) / (finalYield / 100));
-                              
-                              // 【⚡ 核心修復 1：辨識不同計算模式，徹底瓦解重複相乘爆量】
-                              let finalCalculatedQty = 0;
-                              if (m.calc_type === 'total') {
-                                  // 如果是「整單計算」，現場實際需扣量就直接等於估價輸入的總量，不需要再乘以投產量
-                                  finalCalculatedQty = Number(m.qty || 0);
-                              } else {
-                                  // 如果是「單個計算」，則維持：單個基準量 * 放大放損後的投產量
-                                  finalCalculatedQty = (Number(m.qty || 1) * asmProdQty);
-                              }
-
-                              // 【⚡ 核心修復 2：維持外包加工類不扣庫存保護卡控】
-                              const cName = String(m.material_name || '').toLowerCase();
-                              const cCate = String(m.category || '').toLowerCase();
-                              if (cName.includes('外包') || cName.includes('服務') || cName.includes('加工') || cName.includes('費') ||
-                                  cCate.includes('外包') || cCate.includes('服務') || cCate.includes('加工') || cCate.includes('費')) {
-                                  finalCalculatedQty = 0; // 強制歸零，現場看得到品名工序，但倉庫實體不扣除庫存件數
-                              } else {
-                                  finalCalculatedQty = Math.ceil(finalCalculatedQty); // 實體物料無條件進入取整數
-                              }
-
-                              mergedBom.push({
-                                  id: m.material_id,
-                                  customName: m.material_name,
-                                  note: m.remark || asm.name, // 綁定正名後的物料備註
-                                  cost: m.cost_price || 0,
-                                  sell: m.sell_price || 0,
-                                  baseQty: m.qty || 1,
-                                  calc_type: m.calc_type || 'unit', // 傳遞模式標記供反查
-                                  qty: finalCalculatedQty            // 灌入精準分流後的廠務需扣量
-                              });
-                          });
-                      }
-                  });
-              }
-              // 【⚡ 核心運費代入補丁】將雲端運費成本與報價，完美融合進 OMS 生產配料 BOM 體系，加工類自動維持不扣庫存
-              let estShippingCost = Number(data.shipping_cost) || Number(d.shipping_cost) || 0;
-              let estShippingPrice = Number(data.shipping_price) || Number(d.shipping_price) || 0;
-
-              if (estShippingCost > 0 || estShippingPrice > 0) {
-                  mergedBom.push({
-                      id: 'SHIPPING-FEES',                   // 固定的虛擬物流代碼
-                      customName: '物流運費專案服務',        // 品名
-                      note: '雲端初算同步運費項目',          // 製程備註
-                      cost: estShippingCost,                 // 運費實際成本 ➔ 生管看得到成本
-                      sell: estShippingPrice,                 // 運費對客售價 ➔ 商務總金額對得齊
-                      baseQty: 1,
-                      calc_type: 'total',                    // 強制鎖定「整單計算」！絕對不會乘以投產量放大爆量
-                      qty: 0                                 // 它是加工物流服務類 ➔ 倉庫實際需扣量強制歸零，不扣除實體庫存
-                  });
-              }
-              
-              window.tempPulledBomDetails = mergedBom;
-              window.tempPulledImages = d.referenceImages || [];
-              
-              alert(`⚡ 跨系統對接完成！\n估價單 [${estNo}] 的資料、材料 BOM 與大圖已順利配置完畢。\n[交貨量]: ${finalDeliveryQty} / [投產量]: ${finalProductionQty}\n請點擊下方儲存送出。`);
-              
-          } catch (err) {
-              document.getElementById('loadingIndicator').classList.add('hidden');
-              console.error(err);
-              alert("數據牽引發生連鎖異常：" + err.message);
-          }
-      }
+                        // 附加加工與物料解析
+                        if (asm.params?.addedMaterials) {
+                            asm.params.addedMaterials.forEach(m => {
+                                let finalCalculatedQty = m.calc_type === 'total' ? Number(m.qty || 0) : (Number(m.qty || 1) * asmProdQty);
+                                mergedBom.push({
+                                    id: m.material_id,
+                                    customName: m.material_name,
+                                    note: m.remark || asm.name,
+                                    cost: Number(m.cost_price || 0),
+                                    sell: Number(m.sell_price || 0),
+                                    qty: Math.ceil(finalCalculatedQty)
+                                });
+                            });
+                        }
+                    });
+                }
+                
+                // 3. 運費解析
+                let estShippingCost = Number(data.shipping_cost) || Number(d.shipping_cost) || 0;
+                let estShippingPrice = Number(data.shipping_price) || Number(d.shipping_price) || 0;
+                if (estShippingCost > 0 || estShippingPrice > 0) {
+                    mergedBom.push({
+                        id: 'SHIPPING-FEES',
+                        customName: '物流運費專案服務',
+                        note: d.shipping_note || '運費',
+                        cost: estShippingCost,
+                        sell: estShippingPrice,
+                        qty: 1,
+                        calc_type: 'total'
+                    });
+                }
+                
+                window.tempPulledBomDetails = mergedBom;
+                window.tempPulledImages = d.referenceImages || [];
+                
+                showCustomAlert("⚡ 跨系統對接完成", `估價單 [${estNo}] 數據已全數載入！\n配料清單共包含 ${mergedBom.length} 項用料。\n請點擊下方「儲存送出」正式建檔。`);
+                
+            } catch (err) {
+                document.getElementById('loadingIndicator').classList.add('hidden');
+                console.error(err);
+                alert("數據牽引發生連鎖異常：" + err.message);
+            }
+        };
     </script>
 
     <div id="viewImageModal" class="fixed inset-0 bg-black bg-opacity-75 z-50 hidden flex items-center justify-center p-4" onclick="closeModal('viewImageModal')">
@@ -4132,7 +4748,7 @@ if(document.getElementById('input_投產量')) {
         </div>
     </div>
 
-    <div id="smartChoiceModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+    <div id="smartChoiceModal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-xl w-full max-w-md border border-gray-200 shadow-2xl overflow-hidden">
             <div class="p-4 bg-gray-50 border-b font-bold text-moSide">💡 <span id="smartTitle">系統提示</span></div>
             <div class="p-6"><p id="smartDesc" class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap"></p></div>
