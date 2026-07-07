@@ -556,8 +556,8 @@
             '交接清單LOG': { table: 'handovers_log', pk: 'id', fields: { '時間': 'created_at', '動作': 'action', '內容': 'content', '操作人': 'operator_name' }},
             '客戶資料': { table: 'customers', pk: 'customer_id', fields: { '客戶編號': 'customer_id', '客戶名稱': 'customer_name', '統一編號': 'tax_id', '聯絡人': 'contact_person', '聯絡電話': 'phone', '手機': 'mobile', '聯絡地址': 'address', '常用盒型': 'box_type', '偏好材質': 'material_preference', '特殊要求備註': 'remark', '合作狀態': 'status', '銀行代碼': 'bank_code', '匯款帳號': 'bank_account', '傳真': 'fax' }},
             '供應商資料': { table: 'suppliers', pk: 'supplier_id', fields: { '供應商編號': 'supplier_id', '大類': 'category', '供應商名稱': 'supplier_name', '電話': 'phone', '手機': 'mobile', '窗口': 'contact_person', '統一編號': 'tax_id', '傳真': 'fax', '地址': 'address', '備註': 'remark', '銀行代碼': 'bank_code', '匯款帳號': 'bank_account' }},
-            '訂單管理': { table: 'orders', pk: 'order_id', fields: { '關聯估價單號': 'estimate_no', '訂單日期': 'order_date', '訂單編號': 'order_id', '訂單狀態': 'status', '產品名稱': 'product_name', '完成尺寸': 'finished_size', '交貨量': 'production_qty', '客戶名稱': 'customer_name', '訂單細項': 'details', '工序規劃紀錄': 'process_plan', '投產量': 'quantity', '產出量': 'output_qty', '預估良率': 'yield_rate', '配料明細': 'bom_details', '貨運單號': 'tracking_id', '出貨時間': 'shipped_at' }},
-            '生產工單': { table: 'work_orders', pk: 'wo_id', fields: { '急件': 'is_urgent', '完成日期': 'completed_at', '當前工序': 'current_process', '工單狀態': 'status', '工單編號': 'wo_id', '關聯訂單': 'order_id', '產品名稱': 'product_name', '作業機台': 'machine_id', '員工姓名': 'emp_name', '產出量': 'output_qty', '停工原因': 'stop_reason', '工序明細': 'process_details', '當前進度索引': 'current_step_index' }},
+            '訂單管理': { table: 'orders', pk: 'order_id', fields: { '關聯估價單號': 'estimate_no', '急件': 'is_urgent', '訂單日期': 'order_date', '訂單編號': 'order_id', '訂單狀態': 'status', '產品名稱': 'product_name', '完成尺寸': 'finished_size', '交貨量': 'production_qty', '客戶名稱': 'customer_name', '訂單細項': 'details', '工序規劃紀錄': 'process_plan', '投產量': 'quantity', '產出量': 'output_qty', '預估良率': 'yield_rate', '配料明細': 'bom_details', '貨運單號': 'tracking_id', '出貨時間': 'shipped_at', '示意圖': 'images' }},
+            '生產工單': { table: 'work_orders', pk: 'wo_id', fields: { '急件': 'is_urgent', '完成日期': 'completed_at', '當前工序': 'current_process', '工單狀態': 'status', '工單編號': 'wo_id', '關聯訂單': 'order_id', '產品名稱': 'product_name', '作業機台': 'machine_id', '員工姓名': 'emp_name', '產出量': 'output_qty', '停工原因': 'stop_reason', '工序明細': 'process_details', '當前進度索引': 'current_step_index', '示意圖': 'images'  }},
             '材料異常': { table: 'material_anomalies', pk: 'created_at', fields: { '時間': 'created_at', '物料編號': 'material_id', '品名': 'material_name', '供應商': 'supplier_name', '異常數量': 'quantity', '廠商出貨單號': 'vendor_invoice_id', '補貨單號': 'replenish_id', '異常說明': 'reason', '上傳照片': 'image_url', '操作人': 'operator_name' }},
             '設備狀態': { table: 'equipment_status', pk: 'machine_id', fields: { '工序編號': 'machine_id', '工序名稱': 'process_name', '當前狀態': 'status', '工單編號': 'wo_id', '客戶名稱': 'customer_name', '產品名稱': 'product_name', '預計交期': 'estimated_delivery_date', '報修內容': 'repair_remark', '訂單日期': 'order_date', '預計保養日期': 'next_maintenance_date' }},
             '設備狀態LOG': { table: 'equipment_logs', pk: 'created_at', fields: { '時間': 'created_at', '工序編號': 'machine_id', '設備狀態': 'status', '操作人': 'operator_name', '備註': 'remark' }},
@@ -1371,6 +1371,16 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                         await sbClient.from('orders').update({ status: '待扣料' }).eq('order_id', orderId);
                         this.successHandler({ success: true, msg: "🔄 退料成功！庫存已全數退回，並寫入進貨日誌，狀態返回 [待扣料]。" });
                     },
+                    // 🚀 訂單正式結案
+                    // 🚀 訂單正式結案
+                    closeOmsOrder: async function(orderId, op) {
+                        // 1. OMS 訂單結案
+                        await sbClient.from('orders').update({ status: '已結案' }).eq('order_id', orderId);
+                        // 2. 🚀 新增：同步將 MES 關聯工單狀態改為「已結案」，讓它自動被畫面隱藏
+                        await sbClient.from('work_orders').update({ status: '已結案' }).eq('order_id', orderId);
+                        
+                        this.successHandler({ success: true, msg: "訂單與關聯工單已成功同步結案！\n(若上方有勾選隱藏結案功能，單據將從主畫面移除，但仍可關閉隱藏來調閱歷史報表)" });
+                    },
                     deleteOmsOrderAndRefund: async function(orderId, op) {
                         // 1. 先撈出該訂單的配料明細，準備退料
                         let { data: ord } = await sbClient.from('orders').select('bom_details').eq('order_id', orderId);
@@ -1822,7 +1832,8 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
             const hideClosed = document.getElementById('hideClosedOrder')?.checked;
 
             currentTableData = (data || []).filter(row => {
-                if (hideClosed && row['訂單狀態'] === '已結案') return false;
+                // 🚀 新增：同時支援隱藏 OMS「訂單狀態」與 MES「工單狀態」為已結案的單據
+                if (hideClosed && (row['訂單狀態'] === '已結案' || row['工單狀態'] === '已結案')) return false;
                 return true;
             });
 
@@ -2392,18 +2403,25 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                             } 
                             else if (status === '製作完成' || status === '已出貨待OMS結案' || status === '已出貨') { 
                                 htmlStr += `<button onclick="generateWoPDF('${oId}')" class="w-16 bg-gray-600 text-white py-1 rounded font-bold shadow">🖨️ 印工單</button>`;
-                                // 🚀 關鍵：加入結算總覽按鈕
+                                // 🚀 換上沉穩的深綠色，並調整間距
+                                htmlStr += `<button onclick="generateShippingNote('${oId}')" class="w-16 bg-emerald-700 hover:bg-emerald-800 text-white py-1 rounded font-bold shadow transition-colors">🚚 出貨單</button>`;
                                 htmlStr += `<button onclick="generateFinalReport('${oId}')" class="w-20 bg-indigo-600 text-white py-1 rounded font-bold shadow">📊 結算總覽</button>`;
                                 
                                 if (status === '製作完成') {
-                                    htmlStr += `<button onclick="openShippingModal('', '${oId}')" class="w-20 bg-emerald-600 text-white py-1 rounded font-bold shadow animate-pulse">🚚 登記出貨</button>`;
+                                    htmlStr += `<button onclick="openShippingModal('', '${oId}')" class="w-20 bg-emerald-500 text-white py-1 rounded font-bold shadow animate-pulse">🚚 登記出貨</button>`;
                                 } else {
                                     htmlStr += `<button onclick="closeOrder('${oId}')" class="w-16 bg-red-700 text-white py-1 rounded font-bold shadow animate-pulse">🔒 結案</button>`;
                                 }
-                            } 
+                            }
                             else if (status === '已停工') {
                                 htmlStr += `<button onclick="generateWoPDF('${oId}')" class="w-16 bg-gray-600 text-white py-1 rounded font-bold shadow">🖨️ 印工單</button>`;
                                 htmlStr += `<button onclick="closeOrder('${oId}')" class="w-16 bg-red-700 text-white py-1 rounded font-bold shadow">🔒 結案</button>`;
+                            }
+                            // 🚀 新增：OMS 已結案依然保留歷史單據的調閱按鈕，以便日後補印或核對
+                            else if (status === '已結案') {
+                                htmlStr += `<button onclick="generateWoPDF('${oId}')" class="w-16 bg-gray-600 text-white py-1 rounded font-bold shadow">🖨️ 印工單</button>`;
+                                htmlStr += `<button onclick="generateShippingNote('${oId}')" class="w-16 bg-emerald-700 hover:bg-emerald-800 text-white py-1 rounded font-bold shadow transition-colors">🚚 出貨單</button>`;
+                                htmlStr += `<button onclick="generateFinalReport('${oId}')" class="w-20 bg-indigo-600 text-white py-1 rounded font-bold shadow">📊 結算總覽</button>`;
                             }
                             
                             btnSlot1 = htmlStr;
@@ -2626,62 +2644,103 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                 }
             }
         };
+        // 🚀 產出補貨申請單 PDF (純向量原生列印版)
         window.printReplenishOrder = function(repId, matId, pNameEncoded, supplier, reqQty, reason) {
             let pName = decodeURIComponent(pNameEncoded);
             let dateStr = new Date().toISOString().split('T')[0];
             let op = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
             let myCompany = "仕罡印刷事業有限公司";
             
-            // 產生精緻的 PDF 補貨申請單 HTML
-            let html = `
-                <div style="padding:20px; font-family:'微軟正黑體', sans-serif; color:#374151; background:#fff; font-size:12px;">
-                    <h1 style="text-align:center; font-size:22px; font-weight:bold; margin:0 0 4px 0; letter-spacing:2px;">${myCompany}</h1>
-                    <h2 style="text-align:center; font-size:14px; margin:0 0 20px 0; border-bottom:1px solid #475569; padding-bottom:4px; color:#475569; letter-spacing:1px;">請購 / 補貨申請單 (Purchase Request)</h2>
-                    
-                    <table style="width:100%; margin-bottom:15px; border-collapse:collapse;">
-                        <tr style="vertical-align:top;">
-                            <td>
-                                <p style="margin:0 0 4px 0;"><strong>供應廠商：</strong> <span style="font-size:14px; font-weight:bold;">${supplier || '未指定'}</span> 御中</p>
-                                <p style="margin:0;"><strong>申請日期：</strong> ${dateStr}</p>
-                            </td>
-                            <td style="text-align:right; color:#64748B; font-size:11px;">
-                                <p style="margin:0; font-weight:bold; color:#000;">請購單號：${repId}</p>
-                                <p style="margin:2px 0 0 0;">申請人員：${op}</p>
-                            </td>
-                        </tr>
-                    </table>
-
-                    <table style="width:100%; border-collapse:collapse; border:1px solid #475569; font-size:12px; text-align:left; margin-bottom:15px;">
-                        <thead style="background:#f1f5f9;">
-                            <tr style="border-b:1px solid #475569;">
-                                <th style="padding:8px; border:1px solid #475569; width:120px;">物料編號</th>
-                                <th style="padding:8px; border:1px solid #475569;">物料規格與品名</th>
-                                <th style="padding:8px; border:1px solid #475569; text-align:center; width:80px;">請購數量</th>
+            let fullHtml = `
+                <!DOCTYPE html>
+                <html lang="zh-TW">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>補貨申請單_${repId}</title>
+                    <style>
+                        @page { size: A4 portrait; margin: 15mm; }
+                        body { 
+                            margin: 0; padding: 0; 
+                            font-family: '微軟正黑體', 'Microsoft JhengHei', sans-serif; 
+                            color: #374151; background: #fff;
+                            -webkit-print-color-adjust: exact; 
+                            print-color-adjust: exact; 
+                        }
+                        table { border-collapse: collapse; width: 100%; }
+                    </style>
+                </head>
+                <body>
+                    <div style="width:100%; box-sizing:border-box;">
+                        <h1 style="text-align:center; font-size:26px; font-weight:900; margin:0 0 5px 0; letter-spacing:4px; color:#000;">${myCompany}</h1>
+                        <h2 style="text-align:center; font-size:16px; margin:0 0 25px 0; border-bottom:2px solid #475569; padding-bottom:8px; color:#475569; letter-spacing:2px;">請購 / 補貨申請單 (Purchase Request)</h2>
+                        
+                        <table style="margin-bottom:20px;">
+                            <tr style="vertical-align:top;">
+                                <td>
+                                    <p style="margin:0 0 8px 0; font-size:15px;"><strong>供應廠商：</strong> <span style="font-size:18px; font-weight:bold; color:#000;">${supplier || '未指定'}</span> 御中</p>
+                                    <p style="margin:0; font-size:14px;"><strong>申請日期：</strong> ${dateStr}</p>
+                                </td>
+                                <td style="text-align:right; color:#64748B; font-size:13px;">
+                                    <p style="margin:0; font-weight:bold; color:#000; font-size:15px;">請購單號：${repId}</p>
+                                    <p style="margin:4px 0 0 0;">申請人員：${op}</p>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td style="padding:10px; border:1px solid #475569; font-family:monospace; font-weight:bold;">${matId}</td>
-                                <td style="padding:10px; border:1px solid #475569; font-weight:bold;">${pName}</td>
-                                <td style="padding:10px; border:1px solid #475569; text-align:center; font-weight:bold; font-size:14px; color:#b91c1c;">${reqQty}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    
-                    <div style="font-size:11px; color:#64748B; margin-top:15px; border-top:1px dashed #cbd5e1; padding-top:8px;">
-                        <p style="font-weight:bold; margin:0 0 2px 0; color:#475569;">【請購原因與特別指示】</p>
-                        <p style="margin:0; white-space:pre-wrap;">${reason || '常規庫存安全存量補充'}</p>
-                    </div>
+                        </table>
 
-                    <div style="display:flex; justify-content:space-between; margin-top:60px;">
-                        <div style="width:30%; text-align:center; border-top:1px solid #000; padding-top:5px; font-size:11px;">申請人簽章</div>
-                        <div style="width:30%; text-align:center; border-top:1px solid #000; padding-top:5px; font-size:11px;">單位主管核准</div>
-                        <div style="width:30%; text-align:center; border-top:1px solid #000; padding-top:5px; font-size:11px;">廠商點收確認</div>
+                        <table style="border:2px solid #475569; font-size:14px; text-align:left; margin-bottom:20px;">
+                            <thead style="background:#f1f5f9;">
+                                <tr style="border-b:2px solid #475569;">
+                                    <th style="padding:10px; border:1px solid #475569; width:140px;">物料編號</th>
+                                    <th style="padding:10px; border:1px solid #475569;">物料規格與品名</th>
+                                    <th style="padding:10px; border:1px solid #475569; text-align:center; width:100px;">請購數量</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="padding:15px 10px; border:1px solid #475569; font-family:monospace; font-weight:bold; font-size:16px; color:#000;">${matId}</td>
+                                    <td style="padding:15px 10px; border:1px solid #475569; font-weight:bold; font-size:16px; color:#000;">${pName}</td>
+                                    <td style="padding:15px 10px; border:1px solid #475569; text-align:center; font-weight:bold; font-size:22px; color:#b91c1c;">${reqQty}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        
+                        <div style="font-size:14px; color:#64748B; margin-top:25px; border-top:2px dashed #cbd5e1; padding-top:15px; min-height:80px;">
+                            <p style="font-weight:bold; margin:0 0 6px 0; color:#000; font-size:15px;">【請購原因與特別指示】</p>
+                            <p style="margin:0; white-space:pre-wrap; color:#333; line-height:1.6;">${reason || '常規庫存安全存量補充'}</p>
+                        </div>
+
+                        <div style="display:flex; justify-content:space-between; margin-top:80px; font-weight:bold; font-size:15px;">
+                            <div style="width:28%; text-align:center; border-top:2px solid #000; padding-top:8px;">申請人簽章</div>
+                            <div style="width:28%; text-align:center; border-top:2px solid #000; padding-top:8px;">單位主管核准</div>
+                            <div style="width:28%; text-align:center; border-top:2px solid #000; padding-top:8px;">廠商點收確認</div>
+                        </div>
                     </div>
-                </div>`;
+                    <script>
+                        window.onload = function() { setTimeout(function() { window.print(); }, 500); };
+                    <\/script>
+                </body>
+                </html>`;
             
-            // 呼叫系統內建的 PDF 渲染引擎導出下載
-            execHTML2PDF(html, `仕罡_補貨申請單_${repId}.pdf`);
+            // 🚀 啟動隱形 iframe 進行列印
+            let iframe = document.getElementById('print-iframe-rep');
+            if (!iframe) {
+                iframe = document.createElement('iframe');
+                iframe.id = 'print-iframe-rep';
+                iframe.style.position = 'absolute';
+                iframe.style.width = '0px';
+                iframe.style.height = '0px';
+                iframe.style.border = 'none';
+                document.body.appendChild(iframe);
+            }
+            let doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write(fullHtml);
+            doc.close();
+
+            setTimeout(() => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            }, 600);
         };
 
         function generateErpMatId(supName) {
@@ -2968,12 +3027,22 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
             if (currentSysName === 'OMS') {
                 if (rowIndex === -1) {
                     formGrid.innerHTML += `
-                        <div class="col-span-1 md:col-span-2 p-3 bg-indigo-50 border border-indigo-200 rounded-xl mb-2 flex items-end gap-3 shadow-sm">
-                            <div class="flex-1">
-                                <label class="block text-xs font-bold text-indigo-900 mb-1">💡 跨系統對接：輸入雲端初算估價單號 (例: T2607001)</label>
-                                <input type="text" id="smart_pull_estimate_no" class="w-full p-2 border border-indigo-300 rounded-lg text-sm bg-white uppercase font-bold tracking-wider" placeholder="請輸入 T 開頭的估價單號...">
+                        <div class="col-span-1 md:col-span-2 p-3 bg-indigo-50 border border-indigo-200 rounded-xl mb-2 flex flex-col gap-3 shadow-sm">
+                            <div class="flex items-end gap-3">
+                                <div class="flex-1">
+                                    <label class="block text-xs font-bold text-indigo-900 mb-1">💡 跨系統對接：輸入雲端初算估價單號 (例: T2607001)</label>
+                                    <input type="text" id="smart_pull_estimate_no" class="w-full p-2 border border-indigo-300 rounded-lg text-sm bg-white uppercase font-bold tracking-wider" placeholder="請輸入 T 開頭的估價單號...">
+                                </div>
+                                <button type="button" onclick="pullEstimateDataToOmsForm()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-lg text-sm h-[38px] transition-colors whitespace-nowrap shadow-sm">⚡ 一鍵帶入配料</button>
                             </div>
-                            <button type="button" onclick="pullEstimateDataToOmsForm()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-lg text-sm h-[38px] transition-colors whitespace-nowrap shadow-sm">⚡ 一鍵帶入配料</button>
+                            <div class="flex items-center justify-between border-t border-indigo-200 pt-3 mt-1">
+                                <span class="text-sm font-bold text-red-600 flex items-center gap-1.5">🚨 標示為急件單據 <span class="text-xs text-gray-500 font-normal">(全線機台將優先排程)</span></span>
+                                <label class="relative inline-flex items-center cursor-pointer select-none">
+                                    <input type="checkbox" id="urgentToggleCb" class="sr-only peer" onchange="document.getElementById('input_急件').value = this.checked ? '是' : '否'">
+                                    <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500 shadow-inner"></div>
+                                </label>
+                                <input type="hidden" id="input_急件" value="否">
+                            </div>
                         </div>
                     `;
                 } else {
@@ -3055,7 +3124,13 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                 } else if (header === '顯示財務金額' && currentSysName === 'SYS') {
                     fieldHTML += `<select id="input_${header}" ${isReadOnlyAttr} class="w-full p-2 border rounded font-bold ${(isOmsLocked || isMesLocked) ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}"><option value="是" ${val!=='否'?'selected':''}>是</option><option value="否" ${val==='否'?'selected':''}>否</option></select>`;
                 } else if (header === '急件') {
-                    fieldHTML += `<select id="input_${header}" ${isReadOnlyAttr} class="w-full p-2 border rounded ${(isOmsLocked || isMesLocked) ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}"><option value="否" ${val==='否'?'selected':''}>否</option><option value="是" ${val==='是'?'selected':''}>是</option></select>`;
+                    if (currentSysName === 'OMS' && rowIndex === -1) {
+                        // 🚀 在新增訂單時，已經由上方的滑動開關取代，此處不渲染重複的下拉選單
+                        fieldHTML = '';
+                    } else {
+                        // 檢閱舊訂單或在 MES 工單系統中，仍以唯讀下拉選單顯示
+                        fieldHTML += `<select id="input_${header}" ${isReadOnlyAttr} class="w-full p-2 border rounded ${(isOmsLocked || isMesLocked) ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}"><option value="否" ${val==='否'?'selected':''}>否</option><option value="是" ${val==='是'?'selected':''}>是</option></select>`;
+                    }
                 } else if (header === '員工編號' && rowIndex === -1 && currentSysName === 'SYS') {
                     fieldHTML += `<input type="text" id="input_${header}" readonly class="w-full p-2 border bg-gray-100 text-gray-400 cursor-not-allowed" placeholder="[系統將自動依民國年派發]">`;
                 } else if (header === '供應商' && currentSysName === 'ERP') {
@@ -3334,6 +3409,199 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                 iframe.contentWindow.print();
             }, 600);
         };
+        // 🚀 【產出純向量實體出貨單】(非同步升級版：即時向雲端提取最新客戶與總成資料，不依賴本機快取)
+        window.generateShippingNote = async function(orderId) {
+            document.getElementById('loadingIndicator').classList.remove('hidden'); // 開啟讀取動畫
+            
+            try {
+                // 1. 🚀 即時獲取最新訂單資料
+                const { data: orderData, error: ordErr } = await sbClient.from('orders').select('*').eq('order_id', orderId).single();
+                if (ordErr || !orderData) throw new Error("找不到雲端訂單資料");
+
+                let custName = (orderData.customer_name || '').trim();
+                let estNo = orderData.estimate_no || '';
+
+                // 2. 🚀 即時獲取 CRM 客戶資料 (解決客戶資訊空白問題)
+                let clientDetails = {};
+                if (custName) {
+                    const { data: custData } = await sbClient.from('customers').select('*').eq('customer_name', custName).limit(1);
+                    if (custData && custData.length > 0) clientDetails = custData[0];
+                }
+
+                // 3. 🚀 即時獲取 EST 估價單資料 (解決業務空白與總成名稱錯誤問題)
+                let estDetails = {};
+                if (estNo) {
+                    const { data: estData } = await sbClient.from('estimates').select('details').eq('estimate_no', estNo).maybeSingle();
+                    if (estData && estData.details) estDetails = estData.details;
+                }
+
+                // 4. 🚀 即時獲取我司資料 (解除打碼，直接從雲端拿 C00000000)
+                const { data: myCompData } = await sbClient.from('customers').select('*').eq('customer_id', 'C00000000').maybeSingle();
+                let myCompany = myCompData?.customer_name || "仕罡印刷事業有限公司";
+                let myPhone = myCompData?.phone || "(02) 2243-XXXX";
+                let myAddress = myCompData?.address || "新北市中和區XXXX路XX號";
+                let myTaxId = myCompData?.tax_id || "8432XXXX";
+
+                // --- 資料綁定 ---
+                let clientPhone = clientDetails.phone || clientDetails.mobile || '-';
+                let clientAddress = clientDetails.address || '-';
+                let clientTaxId = clientDetails.tax_id || '-';
+                let clientContact = clientDetails.contact_person || '-';
+
+                let mySales = estDetails.global_sales_rep || '-';
+
+                // 🚀 精準解析總成名稱：優先從估價單原始設定抓，若無則降級使用工序名稱
+                let assemblyNames = '一般生產';
+                if (estDetails.assemblies && estDetails.assemblies.length > 0) {
+                    assemblyNames = estDetails.assemblies.map(a => a.name).join(' + ');
+                } else {
+                    let steps = [];
+                    try { steps = JSON.parse(orderData.process_plan || '[]'); } catch(e){}
+                    if (steps.length > 0) {
+                        assemblyNames = Array.from(new Set(steps.map(s => s.name))).join(' ➔ ');
+                    }
+                }
+                
+                // 🚀 精準指定出貨量為客戶下單的「交貨量 (良率前)」(對應資料庫 production_qty)
+                let finalQty = parseFloat(orderData.production_qty || 0);
+                let printTime = new Date().toLocaleString('zh-TW', { hour12: false });
+
+                let fullHtml = `
+                <!DOCTYPE html>
+                <html lang="zh-TW">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>出貨單_${orderId}_${custName}</title>
+                    <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&display=swap" rel="stylesheet">
+                    <style>
+                        @page { size: A4 landscape; margin: 12mm; }
+                        body { 
+                            margin: 0; padding: 0; 
+                            font-family: '微軟正黑體', sans-serif; 
+                            color: #000; background: #fff;
+                            -webkit-print-color-adjust: exact; 
+                            print-color-adjust: exact; 
+                        }
+                        table { border-collapse: collapse; width: 100%; font-size: 14px; }
+                        th, td { border: 1px solid #000; padding: 10px; text-align: left; }
+                        .print-avoid-break { page-break-inside: avoid; break-inside: avoid; }
+                        
+                        .barcode-container { width: 40mm; text-align: center; display: inline-block; }
+                        .barcode-font { font-family: 'Libre Barcode 39', monospace; font-size: 44px; line-height: 44px; margin: 0; display: block; }
+                        .barcode-text { font-family: monospace; font-size: 12px; font-weight: bold; letter-spacing: 2px; margin-top: 2px; display: block; }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-avoid-break" style="width: 100%; box-sizing: border-box;">
+                        
+                        <table style="border: none; margin-bottom: 15px;">
+                            <tr style="border: none;">
+                                <td style="border: none; padding: 0; vertical-align: middle;">
+                                    <h1 style="font-size: 28px; font-weight: 900; margin: 0; letter-spacing: 4px;">${myCompany} - 商品出貨單</h1>
+                                    <p style="font-size: 12px; color: #555; margin: 5px 0 0 0;">列印日期: ${printTime}</p>
+                                </td>
+                                <td style="border: none; padding: 0; text-align: right; vertical-align: middle;">
+                                    <div class="barcode-container">
+                                        <span class="barcode-font">*${orderId}*</span>
+                                        <span class="barcode-text">${orderId}</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                        
+                        <table style="margin-bottom: 25px; table-layout: fixed;">
+                            <thead style="background: #f1f5f9;">
+                                <tr>
+                                    <th style="font-weight: bold; width: 50%; font-size: 15px;">🏭 出貨單位 (我方)</th>
+                                    <th style="font-weight: bold; width: 50%; font-size: 15px;">🏪 簽收單位 (客戶)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="vertical-align: top;">
+                                    <td style="line-height: 1.8;">
+                                        <div><strong>公司抬頭：</strong>${myCompany}</div>
+                                        <div><strong>統一編號：</strong>${myTaxId}</div>
+                                        <div><strong>聯絡電話：</strong>${myPhone}</div>
+                                        <div><strong>出貨地址：</strong>${myAddress}</div>
+                                        <div><strong>負責業務：</strong><span style="font-size:15px; font-weight:bold; color:#1e3a8a;">${mySales}</span></div>
+                                    </td>
+                                    <td style="line-height: 1.8;">
+                                        <div><strong>客戶抬頭：</strong><span style="font-size:16px; font-weight:900;">${custName}</span></div>
+                                        <div><strong>統一編號：</strong>${clientTaxId}</div>
+                                        <div><strong>聯絡電話：</strong>${clientPhone}</div>
+                                        <div><strong>送貨地址：</strong>${clientAddress}</div>
+                                        <div><strong>聯絡窗口：</strong><span style="font-weight:bold;">${clientContact}</span></div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <h3 style="font-size: 16px; margin: 15px 0 8px 0; font-weight: bold;">📦 本次出貨總成項目明細 (點收專用)</h3>
+                        <table>
+                            <thead style="background: #cbd5e1;">
+                                <tr>
+                                    <th style="text-align: center; width: 40px; font-weight: bold;">序</th>
+                                    <th style="width: 160px; font-weight: bold;">出貨單號 (訂單號)</th>
+                                    <th style="font-weight: bold;">包含之總成項目與產品規格</th>
+                                    <th style="text-align: center; width: 140px; font-weight: bold; font-size: 15px;">實際出貨總量</th>
+                                    <th style="width: 200px; font-weight: bold;">備註 / 說明</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="text-align: center; font-weight: bold; font-size: 16px;">1</td>
+                                    <td style="font-family: monospace; font-weight: bold; font-size: 16px;">${orderId}</td>
+                                    <td>
+                                        <div style="font-weight: bold; font-size: 18px; color: #1e3a8a;">${orderData.product_name || '-'}</div>
+                                        <div style="font-size: 13px; color: #059669; font-weight: bold; margin-top: 6px; line-height:1.4;">[總成包含]: ${assemblyNames}</div>
+                                        <div style="font-size: 12px; color: #555; margin-top: 4px;">規格尺寸: ${orderData.finished_size || '依原稿'}</div>
+                                    </td>
+                                    <td style="text-align: center; font-weight: 900; font-size: 24px; color: #b91c1c;">
+                                        ${Math.round(finalQty).toLocaleString()} <span style="font-size:14px; font-weight:bold; color:#555;">件</span>
+                                    </td>
+                                    <td style="font-size: 13px; color: #4b5563; vertical-align: top;">${orderData.details || '-'}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        
+                        <div style="display: flex; justify-content: space-between; margin-top: 80px; font-weight: bold; font-size: 15px;">
+                            <div style="width: 28%; text-align: center; border-top: 2px solid #000; padding-top: 10px;">點收發貨人 (仕罡)</div>
+                            <div style="width: 28%; text-align: center; border-top: 2px solid #000; padding-top: 10px;">承運司機 / 貨運</div>
+                            <div style="width: 28%; text-align: center; border-top: 2px solid #000; padding-top: 10px;">客戶簽章 / 蓋章受領</div>
+                        </div>
+
+                    </div>
+                </body>
+                </html>
+            `;
+
+                let iframe = document.getElementById('print-iframe-shipping');
+                if (!iframe) {
+                    iframe = document.createElement('iframe');
+                    iframe.id = 'print-iframe-shipping';
+                    iframe.style.position = 'absolute';
+                    iframe.style.width = '0px';
+                    iframe.style.height = '0px';
+                    iframe.style.border = 'none';
+                    document.body.appendChild(iframe);
+                }
+
+                let doc = iframe.contentWindow.document;
+                doc.open();
+                doc.write(fullHtml);
+                doc.close();
+
+                setTimeout(() => {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                }, 600);
+
+            } catch (err) {
+                alert("生成出貨單發生錯誤: " + err.message);
+            } finally {
+                document.getElementById('loadingIndicator').classList.add('hidden'); // 關閉讀取動畫
+            }
+        };
 
         // 🚀 開啟追加耗損視窗
         window.openAddonModal = async function(orderId) {
@@ -3463,7 +3731,7 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
             }
         };
 
-        // 🚀 產出完工結算總覽 PDF
+        // 🚀 產出完工結算總覽 PDF (純向量原生列印版)
         window.generateFinalReport = function(orderId) {
             document.getElementById('loadingIndicator').classList.remove('hidden');
             sbClient.from('orders').select('*').eq('order_id', orderId).single().then(({data, error}) => {
@@ -3478,7 +3746,7 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                 let bomCost = 0;
                 let bomHtml = bom.map(m => {
                     let cost = m.cost * m.qty; bomCost += cost;
-                    return `<tr><td style="padding:6px; border:1px solid #cbd5e1;">${m.id}</td><td style="padding:6px; border:1px solid #cbd5e1; font-weight:bold;">${m.customName}</td><td style="padding:6px; border:1px solid #cbd5e1; text-align:center;">${m.qty}</td><td style="padding:6px; border:1px solid #cbd5e1; text-align:right;">$${Math.round(cost).toLocaleString()}</td></tr>`;
+                    return `<tr><td style="padding:8px; border:1px solid #cbd5e1;">${m.id}</td><td style="padding:8px; border:1px solid #cbd5e1; font-weight:bold;">${m.customName}</td><td style="padding:8px; border:1px solid #cbd5e1; text-align:center;">${m.qty}</td><td style="padding:8px; border:1px solid #cbd5e1; text-align:right;">$${Math.round(cost).toLocaleString()}</td></tr>`;
                 }).join('');
                 
                 let addonCost = 0;
@@ -3486,65 +3754,117 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                     let matObj = (currentDropdowns['物料編號']||[]).find(opt => opt.id === m.id);
                     let name = matObj ? matObj.name : m.id;
                     let cost = (m.cost || 0) * m.qty; addonCost += cost;
-                    return `<tr style="background:#fef2f2;"><td style="padding:6px; border:1px solid #fecaca; color:#991b1b;">${m.id}</td><td style="padding:6px; border:1px solid #fecaca; font-weight:bold; color:#991b1b;">${name} (追加)</td><td style="padding:6px; border:1px solid #fecaca; text-align:center; color:#991b1b;">${m.qty}</td><td style="padding:6px; border:1px solid #fecaca; text-align:right; font-weight:bold; color:#dc2626;">$${Math.round(cost).toLocaleString()}</td></tr>`;
+                    return `<tr style="background:#fef2f2;"><td style="padding:8px; border:1px solid #fecaca; color:#991b1b;">${m.id}</td><td style="padding:8px; border:1px solid #fecaca; font-weight:bold; color:#991b1b;">${name} (追加)</td><td style="padding:8px; border:1px solid #fecaca; text-align:center; color:#991b1b;">${m.qty}</td><td style="padding:8px; border:1px solid #fecaca; text-align:right; font-weight:bold; color:#dc2626;">$${Math.round(cost).toLocaleString()}</td></tr>`;
                 }).join('');
                 
                 let finalCost = bomCost + addonCost + (Number(details.shipping_cost)||0);
                 let profit = totalRev - finalCost;
                 let margin = totalRev > 0 ? ((profit / totalRev) * 100).toFixed(1) : 0;
                 
-                let html = `
-                <div style="padding: 20px; font-family: '微軟正黑體', sans-serif;">
-                    <h1 style="text-align: center; font-size: 24px; border-bottom: 2px solid #333; padding-bottom: 10px; letter-spacing:2px; font-weight:900;">📊 訂單完工結算總覽報告</h1>
-                    <table style="width: 100%; margin-top: 15px; font-size: 14px; border-collapse:collapse; border:1px solid #000;">
-                        <tr style="background:#f1f5f9;">
-                            <td style="padding: 8px; border:1px solid #000;"><strong>訂單單號:</strong> <span style="font-family:monospace; font-size:16px;">${data.order_id}</span></td>
-                            <td style="padding: 8px; border:1px solid #000;"><strong>產品名稱:</strong> ${details.global_product_name || data.product_name}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 8px; border:1px solid #000;"><strong>預計產量:</strong> ${data.production_qty} 件</td>
-                            <td style="padding: 8px; border:1px solid #000;"><strong>實際完工:</strong> <span style="color:#16a34a; font-weight:bold; font-size:16px;">${data.output_qty || 0} 件</span></td>
-                        </tr>
-                    </table>
-                    
-                    <h3 style="margin-top:20px; font-size: 16px; color:#1e3a8a; border-left:4px solid #1e3a8a; padding-left:8px;">✅ 標準配料成本</h3>
-                    <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align:left;">
-                        <tr style="background:#e2e8f0;"><th style="padding:6px; border:1px solid #94a3b8;">料號</th><th style="padding:6px; border:1px solid #94a3b8;">品名</th><th style="padding:6px; border:1px solid #94a3b8; text-align:center;">扣料量</th><th style="padding:6px; border:1px solid #94a3b8; text-align:right;">成本小計</th></tr>
-                        ${bomHtml || '<tr><td colspan="4" style="padding:6px; border:1px solid #ccc; text-align:center;">無</td></tr>'}
-                    </table>
-                    
-                    <h3 style="margin-top:20px; font-size: 16px; color:#b91c1c; border-left:4px solid #b91c1c; padding-left:8px;">⚠️ 追加損耗成本</h3>
-                    <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align:left;">
-                        <tr style="background:#fecaca; color:#7f1d1d;"><th style="padding:6px; border:1px solid #fca5a5;">料號</th><th style="padding:6px; border:1px solid #fca5a5;">品名</th><th style="padding:6px; border:1px solid #fca5a5; text-align:center;">追加量</th><th style="padding:6px; border:1px solid #fca5a5; text-align:right;">追加成本</th></tr>
-                        ${addonHtml || '<tr><td colspan="4" style="padding:6px; border:1px solid #fecaca; text-align:center; color:#b91c1c;">生產順利，無追加損耗</td></tr>'}
-                    </table>
-                    
-                    <div style="margin-top: 30px; display:flex; justify-content:space-between; background:#f8fafc; border:2px solid #cbd5e1; padding: 20px; border-radius:12px;">
-                        <div style="font-size: 15px; line-height: 1.8;">
-                            <div><strong>最終對外營業額:</strong> <span style="font-weight:bold;">$${Math.round(totalRev).toLocaleString()}</span></div>
-                            <div><strong>標準用料成本:</strong> <span style="font-weight:bold;">$${Math.round(bomCost).toLocaleString()}</span></div>
-                            <div style="color:#dc2626;"><strong>追加損耗成本:</strong> <span style="font-weight:bold;">-$${Math.round(addonCost).toLocaleString()}</span></div>
-                            <div><strong>物流運費成本:</strong> <span style="font-weight:bold;">$${Math.round(details.shipping_cost||0).toLocaleString()}</span></div>
-                        </div>
-                        <div style="text-align: right; border-left:2px dashed #cbd5e1; padding-left:20px;">
-                            <div style="font-size: 15px; color:#64748B; font-weight:bold;">結算實得純利潤</div>
-                            <div style="font-size: 36px; font-weight: 900; color: ${profit < 0 ? '#dc2626' : '#16a34a'};">$${Math.round(profit).toLocaleString()}</div>
-                            <div style="font-size: 16px; font-weight: bold; background: ${profit < 0 ? '#fee2e2' : '#dcfce7'}; color: ${profit < 0 ? '#dc2626' : '#16a34a'}; padding:4px 8px; border-radius:4px; display:inline-block; margin-top:5px;">最終毛利率: ${margin}%</div>
+                let printTime = new Date().toLocaleString('zh-TW', { hour12: false });
+                
+                let fullHtml = `
+                <!DOCTYPE html>
+                <html lang="zh-TW">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>完工結算總覽_${data.order_id}</title>
+                    <style>
+                        @page { size: A4 portrait; margin: 15mm; }
+                        body { 
+                            margin: 0; padding: 0; 
+                            font-family: '微軟正黑體', 'Microsoft JhengHei', sans-serif; 
+                            color: #000; background: #fff;
+                            -webkit-print-color-adjust: exact; 
+                            print-color-adjust: exact; 
+                        }
+                        table { border-collapse: collapse; }
+                    </style>
+                </head>
+                <body>
+                    <div style="width: 100%; box-sizing: border-box;">
+                        <h1 style="text-align: center; font-size: 26px; border-bottom: 3px solid #333; padding-bottom: 10px; letter-spacing:2px; font-weight:900; margin-top:0;">📊 訂單完工結算總覽報告</h1>
+                        <p style="font-size:11px; color:#666; text-align:right; margin-bottom:15px;">列印時間: ${printTime}</p>
+                        
+                        <table style="width: 100%; margin-top: 15px; font-size: 15px; border-collapse:collapse; border:2px solid #000;">
+                            <tr style="background:#f1f5f9;">
+                                <td style="padding: 10px; border:1px solid #000;"><strong>訂單單號:</strong> <span style="font-family:monospace; font-size:18px;">${data.order_id}</span></td>
+                                <td style="padding: 10px; border:1px solid #000;"><strong>產品名稱:</strong> ${details.global_product_name || data.product_name}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border:1px solid #000;"><strong>預計產量:</strong> ${data.production_qty} 件</td>
+                                <td style="padding: 10px; border:1px solid #000;"><strong>實際完工:</strong> <span style="color:#16a34a; font-weight:bold; font-size:18px;">${data.output_qty || 0} 件</span></td>
+                            </tr>
+                        </table>
+                        
+                        <h3 style="margin-top:25px; font-size: 18px; color:#1e3a8a; border-left:5px solid #1e3a8a; padding-left:10px;">✅ 標準配料成本</h3>
+                        <table style="width: 100%; border:1px solid #94a3b8; font-size: 14px; text-align:left;">
+                            <tr style="background:#e2e8f0;"><th style="padding:8px; border:1px solid #94a3b8;">料號</th><th style="padding:8px; border:1px solid #94a3b8;">品名</th><th style="padding:8px; border:1px solid #94a3b8; text-align:center;">扣料量</th><th style="padding:8px; border:1px solid #94a3b8; text-align:right;">成本小計</th></tr>
+                            ${bomHtml || '<tr><td colspan="4" style="padding:8px; border:1px solid #ccc; text-align:center;">無</td></tr>'}
+                        </table>
+                        
+                        <h3 style="margin-top:25px; font-size: 18px; color:#b91c1c; border-left:5px solid #b91c1c; padding-left:10px;">⚠️ 追加損耗成本</h3>
+                        <table style="width: 100%; border:1px solid #fca5a5; font-size: 14px; text-align:left;">
+                            <tr style="background:#fecaca; color:#7f1d1d;"><th style="padding:8px; border:1px solid #fca5a5;">料號</th><th style="padding:8px; border:1px solid #fca5a5;">品名</th><th style="padding:8px; border:1px solid #fca5a5; text-align:center;">追加量</th><th style="padding:8px; border:1px solid #fca5a5; text-align:right;">追加成本</th></tr>
+                            ${addonHtml || '<tr><td colspan="4" style="padding:8px; border:1px solid #fecaca; text-align:center; color:#b91c1c;">生產順利，無追加損耗</td></tr>'}
+                        </table>
+                        
+                        <div style="margin-top: 40px; display:flex; justify-content:space-between; background:#f8fafc; border:2px solid #cbd5e1; padding: 25px; border-radius:12px; page-break-inside: avoid;">
+                            <div style="font-size: 16px; line-height: 2;">
+                                <div><strong>最終對外營業額:</strong> <span style="font-weight:bold;">$${Math.round(totalRev).toLocaleString()}</span></div>
+                                <div><strong>標準用料成本:</strong> <span style="font-weight:bold;">$${Math.round(bomCost).toLocaleString()}</span></div>
+                                <div style="color:#dc2626;"><strong>追加損耗成本:</strong> <span style="font-weight:bold;">-$${Math.round(addonCost).toLocaleString()}</span></div>
+                                <div><strong>物流運費成本:</strong> <span style="font-weight:bold;">$${Math.round(details.shipping_cost||0).toLocaleString()}</span></div>
+                            </div>
+                            <div style="text-align: right; border-left:2px dashed #cbd5e1; padding-left:25px;">
+                                <div style="font-size: 16px; color:#64748B; font-weight:bold;">結算實得純利潤</div>
+                                <div style="font-size: 42px; font-weight: 900; color: ${profit < 0 ? '#dc2626' : '#16a34a'};">$${Math.round(profit).toLocaleString()}</div>
+                                <div style="font-size: 18px; font-weight: bold; background: ${profit < 0 ? '#fee2e2' : '#dcfce7'}; color: ${profit < 0 ? '#dc2626' : '#16a34a'}; padding:6px 12px; border-radius:6px; display:inline-block; margin-top:10px;">最終毛利率: ${margin}%</div>
+                            </div>
                         </div>
                     </div>
-                </div>`;
+                    <script>
+                        window.onload = function() { setTimeout(function() { window.print(); }, 500); };
+                    <\/script>
+                </body>
+                </html>`;
                 
-                const element = document.getElementById('pdfContent');
-                element.innerHTML = html;
-                
-                const opt = { 
-                    margin: 15, filename: `完工結算總覽_${data.order_id}.pdf`, 
-                    image: { type: 'jpeg', quality: 0.98 }, 
-                    html2canvas: { scale: 2, useCORS: true }, 
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                };
-                html2pdf().set(opt).from(element).save();
+                // 🚀 啟動隱形 iframe 進行列印
+                let iframe = document.getElementById('print-iframe-report');
+                if (!iframe) {
+                    iframe = document.createElement('iframe');
+                    iframe.id = 'print-iframe-report';
+                    iframe.style.position = 'absolute';
+                    iframe.style.width = '0px';
+                    iframe.style.height = '0px';
+                    iframe.style.border = 'none';
+                    document.body.appendChild(iframe);
+                }
+                let doc = iframe.contentWindow.document;
+                doc.open();
+                doc.write(fullHtml);
+                doc.close();
+
+                setTimeout(() => {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                }, 600);
             });
+        };
+        // 🚀 執行 OMS 結案
+        window.closeOrder = function(orderId) {
+            if(!confirm(`確定要將訂單 [${orderId}] 設為「已結案」嗎？\n結案後，該單將受到保護，且只要上方有勾選「隱藏結案」，該單就會從主列表淨空隱藏。`)) return;
+            const op = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
+            const btn = event.currentTarget;
+            btn.innerText = '結案中...'; btn.disabled = true;
+
+            google.script.run.withSuccessHandler(res => {
+                showCustomAlert("🔒 結案成功", res.msg);
+                refreshSystem();
+            }).withFailureHandler(err => {
+                alert("結案失敗：" + err);
+                btn.innerText = '🔒 結案'; btn.disabled = false;
+            }).closeOmsOrder(orderId, op);
         };
         // [追加] 全員勾選狀態連動控制開關
 window.toggleHandoverAssignAll = function(el) {
