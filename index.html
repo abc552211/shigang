@@ -183,16 +183,16 @@
                     </div>
                 </div>
                     <div>
-    <label class="block text-gray-600 font-bold mb-2">指定接收人 (自動連動 LINE 專向推播)</label>
-    <div class="mb-2">
-        <label class="inline-flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg cursor-pointer border hover:bg-slate-200 transition">
-            <input type="checkbox" id="hoAssignAll" checked onchange="toggleHandoverAssignAll(this)" class="w-4 h-4 rounded text-slate-600 focus:ring-slate-500">
-            <span class="text-xs font-bold text-slate-700">📢 廣播給全體在職人員</span>
-        </label>
-    </div>
-    <div id="hoAssigneeGridContainer" class="hidden p-3 border rounded-lg bg-gray-50 max-h-36 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-2">
-        </div>
-</div>
+                        <label class="block text-gray-600 font-bold mb-2">指定接收人 (自動連動 LINE 專向推播)</label>
+                        <div class="mb-2">
+                        <label class="inline-flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg cursor-pointer border hover:bg-slate-200 transition">
+                            <input type="checkbox" id="hoAssignAll" checked onchange="toggleHandoverAssignAll(this)" class="w-4 h-4 rounded text-slate-600 focus:ring-slate-500">
+                        <span class="text-xs font-bold text-slate-700">📢 廣播給全體在職人員</span>
+                        </label>
+                        </div>
+                        <div id="hoAssigneeGridContainer" class="hidden p-3 border rounded-lg bg-gray-50 max-h-36 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-2">
+                     </div>
+                    </div>
                 
                 <!-- LINE 控制開關 -->
                 <div class="flex items-center gap-2 bg-amber-50/50 border border-amber-200/60 p-2.5 rounded-lg">
@@ -3172,7 +3172,7 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
             }).startProductionWO(orderId, op);
         };
 
-        // 🚀 3. 【產出實體生產工單 PDF】(方案B：純向量原生列印版 - 無限放大不失真)
+        // 🚀 3. 【產出實體生產工單 PDF】(方案B：本機適用隱形 iframe 純向量列印)
         window.generateWoPDF = function(orderId) {
             let rowData = currentTableData.find(r => r['訂單編號'] === orderId) || (systemCache['訂單管理']?.data || []).find(o => o['訂單編號'] === orderId);
             if (!rowData) return alert("找不到訂單資料！");
@@ -3193,7 +3193,7 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                     let mId = matKey.split('@@')[0]; 
                     let bomItem = bom.find((b, idx) => `${b.id}@@${idx}` === matKey || b.id === matKey);
                     if (bomItem) {
-                        return `<div style="margin-bottom: 3px;">• <span style="font-weight: bold; color: #1e3a8a;">[${mId}]</span> ${bomItem.customName || mId} <span style="color: #b91c1c; font-weight: bold;">(領料量: ${bomItem.qty})</span></div>`;
+                        return `<div style="margin-bottom: 3px;">• <span style="font-weight: bold; color: #1e3a8a;">[${mId}]</span> ${bomItem.customName || mId} <span style="color: #b91c1c; font-weight: bold;">(量: ${bomItem.qty})</span></div>`;
                     } else {
                         return `<div>• ${mId}</div>`;
                     }
@@ -3232,7 +3232,7 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
             let printOp = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
             let printTime = new Date().toLocaleString('zh-TW', { hour12: false });
 
-            // 🚀 建立全新的 HTML 文件結構供原生列印使用
+            // 建立純 HTML 結構
             let fullHtml = `
                 <!DOCTYPE html>
                 <html lang="zh-TW">
@@ -3240,7 +3240,6 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                     <meta charset="UTF-8">
                     <title>仕罡_現場生產工單_${rowData['訂單編號']}</title>
                     <style>
-                        /* 🌟 核心列印指令：強制橫式 A4、強制印出背景色與邊框 */
                         @page { size: A4 landscape; margin: 10mm; }
                         body { 
                             margin: 0; padding: 0; 
@@ -3307,28 +3306,33 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                             <div style="border-top: 1px solid #000; width: 28%; text-align: center; padding-top: 10px;">現場小組長簽收</div>
                         </div>
                     </div>
-                    
-                    <script>
-                        window.onload = function() {
-                            // 延遲 500ms 確保圖片全部載入後再呼叫列印
-                            setTimeout(function() {
-                                window.print();
-                            }, 500);
-                        };
-                    </script>
                 </body>
                 </html>
             `;
 
-            // 🚀 開啟一個隱藏或全新的視窗，將 HTML 塞入並觸發列印
-            let printWindow = window.open('', '_blank');
-            if (printWindow) {
-                printWindow.document.open();
-                printWindow.document.write(fullHtml);
-                printWindow.document.close();
-            } else {
-                alert("瀏覽器封鎖了彈出視窗！請允許彈出視窗以列印工單。");
+            // 🚀 隱形 iframe 技術：完美繞過本機的 file:/// 跨域安全封鎖
+            let iframe = document.getElementById('print-iframe');
+            if (!iframe) {
+                iframe = document.createElement('iframe');
+                iframe.id = 'print-iframe';
+                iframe.style.position = 'absolute';
+                iframe.style.width = '0px';
+                iframe.style.height = '0px';
+                iframe.style.border = 'none';
+                document.body.appendChild(iframe);
             }
+
+            // 將完整的向量 HTML 寫入隱藏的 iframe 之中
+            let doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write(fullHtml);
+            doc.close();
+
+            // 延時等待圖片加載完畢，直接喚醒原生列印對話框
+            setTimeout(() => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            }, 600);
         };
 
         // 🚀 開啟追加耗損視窗
@@ -3707,9 +3711,7 @@ function openHandoverModal() {
         if (!isAApp) { btn.disabled = false; btn.innerText = "發布並 LINE 推播"; }
     }
 }
-        // [追加] 支援單張小卡、多同仁手機同時推播的 LINE 批次發送引擎
-// [升級版] 全防禦型 LINE 智慧分流與保底推播引擎
-function smartSafeLinePush(creator, assigneeText, priority, lineContent) {
+        function smartSafeLinePush(creator, assigneeText, priority, lineContent) {
     // 建立一個安全發送內核，若單一推播發生格式卡控，自動降級為強制顯示訊息
     const executeFetch = (targetEmployee, contentToSend) => {
         try {
@@ -3717,16 +3719,14 @@ function smartSafeLinePush(creator, assigneeText, priority, lineContent) {
                 method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ action: "sendNotification", creator: creator, assignee: targetEmployee, priority: priority, content: contentToSend })
             }).catch(err => {
-                // Fetch 報錯時，立刻降級強制發送保底通知
-                let fallback = `⚠️【仕罡通知】${creator} 有一則交接，因限制無法完整顯示，請至交接頁面瀏覽。`;
+                let fallback = `⚠️【仕罡通知】${creator} 有一則交接，請至系統頁面瀏覽。`;
                 fetch(GAS_LINE_API, {
                     method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ action: "sendNotification", creator: creator, assignee: targetEmployee, priority: priority, content: fallback })
                 });
             });
         } catch(e) {
-            // 萬一連 JSON 打包都失敗，直接硬編碼發送保底字串
-            let fallback = `⚠️【仕罡通知】${creator} 有一則交接，因限制無法完整顯示，請至交接頁面瀏覽。`;
+            let fallback = `⚠️【仕罡通知】${creator} 有一則交接，請至系統頁面瀏覽。`;
             fetch(GAS_LINE_API, {
                 method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ action: "sendNotification", creator: creator, assignee: targetEmployee, priority: priority, content: fallback })
@@ -3734,12 +3734,21 @@ function smartSafeLinePush(creator, assigneeText, priority, lineContent) {
         }
     };
 
-    if (assigneeText === "全員") {
-        window.userListCache.forEach(targetEmployee => {
-            if (targetEmployee && !targetEmployee.startsWith('(離)')) {
-                executeFetch(targetEmployee, lineContent);
-            }
-        });
+    if (assigneeText === "全員" || assigneeText.includes("全員")) {
+        // 🚀 核心修復：加上 Array.isArray 判定與保底空陣列，徹底阻斷 undefined 造成的 forEach 崩潰
+        const listToLoop = Array.isArray(window.userListCache) ? window.userListCache : [];
+        
+        if (listToLoop.length === 0) {
+            console.warn("⚠️ 警告：window.userListCache 為空或未載入，LINE 推播改走通用通道或暫緩。");
+            // 保底機制：若人員名單沒抓到，至少發給發布者本人或記錄在日誌，不讓前端噴錯誤
+            executeFetch(creator, lineContent);
+        } else {
+            listToLoop.forEach(targetEmployee => {
+                if (targetEmployee && !targetEmployee.startsWith('(離)')) {
+                    executeFetch(targetEmployee, lineContent);
+                }
+            });
+        }
     } else {
         const individualNames = assigneeText.split(',').map(name => name.trim());
         individualNames.forEach(targetEmployee => {
