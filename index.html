@@ -377,31 +377,82 @@
         </div>
     </div>
 
-    <!-- 🏁 完工彈窗 -->
     <div id="completeModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-moCard rounded-lg w-full max-w-lg flex flex-col max-h-[90vh]">
-            <div class="p-4 border-b flex justify-between bg-blue-50"><h3 class="font-bold text-blue-700">工單完工與退料結算</h3><button onclick="closeModal('completeModal')">&times;</button></div>
-            <div class="p-6 overflow-y-auto space-y-4">
+        <div class="bg-moCard rounded-lg w-full max-w-lg flex flex-col max-h-[90vh] shadow-2xl overflow-hidden">
+            <div class="p-4 border-b flex justify-between items-center bg-emerald-50">
+                <h3 class="font-bold text-emerald-800">✅ 工序完工與退料結算</h3>
+                <button onclick="closeModal('completeModal')" class="text-gray-500 hover:text-gray-800 text-xl font-bold">&times;</button>
+            </div>
+            <div class="p-5 overflow-y-auto space-y-4 bg-white flex-1">
                 <input type="hidden" id="compWoId"><input type="hidden" id="compOrderId"><input type="hidden" id="compMachine">
-                <div><label class="block text-sm font-bold mb-1 text-blue-600">本次完工實際產出量 (必填)</label><input type="number" id="compOutQty" class="w-full p-3 border border-blue-300 rounded focus:ring-1 focus:ring-blue-500 font-bold" placeholder="請輸入產出數量"></div>
+                
+                <div class="bg-emerald-50/50 border border-emerald-200 p-3 rounded-lg flex items-center gap-3 shadow-sm">
+                    <span class="text-2xl">⚙️</span>
+                    <div>
+                        <p class="text-[10px] text-emerald-600 font-bold mb-0.5">正在執行完工結算之工序</p>
+                        <p id="compStepName" class="font-black text-emerald-900 text-sm tracking-wide"></p>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold mb-1 text-emerald-700">本次完工實際產出量 <span class="text-red-500">*</span></label>
+                    <input type="number" id="compOutQty" class="w-full p-3 border border-emerald-300 rounded-lg focus:ring-2 focus:ring-emerald-500 font-bold text-xl text-emerald-900 shadow-inner" placeholder="請輸入產出數量">
+                    <p class="text-[10px] text-gray-500 mt-1 font-bold">💡 系統已自動帶入「本站預期應產出量」，可視現場實際產出良品數量進行修改。</p>
+                </div>
+                
                 <div class="border-t border-gray-200 pt-4 mt-2">
-                    <p class="text-sm font-bold mb-2 text-moSide">清點並退回剩餘原料 (若無則留空)</p>
-                    <div id="compMatList" class="space-y-2"></div>
+                    <p class="text-sm font-bold mb-2 text-moSide">📦 清點並退回「本工序」剩餘可用原料</p>
+                    <div id="compMatList" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
                 </div>
             </div>
             <div class="p-4 border-t flex justify-end gap-3 bg-gray-50">
-                <button onclick="closeModal('completeModal')" class="px-4 py-2 border hover:bg-gray-100 rounded">取消</button>
-                <button onclick="submitCompleteWo(this)" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded shadow-sm">完成工序</button>
+                <button onclick="closeModal('completeModal')" class="px-4 py-2 border border-gray-300 hover:bg-gray-100 rounded-lg text-sm font-bold text-gray-600 transition">取消</button>
+                <button onclick="submitCompleteWo(this)" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-md text-sm font-bold transition">確認完工並推進</button>
             </div>
         </div>
     </div>
 
     <!-- 🔧 報修彈窗 -->
     <div id="repairModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-moCard rounded-lg w-full max-w-sm flex flex-col">
-            <div class="p-4 border-b flex justify-between bg-red-50"><h3 class="font-bold text-red-600">機台報修</h3><button onclick="closeModal('repairModal')">&times;</button></div>
-            <div class="p-6 space-y-4"><p class="text-sm">機台：<span id="repairMachine" class="font-bold"></span></p><div><label class="block text-sm font-bold mb-1">報修原因 / 內容</label><textarea id="repairReason" rows="3" class="w-full p-2 border rounded focus:ring-1 focus:ring-red-300"></textarea></div></div>
-            <div class="p-4 border-t flex justify-end gap-3 bg-gray-50"><button onclick="closeModal('repairModal')" class="px-4 py-2 border hover:bg-gray-100 rounded">取消</button><button onclick="submitRepair(this)" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded">送出報修</button></div>
+        <div class="bg-moCard rounded-lg w-full max-w-sm flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-4 border-b flex justify-between bg-red-50 items-center">
+                <h3 class="font-bold text-red-600">🔧 機台設備異常報修</h3>
+                <button onclick="closeModal('repairModal')" class="text-gray-400 hover:text-gray-700 font-bold text-xl">&times;</button>
+            </div>
+            <div class="p-6 space-y-4 bg-white">
+                <input type="hidden" id="repairWoId">
+                <input type="hidden" id="repairOrderId">
+                <p class="text-sm font-bold text-gray-700 bg-gray-50 p-2 rounded border border-gray-200">掛修機台：<span id="repairMachine" class="text-red-600"></span></p>
+                <div>
+                    <label class="block text-sm font-bold mb-1 text-gray-600">報修原因 / 異常現象描述 <span class="text-red-500">*</span></label>
+                    <textarea id="repairReason" rows="3" class="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-red-400 text-sm" placeholder="請詳細描述機台狀況..."></textarea>
+                </div>
+            </div>
+            <div class="p-4 border-t flex justify-end gap-3 bg-gray-50">
+                <button onclick="closeModal('repairModal')" class="px-4 py-2 border hover:bg-gray-100 rounded text-sm font-bold text-gray-600 transition-colors">取消</button>
+                <button onclick="submitRepair(this)" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-bold shadow-sm text-sm transition-colors">確認掛修</button>
+            </div>
+        </div>
+    </div>
+    <div id="finishRepairModal" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-moCard rounded-lg w-full max-w-sm flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-4 border-b flex justify-between bg-blue-50 items-center">
+                <h3 class="font-bold text-blue-700">🛠️ 機台完修與復工登記</h3>
+                <button onclick="closeModal('finishRepairModal')" class="text-gray-400 hover:text-gray-700 font-bold text-xl">&times;</button>
+            </div>
+            <div class="p-6 space-y-4 bg-white">
+                <input type="hidden" id="finishRepairWoId">
+                <input type="hidden" id="finishRepairOrderId">
+                <p class="text-sm font-bold text-gray-700 bg-gray-50 p-2 rounded border border-gray-200">復工機台：<span id="finishRepairMachine" class="text-blue-600 font-black"></span></p>
+                <div>
+                    <label class="block text-sm font-bold mb-1 text-gray-600">完修處置說明 / 備註 <span class="text-red-500">*</span></label>
+                    <textarea id="finishRepairReason" rows="3" class="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-400 text-sm" placeholder="請填寫維修處置結果、更換零件或復工注意事項..."></textarea>
+                </div>
+            </div>
+            <div class="p-4 border-t flex justify-end gap-3 bg-gray-50">
+                <button onclick="closeModal('finishRepairModal')" class="px-4 py-2 border hover:bg-gray-100 rounded text-sm font-bold text-gray-600 transition-colors">取消</button>
+                <button onclick="submitFinishRepair(this)" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-bold shadow-sm text-sm transition-colors">確認完修並復工</button>
+            </div>
         </div>
     </div>
 
@@ -1088,29 +1139,43 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                         let { data: wo } = await sbClient.from('work_orders').select('*').eq('wo_id', woId);
                         let steps = wo[0].process_details || [];
                         if (typeof steps === 'string') { try { steps = JSON.parse(steps); } catch(e) { steps = []; } }
+                        
                         let currIdx = parseInt(wo[0].current_step_index) || 0;
                         let nextIdx = currIdx + 1;
+                        
+                        // 紀錄本站 (總成) 產出量
                         if(steps[currIdx]) steps[currIdx].outQty = outQty;
+
+                        // 🚀 核心計算：將目前為止「所有」工序(總成)的產出量進行加總！
+                        let cumulativeOutQty = steps.reduce((sum, s) => sum + (parseFloat(s.outQty) || 0), 0);
 
                         let d = new Date(); let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
                         for(let rm of (returnMats || [])) {
                             let { data: m } = await sbClient.from('materials').select('stock_qty').eq('material_id', rm.id);
                             if(m && m[0]) {
                                 await sbClient.from('materials').update({ stock_qty: (parseFloat(m[0].stock_qty)||0) + parseFloat(rm.qty) }).eq('material_id', rm.id);
-                                await sbClient.from('restock_logs').insert([{ created_at: ts, material_id: rm.id, quantity: rm.qty, supplier_name: '廠內退料', operator_name: operatorName, replenish_id: orderId, vendor_invoice_id: '完工退料' }]);
+                                await sbClient.from('restock_logs').insert([{ created_at: ts, material_id: rm.id, quantity: rm.qty, total_amount: 0, supplier_name: '完工退料', operator_name: operatorName, replenish_id: orderId, vendor_invoice_id: `退單:${orderId}` }]);
                             }
                         }
 
                         if (nextIdx < steps.length) {
+                            // 還有下一站，把「累計總產量」更新回工單
                             await sbClient.from('work_orders').update({
                                 current_step_index: nextIdx, current_process: steps[nextIdx].name, machine_id: steps[nextIdx].mac,
-                                emp_name: steps[nextIdx].emp, completed_at: steps[nextIdx].endDate, process_details: JSON.stringify(steps)
+                                emp_name: steps[nextIdx].emp, completed_at: steps[nextIdx].endDate, process_details: JSON.stringify(steps),
+                                output_qty: cumulativeOutQty
                             }).eq('wo_id', woId);
-                            this.successHandler({ success: true, msg: "🏁 前段工序已完成！工單推進至下一工序 [" + steps[nextIdx].name + "]。" });
+                            
+                            // 同時也更新 OMS 的總產量與步驟紀錄，讓生管即時看到進度
+                            await sbClient.from('orders').update({ output_qty: cumulativeOutQty, process_plan: JSON.stringify(steps) }).eq('order_id', orderId);
+                            
+                            this.successHandler({ success: true, msg: `🏁 本站工序(總成)已完成！\n產出已累加，目前總產量: ${cumulativeOutQty} 件。\n工單推進至下一工序 [${steps[nextIdx].name}]。` });
                         } else {
-                            await sbClient.from('work_orders').update({ status: '已完工', process_details: JSON.stringify(steps), output_qty: outQty }).eq('wo_id', woId);
-                            await sbClient.from('orders').update({ status: '製作完成', output_qty: outQty }).eq('order_id', orderId);
-                            this.successHandler({ success: true, msg: "🎉 此訂單所有排程工序皆已完成！工單正式結案轉交出貨。" });
+                            // 所有站別(總成)皆完成
+                            await sbClient.from('work_orders').update({ status: '已完工', process_details: JSON.stringify(steps), output_qty: cumulativeOutQty }).eq('wo_id', woId);
+                            await sbClient.from('orders').update({ status: '製作完成', output_qty: cumulativeOutQty, process_plan: JSON.stringify(steps) }).eq('order_id', orderId);
+                            
+                            this.successHandler({ success: true, msg: `🎉 此訂單所有工序(總成)皆已完成！\n總累計產出: ${cumulativeOutQty} 件。\n工單正式結案，請轉交出貨。` });
                         }
                     },
 
@@ -1220,12 +1285,35 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                         this.successHandler({ success: true });
                     },
                     
-                    logEquipmentRepair: async function(m, isRep, r, op) {
+                    // 🚀 同步三方狀態為：維修中
+                    logEquipmentRepairAndStatus: async function(m, r, woId, oId, op) {
                         let d = new Date(); let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
-                        let st = isRep ? "報修中" : "待機中";
-                        await sbClient.from('equipment_status').update({ status: st, repair_remark: isRep ? r : "" }).eq('machine_id', m);
-                        await sbClient.from('equipment_logs').insert([{ created_at: ts, machine_id: m, status: st, operator_name: op, remark: r }]);
-                        this.successHandler({ success: true });
+                        let st = "維修中";
+                        let actualMacId = m.split(' ')[0]; 
+                        
+                        await sbClient.from('equipment_status').update({ status: st, repair_remark: r }).eq('machine_id', actualMacId);
+                        await sbClient.from('equipment_logs').insert([{ created_at: ts, machine_id: actualMacId, status: st, operator_name: op, remark: r }]);
+                        
+                        if (woId) await sbClient.from('work_orders').update({ status: st, stop_reason: r }).eq('wo_id', woId);
+                        if (oId) await sbClient.from('orders').update({ status: st }).eq('order_id', oId);
+                        
+                        this.successHandler({ success: true, msg: "機台已掛修！\nOMS 訂單 / MES 工單 / EQS 設備皆已同步切換為 [維修中]。" });
+                    },
+
+                    // 🚀 完修復工：恢復常態生產並記錄備註
+                    resolveRepair: async function(woId, oId, mac, op, reason) {
+                        let d = new Date(); let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
+                        let actualMacId = mac.split(' ')[0];
+                        
+                        await sbClient.from('equipment_status').update({ status: '待機中', repair_remark: '' }).eq('machine_id', actualMacId);
+                        
+                        // 🚀 關鍵：把輸入的處置說明寫入 equipment_logs
+                        await sbClient.from('equipment_logs').insert([{ created_at: ts, machine_id: actualMacId, status: '完修復工', operator_name: op, remark: '處置說明：' + reason }]);
+                        
+                        if (woId) await sbClient.from('work_orders').update({ status: '生產中', stop_reason: '' }).eq('wo_id', woId);
+                        if (oId) await sbClient.from('orders').update({ status: '生產中' }).eq('order_id', oId);
+                        
+                        this.successHandler({ success: true, msg: "✅ 完修登記完成！OMS / MES / EQS 皆已恢復生產常態。\n\n完修備註已寫入設備日誌。" });
                     },
                     scheduleMaintenance: async function(m, d, op) {
                         let ts = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
@@ -1284,8 +1372,39 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                         this.successHandler({ success: true, msg: "🔄 退料成功！庫存已全數退回，並寫入進貨日誌，狀態返回 [待扣料]。" });
                     },
                     deleteOmsOrderAndRefund: async function(orderId, op) {
+                        // 1. 先撈出該訂單的配料明細，準備退料
+                        let { data: ord } = await sbClient.from('orders').select('bom_details').eq('order_id', orderId);
+                        let bom = ord[0]?.bom_details || [];
+                        try { bom = typeof bom === 'string' ? JSON.parse(bom) : bom; } catch(e){}
+                        let d = new Date(); let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
+
+                        // 2. 執行實體退料 (🚀 關鍵防呆：過濾掉不計庫存的加工項目，避免成本錯亂)
+                        for(let b of bom) {
+                            let { data: m } = await sbClient.from('materials').select('stock_qty, category').eq('material_id', b.id);
+                            if(m && m[0]) {
+                                let cat = String(m[0].category || '');
+                                let isService = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('代工') || cat.includes('費');
+                                
+                                if (!isService) {
+                                    let returnQty = parseFloat(b.qty) || 0;
+                                    if (returnQty > 0) {
+                                        await sbClient.from('materials').update({ stock_qty: (parseFloat(m[0].stock_qty)||0) + returnQty }).eq('material_id', b.id);
+                                        await sbClient.from('restock_logs').insert([{ 
+                                            created_at: ts, material_id: b.id, quantity: returnQty, total_amount: 0, 
+                                            supplier_name: '刪單退回', operator_name: op, replenish_id: orderId, vendor_invoice_id: `刪單:${orderId}` 
+                                        }]);
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // 3. 🚀 同步連動：斬草除根，刪除所有關聯的 MES 生產工單
+                        await sbClient.from('work_orders').delete().eq('order_id', orderId);
+                        
+                        // 4. 刪除 OMS 訂單本身
                         await sbClient.from('orders').delete().eq('order_id', orderId);
-                        this.successHandler({ success: true, msg: "🗑️ 訂單已成功刪除，相關預配庫存已自動回補！" });
+                        
+                        this.successHandler({ success: true, msg: "🗑️ 訂單及關聯之生產工單已成功作廢刪除，實體庫存已安全回補！" });
                     },
 
                     shipOrderAndWo: async function(woId, oId, trackId, op) {
@@ -1312,6 +1431,27 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                     }
                 }
             }
+        };
+        // 🚀 ERP 看板一鍵隱藏/顯示功能
+        window.toggleErpFinance = function() {
+            const toggleText = document.getElementById('erpToggleText');
+            const eyeIcon = document.getElementById('erpEyeIcon');
+            const isHidden = toggleText.innerText === '顯示金額';
+
+            document.querySelectorAll('.erp-finance-num').forEach(el => {
+                if (isHidden) {
+                    // 顯示原始金額
+                    let val = parseFloat(el.getAttribute('data-val')) || 0;
+                    el.innerText = '$ ' + Math.round(val).toLocaleString();
+                } else {
+                    // 隱藏變為星號
+                    el.innerText = '****';
+                }
+            });
+
+            // 更新按鈕文字與圖示
+            toggleText.innerText = isHidden ? '隱藏金額' : '顯示金額';
+            eyeIcon.innerText = isHidden ? '👁️' : '🙈';
         };
 
         window.filterTable = function() {
@@ -1745,7 +1885,55 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
             }
 
             // --- 常規表格結構 ---
-            let tableHTML = `<div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead class="bg-gray-100 text-moSide border-b border-gray-300"><tr>`;
+            let tableHTML = ''; // 🚀 1. 先宣告空的字串
+
+            // 🚀 2. 插入 ERP 頂部看板 (這段必須在 <table ...> 標籤開始之前拼接！)
+            if (currentSysName === 'ERP') {
+                let totalStockCost = 0;
+                let pendingRestockCost = 0;
+
+                currentTableData.forEach(row => {
+                    let cat = String(row['類別'] || '');
+                    let isServiceItem = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('代工') || cat.includes('費');
+                    
+                    if (!isServiceItem) {
+                        let stock = parseFloat(row['目前庫存']) || 0;
+                        let cost = parseFloat(row['內價']) || 0;
+                        if (stock > 0) totalStockCost += (stock * cost);
+                        
+                        let reps = currentReplenish.filter(l => l.matId === row['物料編號'] && l.status !== '已結案');
+                        reps.forEach(r => {
+                            let pendingQty = (parseFloat(r.reqQty) || 0) - (parseFloat(r.inQty) || 0);
+                            if (pendingQty > 0) pendingRestockCost += (pendingQty * cost);
+                        });
+                    }
+                });
+
+                tableHTML += `
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print transition-all">
+                        <div class="flex items-center gap-4">
+                            <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-100 text-indigo-600 text-2xl shadow-inner">💰</div>
+                            <div>
+                                <p class="text-xs text-gray-500 font-bold mb-1 tracking-wider">ERP 廠內實體庫存總成本 <span class="font-normal text-[10px] text-gray-400">(自動過濾加工費)</span></p>
+                                <p class="text-2xl font-black text-slate-800 font-mono tracking-widest erp-finance-num" data-val="${totalStockCost}">$ ${Math.round(totalStockCost).toLocaleString()}</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-4 md:gap-6 w-full md:w-auto">
+                            <div class="text-left md:text-right border-r border-gray-200 pr-6">
+                                <p class="text-xs text-amber-700 font-bold mb-1 tracking-wider">進行中待點收進貨金額</p>
+                                <p class="text-lg font-black text-amber-600 font-mono erp-finance-num" data-val="${pendingRestockCost}">$ ${Math.round(pendingRestockCost).toLocaleString()}</p>
+                            </div>
+                            <button onclick="toggleErpFinance()" class="flex items-center justify-center gap-1.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-4 py-2.5 rounded-lg transition shadow-sm border border-gray-300 flex-1 md:flex-none">
+                                <span id="erpEyeIcon">👁️</span> <span id="erpToggleText">隱藏金額</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 🚀 3. 看板接完後，現在才開始拼接 <table> 標籤，這樣排版絕對不會破掉！
+            tableHTML += `<div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead class="bg-gray-100 text-moSide border-b border-gray-300"><tr>`;
+            
             let displayHeaders = (currentSheet === '權限管理' || currentSysName === 'SYS') 
                 ? currentHeaders.filter(h => h !== '可視系統' && h !== '可操作系統' && h !== '可編輯系統') 
                 : currentHeaders.filter(h => h !== '配料明細' && h !== '工序明細' && h !== '工序明細JSON');
@@ -1765,6 +1953,8 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                 tableHTML += `<th onclick="sortTableByHeader('${h}')" class="p-3 font-semibold text-sm tracking-wider cursor-pointer hover:bg-gray-200 select-none transition-colors">${h}<span class="text-xs text-gray-400">${arrow}</span></th>`;
             });
             tableHTML += `</tr></thead><tbody class="divide-y text-sm">`;
+                
+
 
             if (currentTableData.length === 0) {
                 tableHTML += `<tr><td colspan="15" class="p-10 text-center text-gray-400 tracking-wider">目前尚無資料。</td></tr>`;
@@ -1800,6 +1990,29 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                     // ================= 🚀 全系統智慧展開日誌引擎 🚀 =================
                     let detailsHTML = '';
 
+                    // 🚀 專屬 OMS 的頂端總產量看板
+                    if (currentSysName === 'OMS' || currentSysName === '訂單管理') {
+                        let orderProdQty = parseFloat(row['投產量'] || row['數量'] || 0);
+                        let orderOutQty = parseFloat(row['產出量'] || 0);
+                        let outBadge = orderOutQty >= orderProdQty ? 'text-emerald-700 bg-emerald-100 border-emerald-300' : 'text-amber-700 bg-amber-100 border-amber-300';
+                        
+                        detailsHTML += `
+                            <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-gray-200 shadow-sm mb-3">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-3xl drop-shadow-sm">📊</span>
+                                    <div>
+                                        <p class="text-[10px] text-gray-500 font-bold mb-0.5">專案目標投產量</p>
+                                        <p class="text-sm font-black text-gray-800">${orderProdQty.toLocaleString()} 件</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[10px] text-gray-500 font-bold mb-0.5">各工序(總成)累計產出合計</p>
+                                    <p class="text-lg font-black font-mono px-3 py-0.5 rounded border shadow-inner ${outBadge}">${orderOutQty.toLocaleString()} 件</p>
+                                </div>
+                            </div>
+                        `;
+                    }
+
                     // 1. 常態文字與備註欄位追加封裝
                     displayHeaders.forEach(key => {
                         let val = row[key] || '';
@@ -1821,6 +2034,7 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                                 else if(val === '待扣料') badgeClass = 'bg-yellow-100 text-yellow-800 border border-yellow-300 font-bold';
                                 else if(val === '待生產') badgeClass = 'bg-green-100 text-green-700 border border-green-400 font-bold'; 
                                 else if(val === '生產中' || val === '已接單') badgeClass = 'status-blue';
+                                else if(val === '維修中') badgeClass = 'bg-red-600 text-white border border-red-700 font-bold animate-pulse shadow-md px-2'; // 🚀 超顯眼紅底白字
                                 else if(val === '製作完成' || val === '已完工' || val === '已出貨') badgeClass = 'bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold';
                                 val = `<span class="status-badge inline-block ${badgeClass}">${val}</span>`;
                             }
@@ -2046,27 +2260,98 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                             </div>`;
                     }
 
-                    // 6. 【SUP 供應商資料】展開：追蹤向該供應商採購進貨的歷史明細
-                    if (currentSysName === 'SUP') {
-                        const supName = row['供應商名稱'];
-                        let sRows = currentRestocks.filter(l => l.supplier === supName).map(l => {
-                            let matObj = (currentDropdowns['物料編號'] || []).find(m => m.id === l.matId);
-                            return `<tr class="border-b">
-                                <td class="p-1.5 font-mono">${formatToLocalTime(l.time)}</td>
-                                <td class="p-1.5 font-mono text-gray-500">${l.matId}</td>
-                                <td class="p-1.5 font-bold">${matObj ? matObj.name.split('|').pop().trim() : '原材料'}</td>
-                                <td class="p-1.5 text-center font-bold text-green-600">+${l.qty}</td>
-                                <td class="p-1.5 text-right font-bold">$${parseFloat(l.amount || 0).toLocaleString()}</td>
-                             </tr>`;
-                        }).join('');
+                    // 7. 🚀 【MES 生產工單】展開：詳細工序、專屬用料、示意圖與報修紀錄
+                    if (currentSysName === 'MES') {
+                        const woId = row['工單編號'];
+                        const oId = row['關聯訂單'];
+                        const mac = row['作業機台'];
+                        
+                        // 取得原始訂單資料以抓取示意圖與投產量
+                        let ordData = (systemCache['訂單管理']?.data || []).find(o => o['訂單編號'] === oId) || {};
+                        let imgs = []; try { imgs = JSON.parse(ordData['示意圖'] || '[]'); } catch(e){}
+                        let bom = []; try { bom = JSON.parse(ordData['配料明細'] || '[]'); } catch(e){}
+                        let prodQty = parseFloat(ordData['投產量'] || ordData['訂購數量'] || 0);
+
+                        // 解析工序明細
+                        let steps = [];
+                        let currentStepIdx = parseInt(row['當前進度索引']) || 0;
+                        try { steps = JSON.parse(row['工序明細'] || '[]'); } catch(e){}
+
+                        let stepsHtml = '';
+                        if (steps.length > 0) {
+                            stepsHtml = steps.map((s, i) => {
+                                let isCurrent = (i === currentStepIdx && row['工單狀態'] !== '已完工');
+                                let isDone = (i < currentStepIdx || row['工單狀態'] === '已完工');
+                                
+                                let statusBadge = isCurrent ? '<span class="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold animate-pulse shadow-sm">進行中</span>' : 
+                                                  isDone ? '<span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-[10px] font-bold">✓已完工</span>' : 
+                                                  '<span class="bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded text-[10px] font-bold">待執行</span>';
+                                
+                                let rowClass = isCurrent ? 'bg-blue-50/40 border-l-4 border-blue-500' : 'hover:bg-gray-50';
+
+                                // 解析該工序用料，直接對應 BOM
+                                let matText = (s.requiredMats || []).map(matKey => {
+                                    let mId = matKey.split('@@')[0]; 
+                                    let bomItem = bom.find((b, idx) => `${b.id}@@${idx}` === matKey || b.id === matKey);
+                                    let matName = bomItem ? (bomItem.customName || mId) : mId;
+                                    let matQty = bomItem ? bomItem.qty : '-';
+                                    return `<div class="text-[10px] text-slate-600 mt-0.5 mb-1">• <span class="font-bold text-indigo-700">[${mId}]</span> ${matName} <span class="text-red-600 font-bold ml-1">(量: ${matQty})</span></div>`;
+                                }).join('');
+                                if (!matText) matText = '<span class="text-[10px] text-gray-400 italic font-bold">無特定實體用料</span>';
+
+                                let timeStr = `${(s.startDate||'').replace('T', ' ')}<br><span class="text-gray-400 text-[10px]">至</span><br>${(s.endDate||'').replace('T', ' ')}`;
+
+                                return `<tr class="border-b border-gray-200 transition-colors ${rowClass}">
+                                    <td class="p-2 text-center font-black text-slate-400 text-sm">${s.seq}</td>
+                                    <td class="p-2 font-bold text-gray-800 text-sm">${s.name} <div class="mt-1">${statusBadge}</div></td>
+                                    <td class="p-2 text-gray-700 font-medium text-[11px]"><span class="font-bold text-indigo-900">${s.emp}</span><br><span class="text-[10px] text-gray-500">${s.mac}</span></td>
+                                    <td class="p-2 text-[10px] text-gray-600 font-mono text-center">${timeStr}</td>
+                                    <td class="p-2 border-l border-gray-100">${matText}</td>
+                                    <td class="p-2 text-red-600 text-[11px] font-bold border-l border-gray-100">${s.remark || '-'}</td>
+                                </tr>`;
+                            }).join('');
+                        } else {
+                            stepsHtml = '<tr><td colspan="6" class="p-4 text-center text-gray-400 italic">查無工序明細資料</td></tr>';
+                        }
+
+                        // 解析報修紀錄
+                        let eqRows = currentEqsLogs.filter(l => l.mac === mac && new Date(l.time) >= new Date(row['時間']||'2000-01-01')).map(l => 
+                            `<tr class="border-b border-red-100 text-[11px] hover:bg-red-50"><td class="p-1.5 font-mono text-gray-500">${formatToLocalTime(l.time)}</td><td class="p-1.5 font-bold ${l.state.includes('修')?'text-red-600':'text-blue-600'}">${l.state}</td><td class="p-1.5 text-gray-700">${l.reason||'無'}</td><td class="p-1.5 text-gray-500">${l.op}</td></tr>`
+                        ).join('');
+
+                        // 解析圖片
+                        let imgHtml = '';
+                        if (imgs.length > 0) {
+                            let imgTags = imgs.map(src => `<div class="flex-shrink-0 w-28 h-28 border border-gray-300 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 shadow-sm transition-opacity" onclick="openImageModal('${src}')" title="點擊放大"><img src="${src}" class="w-full h-full object-cover"></div>`).join('');
+                            imgHtml = `<div class="bg-white p-3 rounded-lg border border-gray-200 shadow-xs"><span class="font-bold text-xs text-gray-600 block mb-2">🖼️ 估價示意圖與參考附件</span><div class="flex gap-3 overflow-x-auto pb-1">${imgTags}</div></div>`;
+                        }
 
                         detailsHTML += `
-                            <div class="bg-white p-3 rounded-lg border shadow-sm text-xs mt-1">
-                                <span class="font-bold text-moSide block mb-1.5">🛒 對該廠商歷史進貨與採購點收明細日誌</span>
-                                <table class="w-full text-left border-collapse">
-                                    <thead><tr class="bg-gray-100 font-bold text-gray-500"><th class="p-1.5 w-36">進貨時間</th><th class="p-1.5 w-24">物料編號</th><th class="p-1.5">物料規格品名</th><th class="p-1.5 text-center w-24">進貨數量</th><th class="p-1.5 text-right w-28">進貨總金額</th></tr></thead>
-                                    <tbody>${sRows || '<tr><td colspan="5" class="p-2 text-center text-gray-400 italic">該區間內無點收進貨歷史紀錄</td></tr>'}</tbody>
-                                </table>
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-1">
+                                <div class="lg:col-span-2 bg-white p-3 rounded-lg border border-indigo-200 shadow-xs">
+                                    <div class="flex justify-between items-center mb-2 border-b border-indigo-100 pb-2">
+                                        <span class="font-bold text-sm text-indigo-800">📋 生產排程與工序執行狀態</span>
+                                        <span class="text-xs text-indigo-600 font-bold bg-indigo-50 px-2 py-1 rounded border border-indigo-100">預計總投產: ${prodQty.toLocaleString()} 件</span>
+                                    </div>
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-left text-xs border-collapse">
+                                            <thead><tr class="bg-indigo-50 text-indigo-800 font-bold"><th class="p-2 w-10 text-center">序</th><th class="p-2 w-32">工序名稱</th><th class="p-2 w-28">人員/機台</th><th class="p-2 w-28 text-center">排定時間</th><th class="p-2 w-48">本道專屬耗料</th><th class="p-2">備註指示</th></tr></thead>
+                                            <tbody>${stepsHtml}</tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col gap-4">
+                                    <div class="bg-white p-3 rounded-lg border shadow-xs border-red-200 flex-1">
+                                        <span class="font-bold text-red-700 text-xs block mb-1.5 border-b border-red-100 pb-1">🔧 本工單機台報修與異常紀錄</span>
+                                        <div class="overflow-x-auto max-h-48 overflow-y-auto">
+                                            <table class="w-full text-left text-xs border-collapse">
+                                                <thead><tr class="bg-red-50 text-red-800 font-bold"><th class="p-1.5 w-24">時間</th><th class="p-1.5 w-16">狀態</th><th class="p-1.5">異常描述</th><th class="p-1.5 w-14">人員</th></tr></thead>
+                                                <tbody>${eqRows || '<tr><td colspan="4" class="p-4 text-center text-gray-400 italic font-bold">機台運作順利，無異常報修紀錄</td></tr>'}</tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    ${imgHtml}
+                                </div>
                             </div>`;
                     }
 
@@ -2078,18 +2363,12 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                             const status = row['訂單狀態']; const oId = row['訂單編號'];
                             let htmlStr = '';
                             
-                            // 1. 常態顯示「📋 複製」
                             htmlStr += `<button onclick="cloneOrder(${index})" class="w-16 bg-gray-800 text-white py-1 rounded font-bold shadow-sm">📋 複製</button>`;
                             
-                            // 2. 根據製程進度，動態派發純廠務的推進按鈕
                             if (status === '估算中') { 
                                 htmlStr += `<button onclick="openMatModal('${oId}', 'estimate')" class="w-20 bg-indigo-500 text-white py-1 rounded font-bold shadow animate-pulse">📐 帶入配料</button>`; 
                             } 
-                            else if (status === '估算中') { 
-                                htmlStr += `<button onclick="openMatModal('${oId}', 'estimate')" class="w-20 bg-indigo-500 text-white py-1 rounded font-bold shadow animate-pulse">📐 帶入配料</button>`; 
-                            } 
                             else if (status === '待規劃') { 
-                                // 🚀 修正：改傳入 'view' 模式，確保排程人員點開只是純看配方，絕對不會觸發扣料
                                 htmlStr += `<button onclick="openMatModal('${oId}', 'view')" class="w-20 bg-gray-500 text-white py-1 rounded font-bold shadow">🔍 檢閱配料</button>`;
                                 htmlStr += `<button onclick="openPlanModal('${oId}')" class="w-20 bg-purple-600 text-white py-1 rounded font-bold shadow animate-pulse">📋 工序規劃</button>`; 
                             } 
@@ -2098,7 +2377,6 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                                 htmlStr += `<button onclick="openMatModal('${oId}', 'normal')" class="w-20 bg-yellow-500 text-white py-1 rounded font-bold shadow animate-pulse">📦 執行扣料</button>`; 
                             } 
                             else if (status === '原料不足') { 
-                                // 🚀 將 oId (訂單編號) 傳入第 5 個參數，成功連動補貨原因！
                                 htmlStr += `<button onclick="openReplenishModal('', '', '', '', '${oId}')" class="w-20 bg-red-100 text-red-700 border border-red-300 py-1 rounded font-bold shadow animate-pulse">🛒 補貨</button>`;
                                 htmlStr += `<button onclick="openMatModal('${oId}', 'normal')" class="w-20 bg-yellow-500 text-white py-1 rounded font-bold shadow">📦 再次扣料</button>`; 
                             } 
@@ -2109,17 +2387,19 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                             } 
                             else if (status === '生產中') {
                                 htmlStr += `<button onclick="generateWoPDF('${oId}')" class="w-16 bg-gray-600 text-white py-1 rounded font-bold shadow">🖨️ 印工單</button>`;
-                                htmlStr += `<button onclick="openMatModal('${oId}', 'addon')" class="w-20 bg-orange-500 text-white py-1 rounded hover:bg-orange-600 font-bold shadow">➕ 追加耗損</button>`;
+                                // 🚀 關鍵：加入追加損耗按鈕
+                                htmlStr += `<button onclick="openAddonModal('${oId}')" class="w-20 bg-orange-500 text-white py-1 rounded hover:bg-orange-600 font-bold shadow animate-pulse">➕ 追加耗損</button>`;
                             } 
-                            else if (status === '製作完成') { 
+                            else if (status === '製作完成' || status === '已出貨待OMS結案' || status === '已出貨') { 
                                 htmlStr += `<button onclick="generateWoPDF('${oId}')" class="w-16 bg-gray-600 text-white py-1 rounded font-bold shadow">🖨️ 印工單</button>`;
-                                htmlStr += `<button onclick="printDeliveryNote(this, '${oId}')" class="w-16 bg-blue-600 text-white py-1 rounded font-bold shadow">📄 送貨單</button>`;
-                                htmlStr += `<button onclick="openShippingModal('', '${oId}')" class="w-20 bg-emerald-600 text-white py-1 rounded font-bold shadow animate-pulse">🚚 登記出貨</button>`;
-                            } 
-                            else if (status === '已出貨待OMS結案' || status === '已出貨') { 
-                                htmlStr += `<button onclick="generateWoPDF('${oId}')" class="w-16 bg-gray-600 text-white py-1 rounded font-bold shadow">🖨️ 印工單</button>`;
-                                htmlStr += `<button onclick="printDeliveryNote(this, '${oId}')" class="w-16 bg-blue-600 text-white py-1 rounded font-bold shadow">📄 送貨單</button>`; 
-                                htmlStr += `<button onclick="closeOrder('${oId}')" class="w-16 bg-red-700 text-white py-1 rounded font-bold shadow animate-pulse">🔒 結案</button>`;
+                                // 🚀 關鍵：加入結算總覽按鈕
+                                htmlStr += `<button onclick="generateFinalReport('${oId}')" class="w-20 bg-indigo-600 text-white py-1 rounded font-bold shadow">📊 結算總覽</button>`;
+                                
+                                if (status === '製作完成') {
+                                    htmlStr += `<button onclick="openShippingModal('', '${oId}')" class="w-20 bg-emerald-600 text-white py-1 rounded font-bold shadow animate-pulse">🚚 登記出貨</button>`;
+                                } else {
+                                    htmlStr += `<button onclick="closeOrder('${oId}')" class="w-16 bg-red-700 text-white py-1 rounded font-bold shadow animate-pulse">🔒 結案</button>`;
+                                }
                             } 
                             else if (status === '已停工') {
                                 htmlStr += `<button onclick="generateWoPDF('${oId}')" class="w-16 bg-gray-600 text-white py-1 rounded font-bold shadow">🖨️ 印工單</button>`;
@@ -2127,10 +2407,29 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                             }
                             
                             btnSlot1 = htmlStr;
-                        } else if (currentSysName === 'ERP') {
-                        // 外層按鈕只保留純新增補貨的功能，[點收進貨] 已經安全移入展開日誌的單號列表裡了！
-                        btnSlot3 = `<button onclick="openReplenishModal('${row['物料編號']}', '${encodeURIComponent((row['品名']||'') + ' ' + (row['規格']||''))}', '${row['供應商']||''}')" class="w-24 bg-yellow-400 text-yellow-900 py-1 rounded hover:bg-yellow-500 font-bold shadow-sm">🛒 補貨申請</button>`; 
-                    }
+                        } 
+                        else if (currentSysName === 'ERP') {
+                            btnSlot3 = `<button onclick="openReplenishModal('${row['物料編號']}', '${encodeURIComponent((row['品名']||'') + ' ' + (row['規格']||''))}', '${row['供應商']||''}')" class="w-24 bg-yellow-400 text-yellow-900 py-1 rounded hover:bg-yellow-500 font-bold shadow-sm">🛒 補貨申請</button>`; 
+                        }
+                        // 🚀 關鍵：補回遺失的 MES 操作按鈕
+                        // 🚀 關鍵修復：加寬按鈕底色避免破版，並加入 [維修中] 的完修復歸機制
+                        else if (currentSysName === 'MES') {
+                            const status = row['工單狀態'];
+                            const woId = row['工單編號'];
+                            const oId = row['關聯訂單'];
+                            const mac = row['作業機台'];
+                            
+                            if (status === '生產中') {
+                                btnSlot1 = `<button onclick="openCompleteModal('${woId}', '${oId}', '${mac}')" class="w-24 bg-emerald-600 text-white py-1 rounded font-bold shadow animate-pulse">✅ 完成工序</button>`;
+                                btnSlot2 = `<button onclick="openStopModal('${woId}', '${oId}', '${mac}')" class="w-24 bg-red-600 text-white py-1 rounded font-bold shadow">🛑 異常停工</button>`;
+                                // 將報修按鈕的 oId, woId 一併傳入
+                                btnSlot3 = `<button onclick="openRepairModal('${mac}', '${oId}', '${woId}')" class="w-24 bg-orange-500 text-white py-1 rounded font-bold shadow">🔧 機台報修</button>`;
+                            }
+                            else if (status === '維修中') {
+                                // 🚀 改呼叫打開完修填寫彈窗
+                                btnSlot1 = `<button onclick="openFinishRepairModal('${mac}', '${oId}', '${woId}')" class="w-24 bg-blue-600 text-white py-1 rounded font-bold shadow animate-pulse">🛠️ 完修復工</button>`;
+                            }
+                        }
                     }
 
                     // 宣告動態總跨欄數
@@ -2208,8 +2507,13 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                 let imgThumbnailHtml = ho.image ? `<div class="flex-shrink-0 ml-3 self-center"><img src="${ho.image}" class="w-16 h-16 object-cover rounded border shadow-sm cursor-pointer" onclick="openImageModal(this.src)"></div>` : '';
                 
                 let currentOpUser = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
-                let canArchive = (currentOpUser === ho.creator || currentOpUser === ho.assignee || ho.assignee === "全員");
-                let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archiveHandover('${ho.id}')" class="text-red-600 hover:bg-red-100 font-bold text-[10px] bg-white px-1.5 py-0.5 rounded border shadow-sm transition ml-1">結案 ✓</button>` : '';
+
+// 轉為字串確保安全，並利用 includes 判定登入者是否包含在複數接收人名單中
+let assigneeStr = String(ho.assignee || '');
+let isAssigneeInclude = assigneeStr.split(',').map(name => name.trim()).includes(currentOpUser);
+
+let canArchive = (currentOpUser === ho.creator || isAssigneeInclude || assigneeStr === "全員" || assigneeStr.includes("全員"));
+let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archiveHandover('${ho.id}')" class="text-red-600 hover:bg-red-100 font-bold text-[10px] bg-white px-1.5 py-0.5 rounded border shadow-sm transition ml-1">結案 ✓</button>` : '';
 
                 let expiryAlertHtml = '';
                 if (ho.content.includes("預計處理時間：")) {
@@ -2649,30 +2953,56 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
         function openModal(rowIndex = -1) {
             editingRowIndex = rowIndex; 
             document.getElementById('modalTitle').innerText = rowIndex !== -1 ? `編輯資料` : `新增資料`;
-            document.getElementById('deleteBtn').classList.toggle('hidden', rowIndex === -1 || currentSysName === 'SYS');
+            
+            // 🚀 1. 隱藏刪除按鈕：新增時、SYS系統、以及 MES 系統 (強制回 OMS 刪除)
+            document.getElementById('deleteBtn').classList.toggle('hidden', rowIndex === -1 || currentSysName === 'SYS' || currentSysName === 'MES');
             
             const formGrid = document.getElementById('formGrid'); 
             formGrid.innerHTML = '';
             const rowData = rowIndex !== -1 ? currentTableData[rowIndex] : {};
 
-            // 【✨ 跨系統對接新功能】如果是「OMS新增訂單」，在最前方提供「智慧牽引估價單」功能，省去手動輸入
-            if (currentSysName === 'OMS' && rowIndex === -1) {
-                formGrid.innerHTML += `
-                    <div class="col-span-1 md:col-span-2 p-3 bg-indigo-50 border border-indigo-200 rounded-xl mb-2 flex items-end gap-3 shadow-sm">
-                        <div class="flex-1">
-                            <label class="block text-xs font-bold text-indigo-900 mb-1">💡 跨系統對接：輸入雲端初算估價單號 (例: T2607001)</label>
-                            <input type="text" id="smart_pull_estimate_no" class="w-full p-2 border border-indigo-300 rounded-lg text-sm bg-white uppercase font-bold tracking-wider" placeholder="請輸入 T 開頭的估價單號...">
+            // 宣告鎖定旗標
+            let isOmsLocked = false;
+            let isMesLocked = false;
+
+            if (currentSysName === 'OMS') {
+                if (rowIndex === -1) {
+                    formGrid.innerHTML += `
+                        <div class="col-span-1 md:col-span-2 p-3 bg-indigo-50 border border-indigo-200 rounded-xl mb-2 flex items-end gap-3 shadow-sm">
+                            <div class="flex-1">
+                                <label class="block text-xs font-bold text-indigo-900 mb-1">💡 跨系統對接：輸入雲端初算估價單號 (例: T2607001)</label>
+                                <input type="text" id="smart_pull_estimate_no" class="w-full p-2 border border-indigo-300 rounded-lg text-sm bg-white uppercase font-bold tracking-wider" placeholder="請輸入 T 開頭的估價單號...">
+                            </div>
+                            <button type="button" onclick="pullEstimateDataToOmsForm()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-lg text-sm h-[38px] transition-colors whitespace-nowrap shadow-sm">⚡ 一鍵帶入配料</button>
                         </div>
-                        <button type="button" onclick="pullEstimateDataToOmsForm()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-lg text-sm h-[38px] transition-colors whitespace-nowrap shadow-sm">⚡ 一鍵帶入配料</button>
+                    `;
+                } else {
+                    isOmsLocked = true;
+                    formGrid.innerHTML += `
+                        <div class="col-span-1 md:col-span-2 p-3 bg-red-50 border border-red-200 rounded-xl mb-2 shadow-sm flex items-center justify-center">
+                            <span class="text-red-700 font-black tracking-widest text-sm">⚠️ 入料後不可任意編輯，錯誤請直接刪除重開單 ⚠️</span>
+                        </div>
+                    `;
+                }
+            } 
+            // 🚀 2. MES 全境鎖定與防呆橫幅
+            else if (currentSysName === 'MES') {
+                isMesLocked = true;
+                formGrid.innerHTML += `
+                    <div class="col-span-1 md:col-span-2 p-3 bg-red-50 border border-red-200 rounded-xl mb-2 shadow-sm flex items-center justify-center text-center">
+                        <span class="text-red-700 font-black tracking-wider text-sm leading-relaxed">⚠️ MES 工單僅供檢視 <br>若需修改內容或作廢單據，請至 OMS 訂單管理由源頭一次解決 ⚠️</span>
                     </div>
                 `;
             }
+
+            // 🚀 3. 隱藏儲存按鈕 (如果 OMS 被鎖定或處於 MES 系統)
+            let submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) submitBtn.classList.toggle('hidden', isOmsLocked || isMesLocked);
 
             currentHeaders.forEach(header => {
                 if (header === 'ID') { formGrid.innerHTML += `<input type="hidden" id="input_${header}" value="${rowData[header] || ''}">`; return; }
                 if (header === '最近一次登入時間' && currentSysName === 'SYS' && rowIndex === -1) return; 
 
-                // 【精準改名同步】同步將瘦身移除的舊商務金額與產出欄位過濾
                 const discardedOmsFields = ['單價', '總金額', '運費報價', '運費備註', '運費成本', '預估成本', '產出量', '配料明細', '工序規劃紀錄', '示意圖', '貨運單號', '出貨時間'];
                 if (currentSysName === 'OMS' && discardedOmsFields.includes(header)) return;
 
@@ -2680,7 +3010,9 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                 let fieldHTML = `<div><label class="block text-sm font-bold mb-1">${header}</label>`;
                 
                 let datalistHtml = ''; let hasListAttr = ''; let dlId = `dl_form_${header}_${Date.now()}`;
-                if (currentDropdowns[header]) {
+                
+                // 鎖定狀態下，連下拉選單都拔掉防誤觸
+                if (currentDropdowns[header] && !isOmsLocked && !isMesLocked) {
                     hasListAttr = `list="${dlId}"`;
                     let opts = '';
                     if (Array.isArray(currentDropdowns[header])) {
@@ -2689,49 +3021,47 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                     datalistHtml = `<datalist id="${dlId}">${opts}</datalist>`;
                 }
 
-                // 判斷編號欄位是否需要鎖定為唯讀
-                const autoGenHeaders = ['訂單編號', '物料編號', '供應商編號', '客戶編號', '設備編號'];
+                const autoGenHeaders = ['訂單編號', '物料編號', '供應商編號', '客戶編號', '設備編號', '工單編號'];
                 let isReadOnlyAttr = ''; let placeholderStr = ''; let bgClassStr = 'w-full p-2 border rounded';
 
-                if (autoGenHeaders.includes(header)) {
+                // 🚀 4. 核心防呆：OMS 鎖定模式 或 MES 模式下，所有輸入框強迫變為 disabled 且反灰
+                if (isOmsLocked || isMesLocked) {
+                    isReadOnlyAttr = 'disabled';
+                    bgClassStr = 'w-full p-2 border bg-gray-100 text-gray-500 cursor-not-allowed font-bold';
+                } else if (autoGenHeaders.includes(header)) {
                     isReadOnlyAttr = 'readonly';
                     bgClassStr = 'w-full p-2 border bg-gray-100 text-gray-500 cursor-not-allowed';
                     placeholderStr = rowIndex === -1 ? 'placeholder="[儲存後系統自動生成]"' : '';
                 }
 
-                // 【精準改名同步】關鍵欄位新增時全面唯讀鎖定，禁止手動亂輸入
                 const omsAutoLockFields = ['關聯估價單號', '訂單狀態', '產品名稱', '客戶名稱', '完成尺寸', '交貨量', '投產量', '預估良率'];
                 
                 if (currentSysName === 'OMS' && rowIndex === -1 && omsAutoLockFields.includes(header)) {
                     let defaultLockVal = val;
-                    if (header === '訂單狀態') defaultLockVal = '估算中';
+                    if (header === '訂單狀態') defaultLockVal = '待規劃';
                     fieldHTML += `<input type="text" id="input_${header}" value="${defaultLockVal}" readonly class="w-full p-2 border bg-gray-100 text-gray-500 font-bold cursor-not-allowed" placeholder="[點擊上方一鍵帶入自動填入鎖定]">`;
                 }
-                
-                // 【✨ 核心修復點 2：訂單日期預設填入今日，並綁定日期選擇器】
                 else if (header === '訂單日期' && currentSysName === 'OMS') {
                     let todayDate = val;
                     if (rowIndex === -1) {
-                        todayDate = new Date(new Date().getTime() + 8*60*60*1000).toISOString().split('T')[0]; // 自動推算台灣今日西元日期
+                        todayDate = new Date(new Date().getTime() + 8*60*60*1000).toISOString().split('T')[0]; 
                     } else if (val && val.includes(' ')) {
-                        todayDate = val.split(' ')[0]; // 編輯時若是舊有帶有時間的字串，乾淨切出日期
+                        todayDate = val.split(' ')[0]; 
                     }
-                    fieldHTML += `<input type="date" id="input_${header}" value="${todayDate}" class="w-full p-2 border rounded font-mono font-bold">`;
+                    fieldHTML += `<input type="date" id="input_${header}" value="${todayDate}" ${isReadOnlyAttr} class="w-full p-2 border rounded font-mono font-bold ${(isOmsLocked || isMesLocked) ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}">`;
                 }
-
-                // 其餘常規系統欄位保持不變
                 else if (header === '是否在職' && currentSysName === 'SYS') {
-                    fieldHTML += `<select id="input_${header}" class="w-full p-2 border rounded"><option value="是" ${val!=='否'?'selected':''}>是</option><option value="否" ${val==='否'?'selected':''}>否</option></select>`;
+                    fieldHTML += `<select id="input_${header}" ${isReadOnlyAttr} class="w-full p-2 border rounded ${(isOmsLocked || isMesLocked) ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}"><option value="是" ${val!=='否'?'selected':''}>是</option><option value="否" ${val==='否'?'selected':''}>否</option></select>`;
                 } else if (header === '顯示財務金額' && currentSysName === 'SYS') {
-                    fieldHTML += `<select id="input_${header}" class="w-full p-2 border rounded font-bold"><option value="是" ${val!=='否'?'selected':''}>是</option><option value="否" ${val==='否'?'selected':''}>否</option></select>`;
+                    fieldHTML += `<select id="input_${header}" ${isReadOnlyAttr} class="w-full p-2 border rounded font-bold ${(isOmsLocked || isMesLocked) ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}"><option value="是" ${val!=='否'?'selected':''}>是</option><option value="否" ${val==='否'?'selected':''}>否</option></select>`;
                 } else if (header === '急件') {
-                    fieldHTML += `<select id="input_${header}" class="w-full p-2 border rounded"><option value="否" ${val==='否'?'selected':''}>否</option><option value="是" ${val==='是'?'selected':''}>是</option></select>`;
+                    fieldHTML += `<select id="input_${header}" ${isReadOnlyAttr} class="w-full p-2 border rounded ${(isOmsLocked || isMesLocked) ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}"><option value="否" ${val==='否'?'selected':''}>否</option><option value="是" ${val==='是'?'selected':''}>是</option></select>`;
                 } else if (header === '員工編號' && rowIndex === -1 && currentSysName === 'SYS') {
                     fieldHTML += `<input type="text" id="input_${header}" readonly class="w-full p-2 border bg-gray-100 text-gray-400 cursor-not-allowed" placeholder="[系統將自動依民國年派發]">`;
                 } else if (header === '供應商' && currentSysName === 'ERP') {
                     let supOpts = (currentDropdowns['供應商'] || []).map(s => `<option value="${s}"></option>`).join('');
-                    let erpSupReadOnly = rowIndex !== -1 ? 'readonly class="w-full p-2 border bg-gray-100 text-gray-500 cursor-not-allowed"' : 'class="w-full p-2 border rounded"';
-                    fieldHTML += `<input type="text" id="input_${header}" list="dl_form_supplier_id" ${erpSupReadOnly} value="${val}" oninput="generateErpMatId(this.value)" onchange="generateErpMatId(this.value)"><datalist id="dl_form_supplier_id">${supOpts}</datalist>`;
+                    let erpSupReadOnly = (rowIndex !== -1 || isOmsLocked || isMesLocked) ? 'disabled class="w-full p-2 border bg-gray-100 text-gray-500 cursor-not-allowed"' : 'class="w-full p-2 border rounded"';
+                    fieldHTML += `<input type="text" id="input_${header}" list="dl_form_supplier_id" ${erpSupReadOnly} ${isReadOnlyAttr} value="${val}" oninput="generateErpMatId(this.value)" onchange="generateErpMatId(this.value)"><datalist id="dl_form_supplier_id">${supOpts}</datalist>`;
                 } else {
                     fieldHTML += `<input type="text" id="input_${header}" ${hasListAttr} ${isReadOnlyAttr} ${placeholderStr} value="${val}" class="${bgClassStr}">${datalistHtml}`;
                 }
@@ -2790,6 +3120,39 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                 showCustomAlert("退料失敗", err);
                 btn.innerHTML = '🔙 退料'; btn.disabled = false;
             }).revertDeductionOrder(orderId, op);
+        };
+
+        // 🚀 開啟出貨登記彈窗
+        window.openShippingModal = function(woId, orderId) {
+            document.getElementById('shipWoId').value = woId || '';
+            document.getElementById('shipOrderId').value = orderId || '';
+            document.getElementById('shipTrackingInput').value = '';
+            document.getElementById('shippingModal').classList.remove('hidden');
+        };
+
+        // 🚀 送出出貨登記
+        window.submitShipping = function(btn) {
+            const woId = document.getElementById('shipWoId').value;
+            const orderId = document.getElementById('shipOrderId').value;
+            const trackingId = document.getElementById('shipTrackingInput').value.trim();
+            const op = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
+
+            if (!trackingId) {
+                return showCustomAlert("系統提示", "請輸入貨運單號或配送方式註記！");
+            }
+
+            btn.innerText = "處理中..."; 
+            btn.disabled = true;
+            
+            google.script.run.withSuccessHandler(res => {
+                closeModal('shippingModal');
+                showCustomAlert("🚚 出貨銷帳成功", res.msg);
+                refreshSystem();
+                btn.innerText = "確認出貨"; btn.disabled = false;
+            }).withFailureHandler(err => {
+                alert("出貨失敗：" + err);
+                btn.innerText = "確認出貨"; btn.disabled = false;
+            }).shipOrderAndWo(woId, orderId, trackingId, op);
         };
 
         // 🚀 2. 【開始生產功能】正式啟動機台，推進第一道工序
@@ -2953,6 +3316,218 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                 alert("單據生成失敗：" + err);
                 const toast = document.getElementById('pdfLoadingToast');
                 if(toast) toast.remove();
+            });
+        };
+
+        // 🚀 開啟追加耗損視窗
+        window.openAddonModal = async function(orderId) {
+            document.getElementById('addonOrderId').value = orderId;
+            document.getElementById('addonMatInput').value = '';
+            document.getElementById('addonQty').value = '';
+            
+            let opts = '';
+            (currentDropdowns['物料編號']||[]).forEach(m => {
+                opts += `<option value="${m.id} - ${m.name.replace(/\[|\]/g, '')}"></option>`;
+            });
+            document.getElementById('dl_addon_mats').innerHTML = opts;
+            
+            await refreshAddonList(orderId);
+            document.getElementById('addonModal').classList.remove('hidden');
+        };
+
+        // 🚀 刷新追加耗損列表
+        window.refreshAddonList = async function(orderId) {
+            const listContainer = document.getElementById('addonHistoryList');
+            listContainer.innerHTML = '<tr><td colspan="3" class="text-center p-3 text-gray-400">讀取中...</td></tr>';
+            
+            const { data } = await sbClient.from('orders').select('details').eq('order_id', orderId).single();
+            if (data && data.details && data.details.addon_mats && data.details.addon_mats.length > 0) {
+                let html = '';
+                data.details.addon_mats.forEach((m, idx) => {
+                    let matObj = (currentDropdowns['物料編號']||[]).find(opt => opt.id === m.id);
+                    let n = matObj ? matObj.name : m.id;
+                    html += `<tr class="border-b hover:bg-gray-50 transition-colors">
+                        <td class="p-2 font-medium text-gray-700">${n}</td>
+                        <td class="p-2 text-center font-bold text-red-600">${m.qty}</td>
+                        <td class="p-2 text-right"><button onclick="returnAddon('${orderId}', ${idx}, '${m.id}', ${m.qty})" class="text-red-500 font-bold hover:bg-red-100 px-2 py-1 rounded transition border border-red-200">退回</button></td>
+                    </tr>`;
+                });
+                listContainer.innerHTML = html;
+            } else {
+                listContainer.innerHTML = '<tr><td colspan="3" class="text-center p-3 text-gray-400 italic">尚無追加紀錄</td></tr>';
+            }
+        };
+
+        // 🚀 送出追加並實體扣料
+        window.submitAddon = async function(btn) {
+            const orderId = document.getElementById('addonOrderId').value;
+            const inputVal = document.getElementById('addonMatInput').value;
+            const qty = parseFloat(document.getElementById('addonQty').value);
+            const op = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
+            
+            if (!inputVal || !qty || qty <= 0) return alert("請輸入正確料號與數量");
+            
+            let matId = inputVal.split(' - ')[0].trim();
+            let matObj = (currentDropdowns['物料編號']||[]).find(opt => opt.id === matId);
+            if (!matObj) return alert("找不到該料號");
+
+            let cost = parseFloat(matObj.price) || 0;
+            btn.disabled = true; btn.innerText = "...";
+            
+            try {
+                const { data: ord } = await sbClient.from('orders').select('details').eq('order_id', orderId).single();
+                let details = ord.details || {};
+                let addons = details.addon_mats || [];
+                
+                addons.push({ id: matId, qty: qty, cost: cost, time: new Date().toISOString() });
+                details.addon_mats = addons;
+                
+                await sbClient.from('orders').update({ details: details }).eq('order_id', orderId);
+                
+                let cat = String(matObj.category || '');
+                let isService = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('費');
+                if (!isService) {
+                    let { data: mData } = await sbClient.from('materials').select('stock_qty').eq('material_id', matId).single();
+                    if (mData) {
+                        let newStock = (parseFloat(mData.stock_qty) || 0) - qty;
+                        await sbClient.from('materials').update({ stock_qty: newStock }).eq('material_id', matId);
+                    }
+                }
+                
+                let ts = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
+                await sbClient.from('deduct_logs').insert([{ created_at: ts, order_id: orderId, material_id: matId, quantity: qty, operator_name: op + '(追加)' }]);
+
+                document.getElementById('addonMatInput').value = '';
+                document.getElementById('addonQty').value = '';
+                await refreshAddonList(orderId);
+                refreshSystem();
+            } catch (e) {
+                alert("追加失敗: " + e.message);
+            } finally {
+                btn.disabled = false; btn.innerText = "扣料";
+            }
+        };
+
+        // 🚀 刪除追加並實體退料
+        window.returnAddon = async function(orderId, idx, matId, qty) {
+            if (!confirm(`確定要退回此筆耗損嗎？\n實體庫存將會加回 ${qty} 件。`)) return;
+            const op = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
+            try {
+                const { data: ord } = await sbClient.from('orders').select('details').eq('order_id', orderId).single();
+                let details = ord.details || {};
+                let addons = details.addon_mats || [];
+                
+                addons.splice(idx, 1);
+                details.addon_mats = addons;
+                await sbClient.from('orders').update({ details: details }).eq('order_id', orderId);
+                
+                let matObj = (currentDropdowns['物料編號']||[]).find(opt => opt.id === matId);
+                if (matObj) {
+                    let cat = String(matObj.category || '');
+                    let isService = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('費');
+                    if (!isService) {
+                        let { data: mData } = await sbClient.from('materials').select('stock_qty').eq('material_id', matId).single();
+                        if (mData) {
+                            let newStock = (parseFloat(mData.stock_qty) || 0) + qty;
+                            await sbClient.from('materials').update({ stock_qty: newStock }).eq('material_id', matId);
+                        }
+                    }
+                }
+                
+                let ts = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
+                await sbClient.from('restock_logs').insert([{ 
+                    created_at: ts, material_id: matId, quantity: qty, total_amount: 0, 
+                    supplier_name: '損耗退回', operator_name: op, replenish_id: orderId, vendor_invoice_id: `退損:${orderId}`
+                }]);
+
+                await refreshAddonList(orderId);
+                refreshSystem();
+            } catch (e) {
+                alert("退回失敗: " + e.message);
+            }
+        };
+
+        // 🚀 產出完工結算總覽 PDF
+        window.generateFinalReport = function(orderId) {
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+            sbClient.from('orders').select('*').eq('order_id', orderId).single().then(({data, error}) => {
+                document.getElementById('loadingIndicator').classList.add('hidden');
+                if(error || !data) return alert("無法獲取雲端訂單資料");
+                
+                let bom = data.bom_details || [];
+                let details = data.details || {};
+                let addons = details.addon_mats || [];
+                
+                let totalRev = parseFloat(data.total_amount) || 0;
+                let bomCost = 0;
+                let bomHtml = bom.map(m => {
+                    let cost = m.cost * m.qty; bomCost += cost;
+                    return `<tr><td style="padding:6px; border:1px solid #cbd5e1;">${m.id}</td><td style="padding:6px; border:1px solid #cbd5e1; font-weight:bold;">${m.customName}</td><td style="padding:6px; border:1px solid #cbd5e1; text-align:center;">${m.qty}</td><td style="padding:6px; border:1px solid #cbd5e1; text-align:right;">$${Math.round(cost).toLocaleString()}</td></tr>`;
+                }).join('');
+                
+                let addonCost = 0;
+                let addonHtml = addons.map(m => {
+                    let matObj = (currentDropdowns['物料編號']||[]).find(opt => opt.id === m.id);
+                    let name = matObj ? matObj.name : m.id;
+                    let cost = (m.cost || 0) * m.qty; addonCost += cost;
+                    return `<tr style="background:#fef2f2;"><td style="padding:6px; border:1px solid #fecaca; color:#991b1b;">${m.id}</td><td style="padding:6px; border:1px solid #fecaca; font-weight:bold; color:#991b1b;">${name} (追加)</td><td style="padding:6px; border:1px solid #fecaca; text-align:center; color:#991b1b;">${m.qty}</td><td style="padding:6px; border:1px solid #fecaca; text-align:right; font-weight:bold; color:#dc2626;">$${Math.round(cost).toLocaleString()}</td></tr>`;
+                }).join('');
+                
+                let finalCost = bomCost + addonCost + (Number(details.shipping_cost)||0);
+                let profit = totalRev - finalCost;
+                let margin = totalRev > 0 ? ((profit / totalRev) * 100).toFixed(1) : 0;
+                
+                let html = `
+                <div style="padding: 20px; font-family: '微軟正黑體', sans-serif;">
+                    <h1 style="text-align: center; font-size: 24px; border-bottom: 2px solid #333; padding-bottom: 10px; letter-spacing:2px; font-weight:900;">📊 訂單完工結算總覽報告</h1>
+                    <table style="width: 100%; margin-top: 15px; font-size: 14px; border-collapse:collapse; border:1px solid #000;">
+                        <tr style="background:#f1f5f9;">
+                            <td style="padding: 8px; border:1px solid #000;"><strong>訂單單號:</strong> <span style="font-family:monospace; font-size:16px;">${data.order_id}</span></td>
+                            <td style="padding: 8px; border:1px solid #000;"><strong>產品名稱:</strong> ${details.global_product_name || data.product_name}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border:1px solid #000;"><strong>預計產量:</strong> ${data.production_qty} 件</td>
+                            <td style="padding: 8px; border:1px solid #000;"><strong>實際完工:</strong> <span style="color:#16a34a; font-weight:bold; font-size:16px;">${data.output_qty || 0} 件</span></td>
+                        </tr>
+                    </table>
+                    
+                    <h3 style="margin-top:20px; font-size: 16px; color:#1e3a8a; border-left:4px solid #1e3a8a; padding-left:8px;">✅ 標準配料成本</h3>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align:left;">
+                        <tr style="background:#e2e8f0;"><th style="padding:6px; border:1px solid #94a3b8;">料號</th><th style="padding:6px; border:1px solid #94a3b8;">品名</th><th style="padding:6px; border:1px solid #94a3b8; text-align:center;">扣料量</th><th style="padding:6px; border:1px solid #94a3b8; text-align:right;">成本小計</th></tr>
+                        ${bomHtml || '<tr><td colspan="4" style="padding:6px; border:1px solid #ccc; text-align:center;">無</td></tr>'}
+                    </table>
+                    
+                    <h3 style="margin-top:20px; font-size: 16px; color:#b91c1c; border-left:4px solid #b91c1c; padding-left:8px;">⚠️ 追加損耗成本</h3>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align:left;">
+                        <tr style="background:#fecaca; color:#7f1d1d;"><th style="padding:6px; border:1px solid #fca5a5;">料號</th><th style="padding:6px; border:1px solid #fca5a5;">品名</th><th style="padding:6px; border:1px solid #fca5a5; text-align:center;">追加量</th><th style="padding:6px; border:1px solid #fca5a5; text-align:right;">追加成本</th></tr>
+                        ${addonHtml || '<tr><td colspan="4" style="padding:6px; border:1px solid #fecaca; text-align:center; color:#b91c1c;">生產順利，無追加損耗</td></tr>'}
+                    </table>
+                    
+                    <div style="margin-top: 30px; display:flex; justify-content:space-between; background:#f8fafc; border:2px solid #cbd5e1; padding: 20px; border-radius:12px;">
+                        <div style="font-size: 15px; line-height: 1.8;">
+                            <div><strong>最終對外營業額:</strong> <span style="font-weight:bold;">$${Math.round(totalRev).toLocaleString()}</span></div>
+                            <div><strong>標準用料成本:</strong> <span style="font-weight:bold;">$${Math.round(bomCost).toLocaleString()}</span></div>
+                            <div style="color:#dc2626;"><strong>追加損耗成本:</strong> <span style="font-weight:bold;">-$${Math.round(addonCost).toLocaleString()}</span></div>
+                            <div><strong>物流運費成本:</strong> <span style="font-weight:bold;">$${Math.round(details.shipping_cost||0).toLocaleString()}</span></div>
+                        </div>
+                        <div style="text-align: right; border-left:2px dashed #cbd5e1; padding-left:20px;">
+                            <div style="font-size: 15px; color:#64748B; font-weight:bold;">結算實得純利潤</div>
+                            <div style="font-size: 36px; font-weight: 900; color: ${profit < 0 ? '#dc2626' : '#16a34a'};">$${Math.round(profit).toLocaleString()}</div>
+                            <div style="font-size: 16px; font-weight: bold; background: ${profit < 0 ? '#fee2e2' : '#dcfce7'}; color: ${profit < 0 ? '#dc2626' : '#16a34a'}; padding:4px 8px; border-radius:4px; display:inline-block; margin-top:5px;">最終毛利率: ${margin}%</div>
+                        </div>
+                    </div>
+                </div>`;
+                
+                const element = document.getElementById('pdfContent');
+                element.innerHTML = html;
+                
+                const opt = { 
+                    margin: 15, filename: `完工結算總覽_${data.order_id}.pdf`, 
+                    image: { type: 'jpeg', quality: 0.98 }, 
+                    html2canvas: { scale: 2, useCORS: true }, 
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+                html2pdf().set(opt).from(element).save();
             });
         };
         // [追加] 全員勾選狀態連動控制開關
@@ -3235,9 +3810,29 @@ function smartSafeLinePush(creator, assigneeText, priority, lineContent) {
         }
 
         function deleteData(btn) {
-            if(!confirm("確定要刪除這筆資料嗎？")) return;
-            const op = document.getElementById('userNameDisplay').innerText;
-            google.script.run.withSuccessHandler(res => { closeModal('formModal'); refreshSystem(); }).deleteSheetData(currentSheet, editingRowIndex, op);
+            if(!confirm("確定要刪除這筆資料嗎？\n(⚠️ 注意：若為 OMS 訂單，將一併作廢並全數退回可能已扣除之庫存！)")) return;
+            const op = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
+            
+            btn.innerHTML = '刪除中...'; btn.disabled = true;
+
+            // 🚀 如果是 OMS 訂單，走專屬的退料刪除通道
+            if (currentSysName === 'OMS' || currentSysName === '訂單管理') {
+                const orderId = currentTableData[editingRowIndex]['訂單編號'];
+                google.script.run.withSuccessHandler(res => { 
+                    showCustomAlert("刪除成功", res.msg || "單據已順利作廢刪除，相關庫存已結清還原。");
+                    closeModal('formModal'); refreshSystem(); 
+                    btn.innerHTML = '刪除單據'; btn.disabled = false;
+                }).withFailureHandler(err => {
+                    alert("刪除失敗：" + err);
+                    btn.innerHTML = '刪除單據'; btn.disabled = false;
+                }).deleteOmsOrderAndRefund(orderId, op);
+            } else {
+                // 一般系統的正常刪除
+                google.script.run.withSuccessHandler(res => { 
+                    closeModal('formModal'); refreshSystem(); 
+                    btn.innerHTML = '刪除單據'; btn.disabled = false;
+                }).deleteSheetData(currentSheet, editingRowIndex, op);
+            }
         }
 
         function openChangePwdModal() { document.getElementById('changePwdModal').classList.remove('hidden'); }
@@ -3721,34 +4316,146 @@ function smartSafeLinePush(creator, assigneeText, priority, lineContent) {
             }).stopWorkOrder(woId, oId, mac, reason, outQty, returnMats, op);
         }
 
-        function openCompleteModal(woId, orderId, machine) {
-            document.getElementById('compWoId').value = woId; document.getElementById('compOrderId').value = orderId; document.getElementById('compMachine').value = machine;
-            document.getElementById('compOutQty').value = ''; buildReturnMatList('compMatList', orderId);
-            document.getElementById('completeModal').classList.remove('hidden');
-        }
+        window.openCompleteModal = function(woId, orderId, machine) {
+            document.getElementById('compWoId').value = woId; 
+            document.getElementById('compOrderId').value = orderId; 
+            document.getElementById('compMachine').value = machine;
+            
+            let woRow = currentTableData.find(r => r['工單編號'] === woId) || (systemCache['生產工單']?.data || []).find(w => w['工單編號'] === woId);
+            let ordRow = (systemCache['訂單管理']?.data || []).find(o => o['訂單編號'] === orderId);
+            
+            let steps = [];
+            let currentIdx = parseInt(woRow?.['當前進度索引']) || 0;
+            try { steps = JSON.parse(woRow?.['工序明細'] || '[]'); } catch(e){}
+            
+            let currentStep = steps[currentIdx] || { name: '未知工序', requiredMats: [] };
+            
+            document.getElementById('compStepName').innerText = `第 ${currentIdx + 1} 站 - ${currentStep.name}`;
+            
+            // 🚀 關鍵修改：因為每道工序都是獨立總成，所以完工預設數量永遠抓「訂單目標投產量」
+            let defaultExpectedQty = parseFloat(ordRow?.['投產量'] || ordRow?.['訂購數量'] || 0);
+            document.getElementById('compOutQty').value = defaultExpectedQty;
 
-        function submitCompleteWo(btn) {
-            const woId = document.getElementById('compWoId').value; const oId = document.getElementById('compOrderId').value; const outQty = document.getElementById('compOutQty').value;
+            buildStepReturnMatList('compMatList', orderId, currentStep.requiredMats);
+            
+            document.getElementById('completeModal').classList.remove('hidden');
+        };
+
+        // 🚀 新增：專門為單一工序過濾的退料生成器
+        window.buildStepReturnMatList = function(containerId, orderId, stepRequiredMats) {
+            const container = document.getElementById(containerId); container.innerHTML = '';
+            
+            let rowData = (systemCache['訂單管理']?.data || []).find(o => o['訂單編號'] === orderId);
+            let bom = [];
+            try { bom = JSON.parse(rowData['配料明細'] || '[]'); } catch(e){}
+            
+            let hasMats = false;
+            
+            // 只比對該站別在排程時有打勾的料件 (格式為 ID@@Index 或純 ID)
+            stepRequiredMats.forEach(matKey => {
+                let mId = matKey.split('@@')[0];
+                let b = bom.find((bomItem, idx) => `${bomItem.id}@@${idx}` === matKey || bomItem.id === matKey);
+                
+                if (b) {
+                    let matObj = (currentDropdowns['物料編號'] || []).find(m => m.id === b.id);
+                    if (matObj) {
+                        let cat = String(matObj.category || '');
+                        let isService = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('代工') || cat.includes('費');
+                        
+                        // 過濾掉不扣實體庫存的加工服務費
+                        if (!isService && parseFloat(b.qty) > 0) {
+                            hasMats = true;
+                            let name = matObj.name;
+                            let maxReturn = b.qty; // 上限為當初本料件設定扣除的量
+                            
+                            let div = document.createElement('div'); div.className = 'flex items-center gap-3 mb-2 return-mat-row bg-white p-2 border border-emerald-200 rounded-lg shadow-sm';
+                            div.innerHTML = `
+                                <input type="hidden" class="ret-mat-id" value="${b.id}">
+                                <div class="flex-1 text-sm text-gray-700 truncate" title="${name}">
+                                    <div class="font-bold text-moSide text-[11px]">${b.id}</div>
+                                    <div class="text-xs text-gray-700 font-bold mt-0.5">${name.replace(b.id+' - ', '')}</div>
+                                    <div class="text-[10px] text-emerald-600 mt-1 bg-emerald-50 inline-block px-1.5 py-0.5 rounded border border-emerald-100 font-bold">本站耗料配方量: ${b.qty}</div>
+                                </div>
+                                <div class="w-24">
+                                    <label class="text-[10px] text-gray-500 font-bold block mb-1">退回良品數量</label>
+                                    <input type="number" class="ret-mat-qty w-full p-1.5 text-sm font-bold border border-gray-300 rounded focus:ring-2 focus:ring-emerald-500 text-center text-red-600" placeholder="0" min="0" max="${maxReturn}">
+                                </div>`;
+                            container.appendChild(div);
+                        }
+                    }
+                }
+            });
+            
+            if(!hasMats) container.innerHTML = '<p class="text-xs text-gray-400 p-4 bg-gray-50 border border-dashed border-gray-300 rounded-lg text-center font-bold">此工序無實體材料可供退回，或皆為純加工服務。</p>';
+        };
+
+        // 🚀 1. 修復完工按鈕卡死 (加入 btn.disabled = false 復歸)
+        window.submitCompleteWo = function(btn) {
+            const woId = document.getElementById('compWoId').value; 
+            const oId = document.getElementById('compOrderId').value; 
+            const outQty = document.getElementById('compOutQty').value;
+            
             if(!outQty) {
                 showCustomAlert("系統提示", "請填寫完工產出量！");
                 return;
             }
+            
             let returnMats = [];
             document.querySelectorAll('#compMatList .return-mat-row').forEach(row => {
-                const matId = row.querySelector('.ret-mat-id').value; const qty = row.querySelector('.ret-mat-qty').value;
+                const matId = row.querySelector('.ret-mat-id').value; 
+                const qty = row.querySelector('.ret-mat-qty').value;
                 if(matId && qty && parseFloat(qty) > 0) returnMats.push({id: matId, qty: qty});
             });
+            
             btn.innerHTML = '請稍候...'; btn.disabled = true;
-            const op = document.getElementById('userNameDisplay').innerText;
-            google.script.run.withSuccessHandler(res => { closeModal('completeModal'); refreshSystem(); }).completeWorkOrder(woId, oId, outQty, returnMats, op);
-        }
+            const op = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
+            
+            google.script.run.withSuccessHandler(res => { 
+                closeModal('completeModal'); 
+                refreshSystem(); 
+                // 🚀 關鍵解鎖：成功後把按鈕狀態復歸
+                btn.innerHTML = '確認完工並推進'; btn.disabled = false;
+            }).withFailureHandler(err => {
+                alert("完工結算失敗：" + err);
+                // 🚀 關鍵解鎖：失敗也要把按鈕復歸
+                btn.innerHTML = '確認完工並推進'; btn.disabled = false;
+            }).completeWorkOrder(woId, oId, outQty, returnMats, op);
+        };
 
-        function openRepairModal(machine) { document.getElementById('repairMachine').innerText = machine; document.getElementById('repairReason').value = ''; document.getElementById('repairModal').classList.remove('hidden'); }
-        function submitRepair(btn) {
-            const machine = document.getElementById('repairMachine').innerText; const reason = document.getElementById('repairReason').value; const op = document.getElementById('userNameDisplay').innerText;
-            btn.innerHTML = '請稍候...'; btn.disabled = true;
-            google.script.run.withSuccessHandler(res => { closeModal('repairModal'); refreshSystem(); }).logEquipmentRepair(machine, true, reason, op);
-        }
+        // 🚀 2. 開啟完修彈窗 (取代原本的 confirm)
+        window.openFinishRepairModal = function(mac, oId, woId) {
+            document.getElementById('finishRepairMachine').innerText = mac;
+            document.getElementById('finishRepairOrderId').value = oId;
+            document.getElementById('finishRepairWoId').value = woId;
+            document.getElementById('finishRepairReason').value = '';
+            document.getElementById('finishRepairModal').classList.remove('hidden');
+        };
+
+        // 🚀 3. 送出完修處置說明並復工
+        window.submitFinishRepair = function(btn) {
+            const mac = document.getElementById('finishRepairMachine').innerText;
+            const oId = document.getElementById('finishRepairOrderId').value;
+            const woId = document.getElementById('finishRepairWoId').value;
+            const reason = document.getElementById('finishRepairReason').value.trim();
+            const op = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
+
+            if(!reason) return showCustomAlert("系統提示", "請務必填寫完修處置說明！");
+
+            btn.innerText = "復歸中..."; btn.disabled = true;
+
+            google.script.run.withSuccessHandler(res => {
+                closeModal('finishRepairModal');
+                showCustomAlert("🛠️ 完修成功", res.msg);
+                refreshSystem();
+                btn.innerText = "確認完修並復工"; btn.disabled = false;
+            }).withFailureHandler(err => {
+                alert("完修處理失敗：" + err); 
+                btn.innerText = "確認完修並復工"; btn.disabled = false;
+            }).resolveRepair(woId, oId, mac, op, reason); // 傳入 reason 備註
+        };
+
+        
+        
 
         function openFinishRepairModal(mac) { document.getElementById('finishRepairMachine').textContent = mac; document.getElementById('finishRepairReason').value = ''; document.getElementById('finishRepairModal').classList.remove('hidden'); }
         async function submitFinishRepair(btn) {
@@ -3805,25 +4512,81 @@ function smartSafeLinePush(creator, assigneeText, priority, lineContent) {
             document.getElementById('secHistRepair').classList.toggle('hidden', !isRepair);
         }
 
-        function buildReturnMatList(containerId, orderId) {
+        // 🚀 1. 修復：退料清單直接解析訂單配料表 (BOM)，徹底解決抓不到庫存項目的問題
+        window.buildReturnMatList = function(containerId, orderId) {
             const container = document.getElementById(containerId); container.innerHTML = '';
-            let mats = {};
-            currentDeductLogs.filter(l => l.orderId === orderId).forEach(l => {
-                if(!mats[l.matId]) mats[l.matId] = 0; mats[l.matId] += parseFloat(l.qty) || 0;
-            });
+            
+            let rowData = (systemCache['訂單管理']?.data || []).find(o => o['訂單編號'] === orderId);
+            let bom = [];
+            try { bom = JSON.parse(rowData['配料明細'] || '[]'); } catch(e){}
+            
             let hasMats = false;
-            for(let matId in mats) {
-                if(mats[matId] > 0) {
-                    hasMats = true;
-                    let matObj = (currentDropdowns['物料編號'] || []).find(m => m.id === matId);
-                    let name = matObj ? matObj.name : matId;
-                    let div = document.createElement('div'); div.className = 'flex items-center gap-3 mb-2 return-mat-row bg-white p-2 border rounded shadow-sm';
-                    div.innerHTML = `<input type="hidden" class="ret-mat-id" value="${matId}"><div class="flex-1 text-sm text-gray-700 truncate" title="${name}"><div class="font-bold text-moSide">${matId}</div><div class="text-xs text-gray-500">${name.replace(matId+' - ', '')}</div><div class="text-xs text-blue-600 mt-1">總領料: ${mats[matId]}</div></div><div class="w-24"><label class="text-[10px] text-gray-400 block mb-1">退回數量</label><input type="number" class="ret-mat-qty w-full p-1.5 text-sm border border-gray-300 rounded" placeholder="0" min="0" max="${mats[matId]}"></div>`;
-                    container.appendChild(div);
+            bom.forEach(b => {
+                let matObj = (currentDropdowns['物料編號'] || []).find(m => m.id === b.id);
+                if (matObj) {
+                    let cat = String(matObj.category || '');
+                    let isService = cat.includes('外包') || cat.includes('服務') || cat.includes('加工') || cat.includes('代工') || cat.includes('費');
+                    
+                    // 過濾掉不扣實體庫存的加工費，只列出實際物料
+                    if (!isService && parseFloat(b.qty) > 0) {
+                        hasMats = true;
+                        let name = matObj.name;
+                        let maxReturn = b.qty; // 當初扣除的數量即為可退回上限
+                        
+                        let div = document.createElement('div'); div.className = 'flex items-center gap-3 mb-2 return-mat-row bg-white p-2 border border-gray-200 rounded-lg shadow-sm';
+                        div.innerHTML = `
+                            <input type="hidden" class="ret-mat-id" value="${b.id}">
+                            <div class="flex-1 text-sm text-gray-700 truncate" title="${name}">
+                                <div class="font-bold text-moSide text-[11px]">${b.id}</div>
+                                <div class="text-xs text-gray-700 font-bold mt-0.5">${name.replace(b.id+' - ', '')}</div>
+                                <div class="text-[10px] text-blue-600 mt-1 bg-blue-50 inline-block px-1.5 py-0.5 rounded border border-blue-100 font-bold">原單扣除量: ${maxReturn}</div>
+                            </div>
+                            <div class="w-24">
+                                <label class="text-[10px] text-gray-500 font-bold block mb-1">本次退回數量</label>
+                                <input type="number" class="ret-mat-qty w-full p-1.5 text-sm font-bold border border-gray-300 rounded focus:ring-1 focus:ring-moSide text-center text-red-600" placeholder="0" min="0" max="${maxReturn}">
+                            </div>`;
+                        container.appendChild(div);
+                    }
                 }
+            });
+            
+            if(!hasMats) container.innerHTML = '<p class="text-xs text-gray-400 p-4 bg-gray-50 border border-dashed border-gray-300 rounded-lg text-center font-bold">此單無實體材料可供退回，或皆為加工服務費。</p>';
+        };
+
+        // 🚀 2. 報修防呆：檢查是否為 EQM 有註冊的實體機台
+        window.openRepairModal = function(machine, orderId, woId) { 
+            let isEqm = (currentDropdowns['作業機台'] || []).some(m => m.id === machine || m.name === machine || `${m.id} - ${m.name}` === machine || machine.startsWith(m.id));
+            if (!isEqm) {
+                return showCustomAlert("⚠️ 報修攔截", `[${machine}] 為手動自訂工序，無註冊實體機台可供報修！\n若有異常請改用「🛑 異常停工」功能。`);
             }
-            if(!hasMats) container.innerHTML = '<p class="text-xs text-gray-400 p-2 bg-gray-50 rounded">此單尚無領料紀錄。</p>';
-        }
+            
+            document.getElementById('repairMachine').innerText = machine; 
+            document.getElementById('repairReason').value = ''; 
+            document.getElementById('repairOrderId').value = orderId; 
+            document.getElementById('repairWoId').value = woId; 
+            document.getElementById('repairModal').classList.remove('hidden'); 
+        };
+
+        // 🚀 3. 送出報修 (連動三方狀態)
+        window.submitRepair = function(btn) {
+            const machine = document.getElementById('repairMachine').innerText; 
+            const reason = document.getElementById('repairReason').value; 
+            const woId = document.getElementById('repairWoId').value;
+            const oId = document.getElementById('repairOrderId').value;
+            const op = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
+            
+            if(!reason) return alert("請填寫報修原因");
+            
+            btn.innerHTML = '連動中...'; btn.disabled = true;
+            google.script.run.withSuccessHandler(res => { 
+                closeModal('repairModal'); 
+                showCustomAlert("🔧 報修成功", res.msg);
+                refreshSystem(); 
+                btn.innerHTML = '確認掛修'; btn.disabled = false;
+            }).logEquipmentRepairAndStatus(machine, reason, woId, oId, op);
+        };
+
+        
 
         function runReport() {
             const target = document.getElementById('rptTargetSheet').value; const start = document.getElementById('rptStartDate').value; const end = document.getElementById('rptEndDate').value;
@@ -4785,6 +5548,45 @@ function smartSafeLinePush(creator, assigneeText, priority, lineContent) {
             <div class="p-4 border-t flex justify-end gap-3 bg-gray-50">
                 <button onclick="closeModal('planModal')" class="px-4 py-2 border rounded text-sm">取消</button>
                 <button onclick="submitProcessPlan(this)" class="px-4 py-2 bg-indigo-600 text-white rounded text-sm font-bold shadow-sm">儲存規劃並推進待扣料</button>
+            </div>
+        </div>
+    </div>
+    <div id="addonModal" class="fixed inset-0 bg-black bg-opacity-40 z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl w-full max-w-lg flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-4 border-b flex justify-between bg-orange-50 items-center">
+                <h3 class="font-bold text-orange-800">➕ 生產耗損追加與即時扣料</h3>
+                <button onclick="closeModal('addonModal')" class="text-gray-400 hover:text-gray-700 text-xl font-bold">&times;</button>
+            </div>
+            <div class="p-5 space-y-4">
+                <input type="hidden" id="addonOrderId">
+                <div class="bg-orange-50/50 p-2.5 rounded border border-orange-200 text-xs text-orange-800 font-bold">
+                    ⚠️ 於此處追加的耗損，將立即扣除實體庫存，並將成本計入本單的最終結算毛利中。
+                </div>
+                
+                <div class="flex gap-2 items-end">
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold mb-1 text-gray-600">🔍 搜尋追加料件 <span class="text-red-500">*</span></label>
+                        <input type="text" id="addonMatInput" list="dl_addon_mats" class="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-orange-400 text-sm font-bold placeholder-gray-400" placeholder="輸入料號或品名...">
+                        <datalist id="dl_addon_mats"></datalist>
+                    </div>
+                    <div class="w-20">
+                        <label class="block text-xs font-bold mb-1 text-gray-600">數量 <span class="text-red-500">*</span></label>
+                        <input type="number" id="addonQty" class="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-orange-400 text-sm font-bold text-center" placeholder="0">
+                    </div>
+                    <button onclick="submitAddon(this)" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-bold text-sm shadow-sm h-[38px] transition-colors">扣料</button>
+                </div>
+
+                <div class="mt-4 border-t border-gray-200 pt-4">
+                    <h4 class="text-xs font-bold text-gray-600 mb-2">📋 本單已追加之損耗紀錄</h4>
+                    <div class="max-h-40 overflow-y-auto border border-gray-200 rounded-lg">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-gray-100 text-gray-500"><th class="p-2 border-b">料號 / 品名</th><th class="p-2 border-b text-center w-16">數量</th><th class="p-2 border-b text-right w-16">操作</th></tr>
+                            </thead>
+                            <tbody id="addonHistoryList"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
