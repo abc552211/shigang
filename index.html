@@ -3172,7 +3172,7 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
             }).startProductionWO(orderId, op);
         };
 
-        // 🚀 3. 【產出實體生產工單 PDF】(橫式滿版 + 智慧防切斷分頁引擎)
+        // 🚀 3. 【產出實體生產工單 PDF】(方案B：純向量原生列印版 - 無限放大不失真)
         window.generateWoPDF = function(orderId) {
             let rowData = currentTableData.find(r => r['訂單編號'] === orderId) || (systemCache['訂單管理']?.data || []).find(o => o['訂單編號'] === orderId);
             if (!rowData) return alert("找不到訂單資料！");
@@ -3187,7 +3187,7 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
             let bom = [];
             try { bom = JSON.parse(rowData['配料明細'] || '[]'); } catch(e){}
 
-            // 將工序陣列轉換為 PDF 內的表格列
+            // 將工序陣列轉換為表格列
             let stepsHtml = steps.map(s => {
                 let matText = (s.requiredMats || []).map(matKey => {
                     let mId = matKey.split('@@')[0]; 
@@ -3202,7 +3202,6 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                 if (!matText) matText = '<span style="color:#999; font-style:italic;">(無額外消耗料件)</span>';
                 let timeStr = `${(s.startDate||'').replace('T', ' ')} <br>~<br> ${(s.endDate||'').replace('T', ' ')}`;
 
-                // 🚀 加入 page-break-inside: avoid 讓這一列「同進同出」，絕不被切斷
                 return `
                     <tr class="print-avoid-break" style="page-break-inside: avoid; break-inside: avoid; border-bottom: 1px solid #000; background-color: ${s.seq % 2 === 0 ? '#f8fafc' : '#fff'};">
                         <td style="padding: 10px; text-align: center; border-right: 1px solid #000; font-weight: bold; font-size: 16px;">${s.seq}</td>
@@ -3221,8 +3220,7 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
             // 處理底部示意圖
             let imgHtml = '';
             if (imgs.length > 0) {
-                let imgTags = imgs.map(src => `<img src="${src}" style="max-height: 280px; max-width: 48%; border: 2px solid #ccc; margin-right: 15px; border-radius: 8px; object-fit: contain;">`).join('');
-                // 🚀 圖片區塊也加入防切斷保護
+                let imgTags = imgs.map(src => `<img src="${src}" style="max-height: 250px; max-width: 45%; border: 2px solid #ccc; margin-right: 15px; border-radius: 8px; object-fit: contain;">`).join('');
                 imgHtml = `
                     <div class="print-avoid-break" style="page-break-inside: avoid; break-inside: avoid; margin-top: 20px;">
                         <h3 style="font-size: 16px; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 12px; color: #333;">🖼️ 產品示意圖與參考附件</h3>
@@ -3234,89 +3232,103 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
             let printOp = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
             let printTime = new Date().toLocaleString('zh-TW', { hour12: false });
 
-            let html = `
-                <div style="width: 270mm; padding: 15px; font-family: '微軟正黑體', sans-serif; color: #000; background: #fff; box-sizing: border-box;">
-                    <div style="text-align: center; margin-bottom: 15px;">
-                        <h1 style="font-size: 28px; font-weight: 900; margin: 0; letter-spacing: 4px;">仕罡印刷事業 - 現場生產工單</h1>
-                        <p style="font-size: 11px; color: #666; margin-top: 5px;">列印時間: ${printTime} / 列印人: ${printOp}</p>
-                    </div>
-                    
-                    <div class="print-avoid-break" style="page-break-inside: avoid; break-inside: avoid;">
-                        <table style="width: 100%; border: 2px solid #000; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
-                            <tr>
-                                <th style="padding: 10px; border: 1px solid #000; background: #e2e8f0; width: 100px; text-align: right;">生產單號</th>
-                                <td style="padding: 10px; border: 1px solid #000; font-weight: bold; font-family: monospace; font-size: 18px; color: #000;">${rowData['訂單編號']}</td>
-                                <th style="padding: 10px; border: 1px solid #000; background: #e2e8f0; width: 100px; text-align: right;">客戶名稱</th>
-                                <td style="padding: 10px; border: 1px solid #000; font-weight: bold; font-size: 16px;">${rowData['客戶名稱'] || ''}</td>
-                            </tr>
-                            <tr>
-                                <th style="padding: 10px; border: 1px solid #000; background: #e2e8f0; text-align: right;">產品名稱</th>
-                                <td colspan="3" style="padding: 10px; border: 1px solid #000; font-weight: bold; font-size: 18px; color: #1e3a8a;">
-                                    ${rowData['產品名稱'] || ''} <span style="font-size: 13px; color: #555; font-weight: normal; margin-left: 10px;">(完成尺寸: ${rowData['完成尺寸']||'依原稿'})</span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th style="padding: 10px; border: 1px solid #000; background: #e2e8f0; text-align: right;">預計產出</th>
-                                <td style="padding: 10px; border: 1px solid #000; font-weight: bold; color: #b91c1c; font-size: 16px;">${parseFloat(rowData['投產量'] || rowData['訂購數量'] || 0).toLocaleString()} 件</td>
-                                <th style="padding: 10px; border: 1px solid #000; background: #e2e8f0; text-align: right;">訂單備註</th>
-                                <td style="padding: 10px; border: 1px solid #000; font-size: 13px; line-height: 1.5;">${rowData['訂單細項'] || '無'}</td>
-                            </tr>
+            // 🚀 建立全新的 HTML 文件結構供原生列印使用
+            let fullHtml = `
+                <!DOCTYPE html>
+                <html lang="zh-TW">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>仕罡_現場生產工單_${rowData['訂單編號']}</title>
+                    <style>
+                        /* 🌟 核心列印指令：強制橫式 A4、強制印出背景色與邊框 */
+                        @page { size: A4 landscape; margin: 10mm; }
+                        body { 
+                            margin: 0; padding: 0; 
+                            font-family: '微軟正黑體', 'Microsoft JhengHei', sans-serif; 
+                            color: #000; background: #fff;
+                            -webkit-print-color-adjust: exact; 
+                            print-color-adjust: exact; 
+                        }
+                        .print-avoid-break { page-break-inside: avoid; break-inside: avoid; }
+                        table { border-collapse: collapse; }
+                    </style>
+                </head>
+                <body>
+                    <div style="width: 100%; box-sizing: border-box;">
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <h1 style="font-size: 28px; font-weight: 900; margin: 0; letter-spacing: 4px;">仕罡印刷事業 - 現場生產工單</h1>
+                            <p style="font-size: 11px; color: #666; margin-top: 5px;">列印時間: ${printTime} / 列印人: ${printOp}</p>
+                        </div>
+                        
+                        <div class="print-avoid-break" style="page-break-inside: avoid; break-inside: avoid;">
+                            <table style="width: 100%; border: 2px solid #000; margin-bottom: 20px; font-size: 14px;">
+                                <tr>
+                                    <th style="padding: 10px; border: 1px solid #000; background: #e2e8f0; width: 100px; text-align: right;">生產單號</th>
+                                    <td style="padding: 10px; border: 1px solid #000; font-weight: bold; font-family: monospace; font-size: 18px; color: #000;">${rowData['訂單編號']}</td>
+                                    <th style="padding: 10px; border: 1px solid #000; background: #e2e8f0; width: 100px; text-align: right;">客戶名稱</th>
+                                    <td style="padding: 10px; border: 1px solid #000; font-weight: bold; font-size: 16px;">${rowData['客戶名稱'] || ''}</td>
+                                </tr>
+                                <tr>
+                                    <th style="padding: 10px; border: 1px solid #000; background: #e2e8f0; text-align: right;">產品名稱</th>
+                                    <td colspan="3" style="padding: 10px; border: 1px solid #000; font-weight: bold; font-size: 18px; color: #1e3a8a;">
+                                        ${rowData['產品名稱'] || ''} <span style="font-size: 13px; color: #555; font-weight: normal; margin-left: 10px;">(完成尺寸: ${rowData['完成尺寸']||'依原稿'})</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th style="padding: 10px; border: 1px solid #000; background: #e2e8f0; text-align: right;">預計產出</th>
+                                    <td style="padding: 10px; border: 1px solid #000; font-weight: bold; color: #b91c1c; font-size: 16px;">${parseFloat(rowData['投產量'] || rowData['訂購數量'] || 0).toLocaleString()} 件</td>
+                                    <th style="padding: 10px; border: 1px solid #000; background: #e2e8f0; text-align: right;">訂單備註</th>
+                                    <td style="padding: 10px; border: 1px solid #000; font-size: 13px; line-height: 1.5;">${rowData['訂單細項'] || '無'}</td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <h3 style="font-size: 16px; margin: 15px 0 8px 0; color: #111; font-weight: bold;">📋 生產排程與工序用料明細</h3>
+                        <table style="width: 100%; border: 2px solid #000; text-align: left;">
+                            <thead>
+                                <tr style="background: #cbd5e1; border-bottom: 2px solid #000;">
+                                    <th style="padding: 10px; border-right: 1px solid #000; text-align: center; width: 40px;">序</th>
+                                    <th style="padding: 10px; border-right: 1px solid #000; width: 160px;">工序 / 機台</th>
+                                    <th style="padding: 10px; border-right: 1px solid #000; width: 140px; text-align:center;">排定時間</th>
+                                    <th style="padding: 10px; border-right: 1px solid #000; width: 300px;">本道消耗配料</th>
+                                    <th style="padding: 10px;">現場生產特別指示</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${stepsHtml}
+                            </tbody>
                         </table>
+                        
+                        ${imgHtml}
+                        
+                        <div class="print-avoid-break" style="page-break-inside: avoid; break-inside: avoid; margin-top: 40px; display: flex; justify-content: space-between; font-size: 14px; font-weight: bold;">
+                            <div style="border-top: 1px solid #000; width: 28%; text-align: center; padding-top: 10px;">廠務排程簽核</div>
+                            <div style="border-top: 1px solid #000; width: 28%; text-align: center; padding-top: 10px;">生管覆核</div>
+                            <div style="border-top: 1px solid #000; width: 28%; text-align: center; padding-top: 10px;">現場小組長簽收</div>
+                        </div>
                     </div>
-
-                    <h3 style="font-size: 16px; margin: 15px 0 8px 0; color: #111; font-weight: bold;">📋 生產排程與工序用料明細</h3>
-                    <table style="width: 100%; border: 2px solid #000; border-collapse: collapse; text-align: left;">
-                        <thead>
-                            <tr style="background: #cbd5e1; border-bottom: 2px solid #000;">
-                                <th style="padding: 10px; border-right: 1px solid #000; text-align: center; width: 40px;">序</th>
-                                <th style="padding: 10px; border-right: 1px solid #000; width: 160px;">工序 / 機台</th>
-                                <th style="padding: 10px; border-right: 1px solid #000; width: 140px; text-align:center;">排定時間</th>
-                                <th style="padding: 10px; border-right: 1px solid #000; width: 300px;">本道消耗配料</th>
-                                <th style="padding: 10px;">現場生產特別指示</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${stepsHtml}
-                        </tbody>
-                    </table>
                     
-                    ${imgHtml}
-                    
-                    <div class="print-avoid-break" style="page-break-inside: avoid; break-inside: avoid; margin-top: 40px; display: flex; justify-content: space-between; font-size: 14px; font-weight: bold;">
-                        <div style="border-top: 1px solid #000; width: 28%; text-align: center; padding-top: 10px;">廠務排程簽核</div>
-                        <div style="border-top: 1px solid #000; width: 28%; text-align: center; padding-top: 10px;">生管覆核</div>
-                        <div style="border-top: 1px solid #000; width: 28%; text-align: center; padding-top: 10px;">現場小組長簽收</div>
-                    </div>
-                </div>
+                    <script>
+                        window.onload = function() {
+                            // 延遲 500ms 確保圖片全部載入後再呼叫列印
+                            setTimeout(function() {
+                                window.print();
+                            }, 500);
+                        };
+                    </script>
+                </body>
+                </html>
             `;
-            
-            const element = document.getElementById('pdfContent');
-            element.innerHTML = html;
-            
-            let loadingEl = document.createElement('div');
-            loadingEl.id = 'pdfLoadingToast';
-            loadingEl.className = 'fixed top-10 left-1/2 transform -translate-x-1/2 bg-moSide text-white px-6 py-3 rounded-lg shadow-2xl z-[9999] flex items-center gap-3 font-bold tracking-wider text-sm';
-            loadingEl.innerHTML = '<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> 正在產出橫式生產工單，請稍候...';
-            document.body.appendChild(loadingEl);
 
-            // 🚀 關鍵升級：啟動 pagebreak 模組，並指定規避 'tr' 以及 '.print-avoid-break' 類別
-            const opt = { 
-                margin: 10, 
-                filename: `仕罡_現場生產工單_${rowData['訂單編號']}.pdf`, 
-                image: { type: 'jpeg', quality: 0.98 }, 
-                html2canvas: { scale: 2, useCORS: true, logging: false }, 
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-                pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.print-avoid-break', 'h3', 'img'] }
-            };
-
-            html2pdf().set(opt).from(element).save().then(() => {
-                const toast = document.getElementById('pdfLoadingToast');
-                if(toast) toast.remove();
-            }).catch(err => {
-                alert("單據生成失敗：" + err);
-                const toast = document.getElementById('pdfLoadingToast');
-                if(toast) toast.remove();
-            });
+            // 🚀 開啟一個隱藏或全新的視窗，將 HTML 塞入並觸發列印
+            let printWindow = window.open('', '_blank');
+            if (printWindow) {
+                printWindow.document.open();
+                printWindow.document.write(fullHtml);
+                printWindow.document.close();
+            } else {
+                alert("瀏覽器封鎖了彈出視窗！請允許彈出視窗以列印工單。");
+            }
         };
 
         // 🚀 開啟追加耗損視窗
