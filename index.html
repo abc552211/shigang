@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <link rel="icon" type="image/png" sizes="32x32" href="https://i.ibb.co/Wp400Ffv/image.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="https://i.ibb.co/Wp400Ffv/image.png">
     <title>仕罡印刷事業-管理系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -65,6 +67,8 @@
 
     <div id="loginScreen" class="fixed inset-0 login-bg flex items-center justify-center z-50">
         <div class="bg-white p-10 rounded-2xl shadow-xl w-96 text-center border border-gray-200 border-l-8 border-l-moAccent relative">
+            <img src="https://i.ibb.co/Wp400Ffv/image.png" alt="仕罡 LOGO" class="h-16 mx-auto mb-4 object-contain drop-shadow-sm">
+            
             <h1 class="text-2xl font-bold text-gray-800 mb-1 tracking-widest">仕罡印刷事業有限公司</h1>
             <p class="text-sm text-gray-500 mb-8 tracking-wide">公司管理系統</p>
             <input list="dl_sysUser" id="sysUser" placeholder="正在讀取人員名單..." class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:border-moAccent focus:ring-1 focus:ring-moAccent text-center tracking-widest text-gray-700 bg-gray-50">
@@ -128,7 +132,7 @@
                         <div><label class="block text-xs font-bold text-gray-500 mb-1">結束日期</label><input type="date" id="rptEndDate" class="w-full p-2 border rounded text-sm"></div>
                         <div class="flex gap-2">
                             <button onclick="runReport()" class="flex-1 bg-moSide text-white py-2 rounded text-sm hover:bg-gray-600 transition shadow-sm">查詢</button>
-                            <button onclick="exportCSV()" class="flex-1 bg-green-600 text-white py-2 rounded text-sm hover:bg-green-700 transition shadow-sm">匯出 CSV</button>
+                            <button onclick="exportXLS()" class="flex-1 bg-green-600 text-white py-2 rounded text-sm hover:bg-green-700 transition shadow-sm">匯出 Excel </button>
                         </div>
                     </div>
                     <div id="finExpensePanel" class="hidden mt-4 pt-4 border-t border-gray-200">
@@ -539,7 +543,7 @@
         let userListCache = [];
         let tempCommentImageBase64 = "";
         let currentSortOrder = 'desc'; 
-        
+        let isShowingClosedEip = false; // 新增：控制主系統是否顯示已結案
         let currentSortCol = ''; 
         let currentSortDir = 'asc';
 
@@ -556,7 +560,7 @@
             '交接清單LOG': { table: 'handovers_log', pk: 'id', fields: { '時間': 'created_at', '動作': 'action', '內容': 'content', '操作人': 'operator_name' }},
             '客戶資料': { table: 'customers', pk: 'customer_id', fields: { '客戶編號': 'customer_id', '客戶名稱': 'customer_name', '統一編號': 'tax_id', '聯絡人': 'contact_person', '聯絡電話': 'phone', '手機': 'mobile', '聯絡地址': 'address', '常用盒型': 'box_type', '偏好材質': 'material_preference', '特殊要求備註': 'remark', '合作狀態': 'status', '銀行代碼': 'bank_code', '匯款帳號': 'bank_account', '傳真': 'fax' }},
             '供應商資料': { table: 'suppliers', pk: 'supplier_id', fields: { '供應商編號': 'supplier_id', '大類': 'category', '供應商名稱': 'supplier_name', '電話': 'phone', '手機': 'mobile', '窗口': 'contact_person', '統一編號': 'tax_id', '傳真': 'fax', '地址': 'address', '備註': 'remark', '銀行代碼': 'bank_code', '匯款帳號': 'bank_account' }},
-            '訂單管理': { table: 'orders', pk: 'order_id', fields: { '關聯估價單號': 'estimate_no', '急件': 'is_urgent', '訂單日期': 'order_date', '訂單編號': 'order_id', '訂單狀態': 'status', '產品名稱': 'product_name', '完成尺寸': 'finished_size', '交貨量': 'production_qty', '客戶名稱': 'customer_name', '訂單細項': 'details', '工序規劃紀錄': 'process_plan', '投產量': 'quantity', '產出量': 'output_qty', '預估良率': 'yield_rate', '配料明細': 'bom_details', '貨運單號': 'tracking_id', '出貨時間': 'shipped_at', '示意圖': 'images' }},
+            '訂單管理': { table: 'orders', pk: 'order_id', fields: { '關聯估價單號': 'estimate_no', '急件': 'is_urgent', '訂單日期': 'order_date', '訂單編號': 'order_id', '訂單狀態': 'status', '產品名稱': 'product_name', '完成尺寸': 'finished_size', '交貨量': 'production_qty', '客戶名稱': 'customer_name', '訂單細項': 'details', '工序規劃紀錄': 'process_plan', '投產量': 'quantity', '產出量': 'output_qty', '預估良率': 'yield_rate', '配料明細': 'bom_details', '貨運單號': 'tracking_id', '出貨時間': 'shipped_at', '總金額': 'total_amount', '單價': 'unit_price', '運費報價': 'shipping_price', '運費成本': 'shipping_cost', '運費備註': 'shipping_note', '示意圖': 'images' }},
             '生產工單': { table: 'work_orders', pk: 'wo_id', fields: { '急件': 'is_urgent', '完成日期': 'completed_at', '當前工序': 'current_process', '工單狀態': 'status', '工單編號': 'wo_id', '關聯訂單': 'order_id', '產品名稱': 'product_name', '作業機台': 'machine_id', '員工姓名': 'emp_name', '產出量': 'output_qty', '停工原因': 'stop_reason', '工序明細': 'process_details', '當前進度索引': 'current_step_index', '示意圖': 'images'  }},
             '材料異常': { table: 'material_anomalies', pk: 'created_at', fields: { '時間': 'created_at', '物料編號': 'material_id', '品名': 'material_name', '供應商': 'supplier_name', '異常數量': 'quantity', '廠商出貨單號': 'vendor_invoice_id', '補貨單號': 'replenish_id', '異常說明': 'reason', '上傳照片': 'image_url', '操作人': 'operator_name' }},
             '設備狀態': { table: 'equipment_status', pk: 'machine_id', fields: { '工序編號': 'machine_id', '工序名稱': 'process_name', '當前狀態': 'status', '工單編號': 'wo_id', '客戶名稱': 'customer_name', '產品名稱': 'product_name', '預計交期': 'estimated_delivery_date', '報修內容': 'repair_remark', '訂單日期': 'order_date', '預計保養日期': 'next_maintenance_date' }},
@@ -572,6 +576,51 @@
         function showCustomAlert(title, message) {
             showSmartChoice(title, message, [{ text: "確定", class: "px-4 py-2 bg-moSide text-white rounded-lg text-xs font-bold shadow hover:bg-gray-600 transition", callback: null }]);
         }
+        
+
+        window.toggleClosedSearchEip = function() {
+            isShowingClosedEip = !isShowingClosedEip;
+            const btn = document.getElementById('closedSearchBtnEip');
+            if (btn) {
+                if (isShowingClosedEip) {
+                    btn.classList.add('bg-indigo-100', 'text-indigo-700', 'border-indigo-300');
+                    btn.classList.remove('bg-gray-100', 'text-gray-700');
+                    btn.innerText = '🔙 返回進行中';
+                } else {
+                    btn.classList.remove('bg-indigo-100', 'text-indigo-700', 'border-indigo-300');
+                    btn.classList.add('bg-gray-100', 'text-gray-700');
+                    btn.innerText = '📂 調閱已結案';
+                }
+            }
+            refreshSystem(); // 主系統重新撈取資料
+        };
+
+        window.toggleLike = async function(handoverId) {
+            let currentUser = document.getElementById('userNameDisplay') ? document.getElementById('userNameDisplay').innerText.split(' | ')[0] : "";
+            if (!currentUser) return alert("⚠️ 無法取得使用者身分，請確認已登入！");
+
+            const btn = document.getElementById(`btn_like_${handoverId}`);
+            if (btn) btn.style.pointerEvents = 'none';
+
+            let targetHo = currentHandovers.find(h => h.id === handoverId);
+            let hasLiked = targetHo && targetHo.likes && targetHo.likes.includes(currentUser);
+
+            try {
+                if (hasLiked) {
+                    const { error } = await sbClient.from('handover_likes').delete().match({ handover_id: handoverId, emp_name: currentUser });
+                    if (error) throw error;
+                } else {
+                    const { error } = await sbClient.from('handover_likes').insert([{ handover_id: handoverId, emp_name: currentUser }]);
+                    if (error) throw error;
+                }
+                refreshSystem(); 
+            } catch (err) {
+                console.error("按讚處理失敗:", err);
+                alert("❌ 按讚失敗：" + err.message);
+            } finally {
+                if (btn) btn.style.pointerEvents = 'auto';
+            }
+        };
 
         // --- 🚀 Gemini LLM API 呼叫與指數退避模組 ---
         
@@ -895,8 +944,30 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                                 handovers: [], restockLogs: [], replenishLogs: [], allWos: [], deductLogs: [], anomalyLogs: [], eqsLogs: []
                             };
 
-                            let { data: ho } = await sbClient.from('handovers').select('*').or('status.is.null,status.neq.已結案').limit(10000);
-                            result.handovers = (ho || []).map(x => ({ id: x.id, time: x.created_at, content: x.content, priority: x.priority, creator: x.creator, assignee: x.assignee, image: x.image_url, status: x.status }));
+                            let hoQuery = sbClient.from('handovers').select('*');
+                            if (!isShowingClosedEip) {
+                                hoQuery = hoQuery.or('status.is.null,status.neq.已結案').limit(10000);
+                            } else {
+                                hoQuery = hoQuery.eq('status', '已結案').limit(100);
+                            }
+                            let { data: ho } = await hoQuery;
+                            
+                            let hoIds = (ho || []).map(x => x.id);
+                            let likesData = []; let commentsData = [];
+                            if (hoIds.length > 0) {
+                                let [resLikes, resComments] = await Promise.all([
+                                    sbClient.from('handover_likes').select('handover_id, emp_name').in('handover_id', hoIds),
+                                    sbClient.from('handover_comments').select('handover_id').in('handover_id', hoIds)
+                                ]);
+                                if (resLikes.data) likesData = resLikes.data;
+                                if (resComments.data) commentsData = resComments.data;
+                            }
+
+                            result.handovers = (ho || []).map(x => ({ 
+                                id: x.id, time: x.created_at, content: x.content, priority: x.priority, creator: x.creator, assignee: x.assignee, image: x.image_url, status: x.status,
+                                likes: likesData.filter(l => l.handover_id === x.id).map(l => l.emp_name),
+                                commentCount: commentsData.filter(c => c.handover_id === x.id).length
+                            }));
 
                             let { data: users } = await sbClient.from('users_auth').select('emp_id, emp_name');
                             result.dropdowns['員工姓名'] = (users || []).map(u => ({id: u.emp_id, name: u.emp_name}));
@@ -1258,11 +1329,20 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                     },
 
                     getReportData: async function(targetSheet) {
-                        let config = schemaMaps[targetSheet];
-                        if (!config) return this.successHandler({ success: false, msg: "報表目標不存在" });
-                        let { data } = await sbClient.from(config.table).select('*');
-                        let translated = (data || []).map(r => toChineseRow(targetSheet, r));
-                        this.successHandler({ success: true, headers: Object.keys(config.fields), data: translated });
+                        try {
+                            // 🚀 3. 修復 FIN 報表查無資料問題 (財務表是透過解析訂單資料計算出來的)
+                            let actualTarget = targetSheet === 'FIN' ? '訂單管理' : targetSheet;
+                            let config = schemaMaps[actualTarget];
+                            if (!config) return this.successHandler({ success: false, msg: "報表目標不存在" });
+                            
+                            let { data, error } = await sbClient.from(config.table).select('*');
+                            if (error) throw error;
+                            
+                            let translated = (data || []).map(r => toChineseRow(actualTarget, r));
+                            this.successHandler({ success: true, headers: Object.keys(config.fields), data: translated, originalTarget: targetSheet });
+                        } catch(err) {
+                            if(this.failureHandler) this.failureHandler(err.toString());
+                        }
                     },
 
                     addHandover: async function(content, priority, assignee, imageBase64, creator) {
@@ -1530,11 +1610,13 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
             const icon = document.getElementById(`arrow_icon_${handoverId}`);
             if (panel.classList.contains('hidden')) {
                 panel.classList.remove('hidden');
-                icon.innerText = "▼";
-                await loadComments(handoverId);
+                icon.innerText = "收合討論 ▼";
+                icon.classList.replace('bg-indigo-50', 'bg-indigo-100');
+                await window.loadComments(handoverId);
             } else {
                 panel.classList.add('hidden');
-                icon.innerText = "▶";
+                icon.innerText = "展開討論 ▶";
+                icon.classList.replace('bg-indigo-100', 'bg-indigo-50');
             }
         };
 
@@ -1542,6 +1624,9 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
             const listContainer = document.getElementById(`thread_list_${handoverId}`);
             listContainer.innerHTML = '<p class="text-[11px] text-gray-400 text-center py-2">載入中...</p>';
             
+            let targetHo = currentHandovers.find(h => h.id === handoverId);
+            let isClosed = targetHo && targetHo.status === '已結案';
+
             let { data, error } = await sbClient.from('handover_comments').select('*').eq('handover_id', handoverId).order('created_at', { ascending: true });
             if (error || !data || data.length === 0) {
                 listContainer.innerHTML = '<p class="text-[11px] text-gray-400 text-center py-2">目前尚無延伸討論內容</p>';
@@ -1556,6 +1641,8 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                 }
                 let imgHtml = c.image_url ? `<img src="${c.image_url}" class="mt-1.5 max-h-24 object-contain rounded border shadow-sm cursor-pointer" onclick="openImageModal('${c.image_url}')">` : '';
 
+                let editBtnHtml = isClosed ? '' : `<button onclick="openEditCommentField('${c.id}', '${handoverId}')" class="text-[10px] font-bold text-indigo-500 hover:underline">✏️ 編輯內容</button>`;
+
                 html += `
                     <div class="bg-white p-2 rounded-lg border shadow-xs text-xs space-y-1">
                         <div class="flex justify-between items-center text-[10px] text-gray-400 border-b border-dashed pb-0.5 mb-1">
@@ -1565,7 +1652,7 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                         <p id="comment_text_${c.id}" class="text-slate-700 font-medium whitespace-pre-wrap break-words leading-relaxed">${c.content}</p>
                         ${imgHtml}
                         <div class="text-right pt-1">
-                            <button onclick="openEditCommentField('${c.id}', '${handoverId}')" class="text-[10px] font-bold text-indigo-500 hover:underline">✏️ 編輯內容</button>
+                            ${editBtnHtml}
                         </div>
                     </div>`;
             });
@@ -1732,9 +1819,13 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
             if (sysName === 'RPT') {
                 document.getElementById('rptControlPanel').classList.remove('hidden');
                 document.getElementById('addBtn').classList.add('hidden'); // 報表中心不需要新增按鈕
-                // 預設填入今天日期
-                const todayStr = new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString().split('T')[0];
-                if(document.getElementById('rptStartDate')) document.getElementById('rptStartDate').value = todayStr;
+                
+                // 🚀 1. 預設填入本月 1 號至今天
+                const now = new Date(new Date().getTime() + 8 * 60 * 60 * 1000);
+                const todayStr = now.toISOString().split('T')[0];
+                const firstDayStr = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+                
+                if(document.getElementById('rptStartDate')) document.getElementById('rptStartDate').value = firstDayStr;
                 if(document.getElementById('rptEndDate')) document.getElementById('rptEndDate').value = todayStr;
                 return; 
             }
@@ -1880,8 +1971,11 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                         ${currentSortOrder === 'desc' ? '⏳ 日期排序 (新➔舊)' : '⌛ 日期排序 (舊➔新)'}
                     </button>
                 </div>
-                <div class="mb-4">
+                <div class="mb-4 flex gap-2">
                     <input type="text" id="eipSearchInput" onkeyup="filterHandoversEip()" placeholder="輸入關鍵字篩選交接內容、發布人、接收人..." class="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none">
+                    <button onclick="toggleClosedSearchEip()" id="closedSearchBtnEip" class="shrink-0 px-4 py-2 ${isShowingClosedEip ? 'bg-indigo-100 text-indigo-700 border-indigo-300' : 'bg-gray-100 text-gray-700 border-gray-300'} text-xs font-bold border rounded-lg transition-colors shadow-sm">
+                        ${isShowingClosedEip ? '🔙 返回進行中' : '📂 調閱已結案'}
+                    </button>
                 </div>
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2" id="handoverGridContainer">`;
 
@@ -2022,6 +2116,35 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                                 </div>
                             </div>
                         `;
+
+                        // 🚀 關鍵追加：將營業額、單價與運費資訊顯示在展開明細中！
+                        let orderTotal = parseFloat(row['總金額'] || 0);
+                        let orderUnit = parseFloat(row['單價'] || 0);
+                        let shipPrice = parseFloat(row['運費報價'] || 0);
+                        let shipCost = parseFloat(row['運費成本'] || 0);
+                        let shipNote = row['運費備註'] || '無特別備註';
+
+                        // 結合系統底層的「財務權限控管 (userShowFinance)」
+                        if (userShowFinance) { 
+                            detailsHTML += `
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                <div class="bg-blue-50/50 p-3 rounded-lg border border-blue-200 shadow-sm">
+                                    <span class="font-bold text-xs text-blue-800 block mb-1.5 border-b border-blue-100 pb-1">💰 訂單商務金額</span>
+                                    <div class="flex justify-between text-xs mb-1"><span class="text-gray-500 font-bold">總金額 (未稅)</span><span class="font-black font-mono text-blue-900 text-sm">$ ${orderTotal.toLocaleString()}</span></div>
+                                    <div class="flex justify-between text-xs"><span class="text-gray-500 font-bold">換算單價</span><span class="font-bold font-mono text-blue-700">$ ${orderUnit.toLocaleString()}</span></div>
+                                </div>
+                                <div class="bg-amber-50/50 p-3 rounded-lg border border-amber-200 shadow-sm flex flex-col justify-between">
+                                    <div>
+                                        <span class="font-bold text-xs text-amber-800 block mb-1.5 border-b border-amber-100 pb-1">🚚 運費與物流資訊</span>
+                                        <div class="flex justify-between text-xs mb-1"><span class="text-gray-500 font-bold">對客運費報價</span><span class="font-black font-mono text-amber-900 text-sm">$ ${shipPrice.toLocaleString()}</span></div>
+                                        <div class="flex justify-between text-xs"><span class="text-gray-500 font-bold">內部運費成本</span><span class="font-bold font-mono text-amber-700">$ ${shipCost.toLocaleString()}</span></div>
+                                    </div>
+                                    <div class="mt-1.5 pt-1 border-t border-dashed border-amber-200 text-[11px] text-amber-700 font-bold truncate tracking-wide">📌 備註: ${shipNote}</div>
+                                </div>
+                            </div>`;
+                        } else {
+                            detailsHTML += `<div class="mb-3 p-2 bg-gray-100 text-gray-400 text-xs rounded-lg border border-dashed border-gray-300 text-center font-bold">🔒 無權限檢視財務與運費資訊</div>`;
+                        }
                     }
 
                     // 1. 常態文字與備註欄位追加封裝
@@ -2565,14 +2688,47 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                 }
 
                 let cardDomId = `sg_card_id_${ho.id}_${hIdx}`;
+                
+                // 判斷是否結案
+                let isClosed = ho.status === '已結案';
+                let delBtnHtml = '';
+                if (isClosed) {
+                    delBtnHtml = `<span class="text-gray-500 font-bold text-[10px] bg-gray-200 px-2 py-0.5 rounded border border-gray-300 shadow-sm ml-1 select-none">🔒 已結案</span>`;
+                } else if (canArchive) {
+                    delBtnHtml = `<button data-html2canvas-ignore="true" onclick="archiveHandover('${ho.id}')" class="text-red-600 hover:bg-red-100 font-bold text-[10px] bg-white px-1.5 py-0.5 rounded border shadow-sm transition ml-1">結案 ✓</button>`;
+                }
+
+                // 按讚按鈕
+                let likeBtnHtml = isClosed 
+                    ? `<button title="已結案，無法按讚" class="flex items-center gap-1.5 px-2.5 py-1 rounded-md border bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed select-none">
+                           <span class="text-sm">👍</span><span class="text-xs font-bold">${ho.likes ? ho.likes.length : 0}</span>
+                       </button>`
+                    : `<button id="btn_like_${ho.id}" onclick="toggleLike('${ho.id}')" title="按讚名單：\n${ho.likes && ho.likes.length > 0 ? ho.likes.join('\\n') : '尚無人按讚'}" class="flex items-center gap-1.5 px-2.5 py-1 rounded-md border transition-colors ${ho.likes && ho.likes.includes(currentOpUser) ? 'bg-pink-50 text-pink-600 border-pink-200 shadow-sm' : (ho.likes && ho.likes.length > 0 ? 'bg-pink-50/40 text-pink-400 border-pink-100' : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50')}">
+                           <span class="text-sm">👍</span><span class="text-xs font-bold">${ho.likes ? ho.likes.length : 0}</span>
+                       </button>`;
+
+                // 留言輸入框
+                let commentInputHtml = isClosed
+                    ? `<div class="bg-gray-100 p-2.5 rounded-lg border text-center text-xs text-gray-500 font-bold select-none">🔒 此交接單已結案，停止留言與互動</div>`
+                    : `<div class="bg-white p-2.5 rounded-lg border space-y-2">
+                           <textarea id="comment_input_${ho.id}" rows="2" placeholder="請輸入延伸補充內容..." class="w-full p-2 border rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"></textarea>
+                           <div class="flex items-center justify-between gap-2">
+                               <div class="flex items-center gap-1.5">
+                                   <input type="file" id="comment_file_${ho.id}" accept="image/*" onchange="handleCommentImageUpload(this, '${ho.id}')" class="hidden">
+                                   <button onclick="document.getElementById('comment_file_${ho.id}').click()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded font-bold text-[11px] border">📷 附圖</button>
+                                   <span id="comment_file_indicator_${ho.id}" class="text-[10px] text-green-600 font-bold hidden">已選圖片</span>
+                               </div>
+                               <button onclick="submitComment('${ho.id}')" class="bg-slate-700 hover:bg-slate-800 text-white font-bold px-3 py-1 rounded text-[10px] shadow">送出補充</button>
+                           </div>
+                       </div>`;
 
                 htmlResult += `
-                <div id="${cardDomId}" class="p-4 rounded-xl border ${bg} flex flex-col justify-between shadow-sm relative pt-10 transition-all hover:shadow-md handover-card-item" data-priority="${ho.priority}" data-creator="${ho.creator}" data-assignee="${ho.assignee}">
+                <div id="${cardDomId}" class="rounded-xl border ${bg} flex flex-col justify-between shadow-sm relative pt-10 transition-all hover:shadow-md handover-card-item bg-white" data-priority="${ho.priority}" data-creator="${ho.creator}" data-assignee="${ho.assignee}">
                     
                     <div class="absolute top-2 left-3 flex items-center gap-1">
                         <span class="px-2 py-0.5 rounded text-white font-bold text-[10px] ${badgeColor}">${ho.priority}</span>
                         ${expiryAlertHtml}
-                        ${delBtn}
+                        ${delBtnHtml}
                     </div>
                     
                     <div class="absolute top-2 right-3" data-html2canvas-ignore="true">
@@ -2581,10 +2737,7 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                         </button>
                     </div>
                     
-                    <div class="w-full flex row justify-between mt-2 min-w-0">
-                        <div class="flex-shrink-0 flex items-center pr-2" data-html2canvas-ignore="true">
-                            <button onclick="toggleCommentThread('${ho.id}')" id="arrow_icon_${ho.id}" class="text-slate-400 hover:text-slate-700 font-bold text-xs px-2 py-3 bg-slate-50 border rounded transition">▶</button>
-                        </div>
+                    <div class="w-full flex row justify-between px-4 pb-3 min-w-0">
                         <div class="min-w-0 flex-1 flex flex-col space-y-2">
                             <div class="flex flex-wrap items-center text-[11px] text-gray-400 gap-x-2 border-b border-dashed pb-1">
                                 ${stateHeaderHtml}
@@ -2598,25 +2751,24 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                         ${imgThumbnailHtml}
                     </div>
 
-                    <!-- 💬 討論回覆系統 -->
-                    <div id="thread_panel_${ho.id}" class="hidden border-t bg-slate-50/70 p-3 space-y-3 mt-3 rounded-lg" data-html2canvas-ignore="true">
+                    <div class="flex items-center justify-between px-4 py-2.5 bg-slate-50/50 border-t border-gray-100 rounded-b-xl" data-html2canvas-ignore="true">
+                        <div class="flex items-center gap-2">
+                            ${likeBtnHtml}
+                            <div title="留言數量" class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white text-gray-400 border border-gray-200 cursor-help">
+                                <span class="text-sm">💬</span><span class="text-xs font-bold">${ho.commentCount || 0}</span>
+                            </div>
+                        </div>
+                        <button onclick="toggleCommentThread('${ho.id}')" id="arrow_icon_${ho.id}" class="flex items-center gap-1 px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 rounded-md transition-colors text-xs font-bold shadow-sm">
+                            展開討論 ▶
+                        </button>
+                    </div>
+
+                    <div id="thread_panel_${ho.id}" class="hidden border-t bg-slate-50/70 p-3 space-y-3" data-html2canvas-ignore="true">
                         <div class="border-b pb-1 flex justify-between items-center">
                             <span class="text-[10px] font-bold text-slate-500 tracking-wider">💬 延伸交接討論串</span>
                         </div>
-
                         <div class="space-y-2 max-h-48 overflow-y-auto pr-1" id="thread_list_${ho.id}"></div>
-
-                        <div class="bg-white p-2.5 rounded-lg border space-y-2">
-                            <textarea id="comment_input_${ho.id}" rows="2" placeholder="請輸入延伸補充內容..." class="w-full p-2 border rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"></textarea>
-                            <div class="flex items-center justify-between gap-2">
-                                <div class="flex items-center gap-1.5">
-                                    <input type="file" id="comment_file_${ho.id}" accept="image/*" onchange="handleCommentImageUpload(this, '${ho.id}')" class="hidden">
-                                    <button onclick="document.getElementById('comment_file_${ho.id}').click()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded font-bold text-[10px] border">📷 附圖</button>
-                                    <span id="comment_file_indicator_${ho.id}" class="text-[10px] text-green-600 font-bold hidden">已選圖片</span>
-                                </div>
-                                <button onclick="submitComment('${ho.id}')" class="bg-slate-700 hover:bg-slate-800 text-white font-bold px-3 py-1 rounded text-[10px] shadow">送出補充</button>
-                            </div>
-                        </div>
+                        ${commentInputHtml}
                     </div>
                 </div>`;
             });
@@ -3073,7 +3225,11 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                 if (header === '最近一次登入時間' && currentSysName === 'SYS' && rowIndex === -1) return; 
 
                 const discardedOmsFields = ['單價', '總金額', '運費報價', '運費備註', '運費成本', '預估成本', '產出量', '配料明細', '工序規劃紀錄', '示意圖', '貨運單號', '出貨時間'];
-                if (currentSysName === 'OMS' && discardedOmsFields.includes(header)) return;
+                if (currentSysName === 'OMS' && discardedOmsFields.includes(header)) {
+                    // 🚀 關鍵修復：不要 return 丟掉！改為隱藏欄位 (hidden)，讓牽引過來的數值能被系統抓到並存進 Supabase
+                    formGrid.innerHTML += `<input type="hidden" id="input_${header}" value="${rowData[header] || ''}">`;
+                    return;
+                }
 
                 const val = rowData[header] || '';
                 let fieldHTML = `<div><label class="block text-sm font-bold mb-1">${header}</label>`;
@@ -3409,9 +3565,9 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                 iframe.contentWindow.print();
             }, 600);
         };
-        // 🚀 【產出純向量實體出貨單】(非同步升級版：即時向雲端提取最新客戶與總成資料，不依賴本機快取)
+        // 🚀 【產出純向量實體出貨單】(Async非同步雲端即時版：自動反查所有三方資料庫，保證不漏接)
         window.generateShippingNote = async function(orderId) {
-            document.getElementById('loadingIndicator').classList.remove('hidden'); // 開啟讀取動畫
+            document.getElementById('loadingIndicator').classList.remove('hidden'); // 顯示讀取中動畫
             
             try {
                 // 1. 🚀 即時獲取最新訂單資料
@@ -3435,22 +3591,21 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                     if (estData && estData.details) estDetails = estData.details;
                 }
 
-                // 4. 🚀 即時獲取我司資料 (解除打碼，直接從雲端拿 C00000000)
+                // 4. 🚀 即時獲取我司 C00000000 資料 (解除打碼，直接從雲端拿真實資料)
                 const { data: myCompData } = await sbClient.from('customers').select('*').eq('customer_id', 'C00000000').maybeSingle();
                 let myCompany = myCompData?.customer_name || "仕罡印刷事業有限公司";
                 let myPhone = myCompData?.phone || "(02) 2243-XXXX";
                 let myAddress = myCompData?.address || "新北市中和區XXXX路XX號";
                 let myTaxId = myCompData?.tax_id || "8432XXXX";
 
-                // --- 資料綁定 ---
+                // --- 數據安全綁定 ---
                 let clientPhone = clientDetails.phone || clientDetails.mobile || '-';
                 let clientAddress = clientDetails.address || '-';
                 let clientTaxId = clientDetails.tax_id || '-';
                 let clientContact = clientDetails.contact_person || '-';
-
                 let mySales = estDetails.global_sales_rep || '-';
 
-                // 🚀 精準解析總成名稱：優先從估價單原始設定抓，若無則降級使用工序名稱
+                // 🚀 精準解析總成名稱：優先從估價單的各總成名稱擷取，若無則降級用工序
                 let assemblyNames = '一般生產';
                 if (estDetails.assemblies && estDetails.assemblies.length > 0) {
                     assemblyNames = estDetails.assemblies.map(a => a.name).join(' + ');
@@ -3462,8 +3617,9 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                     }
                 }
                 
-                // 🚀 精準指定出貨量為客戶下單的「交貨量 (良率前)」(對應資料庫 production_qty)
+                // 🚀 關鍵修正：出貨單的數量，強制對應到客戶訂購的「交貨量」(良率前)，也就是 production_qty
                 let finalQty = parseFloat(orderData.production_qty || 0);
+                
                 let printTime = new Date().toLocaleString('zh-TW', { hour12: false });
 
                 let fullHtml = `
@@ -4930,81 +5086,223 @@ function openHandoverModal() {
         
 
         function runReport() {
-            const target = document.getElementById('rptTargetSheet').value; const start = document.getElementById('rptStartDate').value; const end = document.getElementById('rptEndDate').value;
-            const kw = document.getElementById('searchInput').value.toLowerCase();
+            const target = document.getElementById('rptTargetSheet').value; 
+            const start = document.getElementById('rptStartDate').value; 
+            const end = document.getElementById('rptEndDate').value;
+            const kw = document.getElementById('searchInput').value.trim().toLowerCase();
             document.getElementById('tableContainer').innerHTML = `<div class="flex flex-col items-center justify-center py-20 text-moSide"><div class="w-10 h-12 border-4 border-moBorder border-t-moSide rounded-full animate-spin mb-4"></div><span class="text-xs font-bold tracking-widest text-gray-400">正在運算報表資料...</span></div>`;
 
             google.script.run.withSuccessHandler(res => {
                 if(!res.success) { document.getElementById('tableContainer').innerHTML = `<p class="p-6 text-red-500 text-center">${res.msg}</p>`; return; }
+                
                 let filtered = res.data;
-                if(start || end) {
-                    let dateCol = res.headers.find(h => h.includes('日期') || h.includes('時間'));
-                    if(dateCol) {
-                        filtered = filtered.filter(row => {
-                            let dStr = row[dateCol]; if(!dStr) return false;
-                            let rowDate = new Date(dStr);
-                            let sd = start ? new Date(start) : new Date('1900-01-01'); let ed = end ? new Date(end) : new Date('2100-01-01');
-                            ed.setHours(23,59,59,999); return rowDate >= sd && rowDate <= ed;
-                        });
-                    }
-                }
-                if(kw) { filtered = filtered.filter(row => Object.values(row).some(v => String(v).toLowerCase().includes(kw))); }
+                let actualTarget = res.originalTarget;
 
-                currentTableData = filtered; currentHeaders = res.headers;
+                // --- 日期過濾 ---
+                let dateCol = (actualTarget === 'FIN' || actualTarget === '訂單管理') ? '訂單日期' : res.headers.find(h => h.includes('日期') || h.includes('時間'));
+                if(start || end) {
+                    filtered = filtered.filter(row => {
+                        let dStr = row[dateCol]; if(!dStr) return false;
+                        let rowDate = new Date(dStr.split(' ')[0]);
+                        let sd = start ? new Date(start) : new Date('1900-01-01'); 
+                        let ed = end ? new Date(end) : new Date('2100-01-01');
+                        ed.setHours(23,59,59,999); 
+                        return rowDate >= sd && rowDate <= ed;
+                    });
+                }
+
+                // 🚀 2. 針對 OMS 訂單：把配料與損耗 JSON 「炸開」成多行顯示
+                if (actualTarget === '訂單管理') {
+                    let expanded = [];
+                    filtered.forEach(r => {
+                        let bom = []; let addons = [];
+                        try { bom = JSON.parse(r['配料明細'] || '[]'); } catch(e){}
+                        try { let d = JSON.parse(r['訂單細項']); if(typeof d === 'object') addons = d.addon_mats || []; } catch(e){}
+
+                        let baseRow = {...r};
+                        // 清除干擾報表的冗長 JSON 欄位
+                        delete baseRow['配料明細']; delete baseRow['工序規劃紀錄']; delete baseRow['示意圖']; delete baseRow['訂單細項'];
+
+                        if (bom.length === 0 && addons.length === 0) {
+                            expanded.push({...baseRow, '用料類型': '-', '物料編號': '-', '物料名稱': '無配料', '使用量': 0, '單價成本': 0, '材料總成本': 0});
+                        } else {
+                            bom.forEach(b => {
+                                let mName = b.customName || b.id;
+                                expanded.push({...baseRow, '用料類型': '標準配料', '物料編號': b.id, '物料名稱': mName, '使用量': b.qty, '單價成本': b.cost || 0, '材料總成本': (b.cost||0)*(b.qty||0)});
+                            });
+                            addons.forEach(a => {
+                                expanded.push({...baseRow, '用料類型': '追加耗損', '物料編號': a.id, '物料名稱': a.id, '使用量': a.qty, '單價成本': a.cost || 0, '材料總成本': (a.cost||0)*(a.qty||0)});
+                            });
+                        }
+                    });
+                    filtered = expanded;
+                    if (filtered.length > 0) res.headers = Object.keys(filtered[0]);
+                }
+
+                // --- 關鍵字搜尋過濾 (支援單號或料號) ---
+                if(kw) { 
+                    filtered = filtered.filter(row => Object.values(row).some(v => String(v).toLowerCase().includes(kw))); 
+                }
+
+                currentTableData = filtered; 
+                currentHeaders = res.headers;
+
+                // 🚀 3. 針對 FIN 損益表：特殊渲染
+                if (actualTarget === 'FIN') {
+                    if (!userShowFinance) { document.getElementById('tableContainer').innerHTML = `<p class="p-10 text-center text-red-500 font-bold">🔒 權限不足，無法查閱機密財務報表。</p>`; return; }
+                    
+                    let totalRev = 0; let totalBomCost = 0; let totalAddonCost = 0; let totalShipCost = 0;
+                    
+                    // 只計算範圍內的所有訂單
+                    filtered.forEach(r => {
+                        totalRev += (parseFloat(r['總金額']) || 0) + (parseFloat(r['運費報價']) || 0);
+                        totalShipCost += parseFloat(r['運費成本']) || 0;
+                        
+                        let bom = []; let addons = [];
+                        try { bom = JSON.parse(r['配料明細'] || '[]'); } catch(e){}
+                        try { let d = JSON.parse(r['訂單細項']); if(typeof d === 'object') addons = d.addon_mats || []; } catch(e){}
+                        
+                        bom.forEach(b => totalBomCost += (parseFloat(b.cost)||0) * (parseFloat(b.qty)||0));
+                        addons.forEach(a => totalAddonCost += (parseFloat(a.cost)||0) * (parseFloat(a.qty)||0));
+                    });
+
+                    let hr = parseFloat(document.getElementById('finHr').value) || 0;
+                    let rent = parseFloat(document.getElementById('finRent').value) || 0;
+                    let misc = parseFloat(document.getElementById('finMisc').value) || 0;
+                    let taxRate = parseFloat(document.getElementById('finTax').value) || 5;
+
+                    let grossProfit = totalRev - totalBomCost - totalAddonCost - totalShipCost;
+                    let opProfit = grossProfit - hr - rent - misc;
+                    let taxAmount = (totalRev * (taxRate / 100)); 
+                    let netProfit = opProfit - taxAmount;
+
+                    let finHtml = `
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-bold text-moSide">💰 區間財務損益表 (P&L)</h2>
+                            <span class="text-xs text-gray-500 font-bold bg-gray-100 px-3 py-1 rounded shadow-sm">區間內共計 ${filtered.length} 筆訂單</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div class="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                                <p class="text-sm text-blue-800 font-bold">營業總收入 (未稅)</p>
+                                <p class="text-2xl font-black text-blue-900 mt-2">$ ${Math.round(totalRev).toLocaleString()}</p>
+                            </div>
+                            <div class="bg-red-50 p-4 rounded-xl border border-red-200">
+                                <p class="text-sm text-red-800 font-bold">營業總成本 (料+運)</p>
+                                <p class="text-2xl font-black text-red-900 mt-2">$ ${Math.round(totalBomCost + totalAddonCost + totalShipCost).toLocaleString()}</p>
+                            </div>
+                            <div class="bg-green-50 p-4 rounded-xl border border-green-200">
+                                <p class="text-sm text-green-800 font-bold">營業毛利 (Gross Profit)</p>
+                                <p class="text-2xl font-black text-green-900 mt-2">$ ${Math.round(grossProfit).toLocaleString()}</p>
+                                <p class="text-xs text-green-700 mt-1 font-bold">毛利率: ${totalRev>0 ? ((grossProfit/totalRev)*100).toFixed(1) : 0}%</p>
+                            </div>
+                        </div>
+                        <div class="bg-gray-800 text-white p-6 rounded-xl shadow-lg">
+                            <h3 class="text-lg font-bold mb-4 border-b border-gray-600 pb-2">稅後淨利結算 (Net Income)</h3>
+                            <div class="space-y-2 text-sm text-gray-300 font-bold tracking-wide">
+                                <div class="flex justify-between"><span>營業毛利</span><span>$ ${Math.round(grossProfit).toLocaleString()}</span></div>
+                                <div class="flex justify-between text-red-300"><span>- 人事薪資總額</span><span>$ ${Math.round(hr).toLocaleString()}</span></div>
+                                <div class="flex justify-between text-red-300"><span>- 租金與水電</span><span>$ ${Math.round(rent).toLocaleString()}</span></div>
+                                <div class="flex justify-between text-red-300"><span>- 行銷與雜支</span><span>$ ${Math.round(misc).toLocaleString()}</span></div>
+                                <div class="flex justify-between text-red-300 border-b border-gray-600 pb-2"><span>- 預估營業稅 (${taxRate}%)</span><span>$ ${Math.round(taxAmount).toLocaleString()}</span></div>
+                                <div class="flex justify-between text-xl font-black text-white pt-2"><span>本期淨利</span><span class="${netProfit>=0?'text-emerald-400':'text-red-400'}">$ ${Math.round(netProfit).toLocaleString()}</span></div>
+                            </div>
+                        </div>
+                    </div>`;
+                    document.getElementById('tableContainer').innerHTML = finHtml;
+                    return;
+                }
+
+                // --- 常規表格渲染 ---
                 let tHtml = `<div class="overflow-x-auto"><table class="w-full text-left text-sm border-collapse"><thead class="bg-gray-100"><tr class="border-b border-gray-300">`;
                 res.headers.forEach(h => tHtml += `<th class="p-3 font-bold whitespace-nowrap tracking-wider">${h}</th>`);
                 tHtml += `</tr></thead><tbody class="divide-y border-t border-gray-200">`;
                 
-                if(filtered.length === 0) { tHtml += `<tr><td colspan="${res.headers.length}" class="p-10 text-center text-gray-400 italic">設定區間內查無符合的報表資料</td></tr>`; } 
-                else {
+                if(filtered.length === 0) { 
+                    tHtml += `<tr><td colspan="${res.headers.length}" class="p-10 text-center text-gray-400 italic font-bold">設定區間內查無符合的報表資料</td></tr>`; 
+                } else {
                     filtered.forEach(r => {
                         tHtml += `<tr class="hover:bg-gray-200 transition-colors">`;
                         res.headers.forEach(h => {
-                            let val = r[h] || '';
-                            if(h === '急件' && val === '是') { val = `<span class="bg-red-600 text-white px-2 py-1 rounded text-xs font-bold animate-pulse shadow-sm">急件</span>`; }
-                            tHtml += `<td class="p-3 whitespace-pre-wrap break-words min-w-[150px] align-top text-xs leading-relaxed text-gray-700">${val}</td>`;
+                            let val = r[h];
+                            if(val === undefined || val === null) val = '';
+                            // 加上特殊視覺標記
+                            if(h === '急件' && val === '是') val = `<span class="bg-red-600 text-white px-2 py-1 rounded text-xs font-bold shadow-sm">急件</span>`;
+                            if(h === '用料類型' && val === '追加耗損') val = `<span class="text-red-600 font-bold">${val}</span>`;
+                            if(h === '訂單狀態' && val === '已結案') val = `<span class="text-gray-400 font-bold">${val}</span>`;
+                            tHtml += `<td class="p-3 whitespace-pre-wrap break-words min-w-[120px] align-top text-xs leading-relaxed text-gray-700">${val}</td>`;
                         });
                         tHtml += `</tr>`;
                     });
                 }
-                tHtml += `</tbody></table></div>`; document.getElementById('tableContainer').innerHTML = tHtml;
+                tHtml += `</tbody></table></div>`; 
+                document.getElementById('tableContainer').innerHTML = tHtml;
+
             }).getReportData(target);
         }
 
-        function exportCSV() {
+        // 🚀 升級為 Excel 格式 (XLS) 下載
+        function exportXLS() {
             const target = document.getElementById('rptTargetSheet').value;
-            let csvContent = "\uFEFF"; 
+            let tableHtml = "";
+
             if (target === 'FIN') {
-                if (!userShowFinance) return alert('🔒 權限不足，無法變更或生成機密財務資料！');
-                csvContent += `"仕罡印刷事業有限公司 - 區間財務損益分析報表 (P&L)"\n`;
-                csvContent += `"產出時間：","${new Date().toLocaleString()}"\n\n`;
-                let tables = document.querySelectorAll("#tableContainer table, #tableContainer .grid, #tableContainer .bg-gray-800");
+                if (!userShowFinance) return alert('🔒 權限不足，無法匯出機密財務資料！');
                 let cards = document.querySelectorAll("#tableContainer .grid > div");
-                if(cards.length >= 3) {
-                    csvContent += `"營業總收入 (未稅)","營業總成本","營業毛利","預估毛利率"\n`;
-                    let revText = cards[0].querySelectorAll("p")[1].innerText.replace(/[^0-9.-]/g, "");
-                    let costText = cards[1].querySelectorAll("p")[1].innerText.replace(/[^0-9.-]/g, "");
-                    let gpText = cards[2].querySelectorAll("p")[1].innerText.replace(/[^0-9.-]/g, "");
-                    let marginText = cards[2].querySelectorAll("p")[2].innerText.replace("毛利率: ", "");
-                    csvContent += `"${revText}","${costText}","${gpText}","${marginText}"\n\n`;
-                }
-                let rows = document.querySelectorAll("#tableContainer table tr");
-                rows.forEach(tr => {
-                    let cells = tr.querySelectorAll("th, td");
-                    let rowArr = Array.from(cells).map(c => `"${c.innerText.replace(/"/g, '""').replace(/\n/g, ' ')}"` );
-                    csvContent += rowArr.join(",") + "\n";
+                let netBlock = document.querySelectorAll("#tableContainer .bg-gray-800 .flex.justify-between");
+                if(cards.length < 3) return alert('目前沒有資料可以匯出！');
+                
+                let revText = cards[0].querySelectorAll("p")[1].innerText;
+                let costText = cards[1].querySelectorAll("p")[1].innerText;
+                let gpText = cards[2].querySelectorAll("p")[1].innerText;
+                let marginText = cards[2].querySelectorAll("p")[2].innerText;
+
+                tableHtml += `<tr><td colspan="4" style="font-size:20px; font-weight:bold;">仕罡印刷事業 - 區間財務損益分析報表 (P&L)</td></tr>`;
+                tableHtml += `<tr><td colspan="4">產出時間：${new Date().toLocaleString('zh-TW')}</td></tr>`;
+                tableHtml += `<tr><td></td></tr>`;
+                tableHtml += `<tr style="background-color:#f3f4f6; font-weight:bold;"><td>營業總收入 (未稅)</td><td>營業總成本</td><td>營業毛利</td><td>預估毛利率</td></tr>`;
+                tableHtml += `<tr><td>${revText}</td><td>${costText}</td><td>${gpText}</td><td>${marginText}</td></tr>`;
+                tableHtml += `<tr><td></td></tr>`;
+                tableHtml += `<tr style="background-color:#f3f4f6; font-weight:bold;"><td colspan="2">項目</td><td colspan="2">金額</td></tr>`;
+                
+                netBlock.forEach(div => {
+                    let spans = div.querySelectorAll("span");
+                    if(spans.length === 2) {
+                        tableHtml += `<tr><td colspan="2">${spans[0].innerText}</td><td colspan="2">${spans[1].innerText}</td></tr>`;
+                    }
                 });
             } else {
                 if(currentTableData.length === 0) return alert('目前沒有資料可以匯出！');
-                csvContent += currentHeaders.join(",") + "\n";
+                tableHtml += `<tr style="background-color:#f3f4f6; font-weight:bold;">`;
+                currentHeaders.forEach(h => tableHtml += `<td>${h}</td>`);
+                tableHtml += `</tr>`;
+                
                 currentTableData.forEach(row => {
-                    let rowArr = currentHeaders.map(h => `"${String(row[h] || '').replace(/"/g, '""')}"`);
-                    csvContent += rowArr.join(",") + "\n";
+                    tableHtml += `<tr>`;
+                    currentHeaders.forEach(h => {
+                        let val = row[h];
+                        if (val === null || val === undefined) val = '';
+                        // 使用 mso-number-format 強制 Excel 以文字讀取，避免單號與料號變成科學記號
+                        tableHtml += `<td style="mso-number-format:'\\@';">${val}</td>`;
+                    });
+                    tableHtml += `</tr>`;
                 });
             }
-            let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            let link = document.createElement("a"); link.href = URL.createObjectURL(blob);
-            link.download = `${document.getElementById('rptTargetSheet').value}_營運數據報表.csv`; link.click();
+
+            let template = `
+                <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+                <head>
+                    <meta charset="UTF-8">
+                    </head>
+                <body><table border="1">${tableHtml}</table></body>
+                </html>
+            `;
+            
+            let blob = new Blob([template], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+            let link = document.createElement("a"); 
+            link.href = URL.createObjectURL(blob);
+            link.download = `${target}_營運數據報表.xls`; 
+            link.click();
         }
         
 
@@ -5762,6 +6060,13 @@ function openHandoverModal() {
                 
                 let finalProductionQty = data.production_qty || Math.ceil(finalDeliveryQty / (finalYield / 100));
                 if(document.getElementById('input_投產量')) document.getElementById('input_投產量').value = String(finalProductionQty);
+
+                // 🚀 關鍵修復：強制把營業額與運費帶過來，並且「四捨五入為整數」，避免 Supabase 的 bigint 報錯崩潰！
+                if(document.getElementById('input_總金額')) document.getElementById('input_總金額').value = Math.round(Number(data.total_amount || 0));
+                if(document.getElementById('input_單價')) document.getElementById('input_單價').value = finalDeliveryQty > 0 ? Number((data.total_amount / finalDeliveryQty).toFixed(2)) : 0;
+                if(document.getElementById('input_運費報價')) document.getElementById('input_運費報價').value = Math.round(Number(d.shipping_price || 0));
+                if(document.getElementById('input_運費成本')) document.getElementById('input_運費成本').value = Math.round(Number(d.shipping_cost || 0));
+                if(document.getElementById('input_運費備註')) document.getElementById('input_運費備註').value = d.shipping_note || '';
 
                 // 🌟 關鍵修正：抓取初算端設定的利潤率 (若無則預設 40%)
                 let paperMargin = Number(d.profit_margin) || 40;
