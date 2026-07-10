@@ -907,9 +907,7 @@ Make sure the summary is action-oriented, encouraging, and clear. Format elegant
                             return;
                         }
                         // [修正] 取用台灣本地時間，並精準格式化為 YYYY-MM-DD HH:mm:ss 排除任何時區綴記
-let d = new Date();
-let tzOffset = 8 * 60; // 台灣時間 (UTC+8)
-let localTime = new Date(d.getTime() + (tzOffset + d.getTimezoneOffset()) * 60000);
+let localTime = new Date(); // 直接取用瀏覽器當前本地時間
 let yyyy = localTime.getFullYear();
 let mm = String(localTime.getMonth() + 1).padStart(2, '0');
 let dd = String(localTime.getDate()).padStart(2, '0');
@@ -1135,7 +1133,14 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
 
                 // 2. 實體扣料階段 (執行扣料)
                 if (executeDeduct) {
-                    let d = new Date(); let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ');
+                    let localTime = new Date();
+let yyyy = localTime.getFullYear();
+let mm = String(localTime.getMonth() + 1).padStart(2, '0');
+let dd = String(localTime.getDate()).padStart(2, '0');
+let hh = String(localTime.getHours()).padStart(2, '0');
+let min = String(localTime.getMinutes()).padStart(2, '0');
+let ss = String(localTime.getSeconds()).padStart(2, '0');
+let ts = `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`; // 產出 YYYY-MM-DD HH:mm:ss 格式
                     
                     let isShortage = false;
                     let shortageItems = [];
@@ -1346,8 +1351,14 @@ await sbClient.from('users_auth').update({ last_login_at: ts }).eq('emp_id', use
                     },
 
                     addHandover: async function(content, priority, assignee, imageBase64, creator) {
-                        let d = new Date();
-                        let ts = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ') + '+08:00';
+                        let localTime = new Date();
+let yyyy = localTime.getFullYear();
+let mm = String(localTime.getMonth() + 1).padStart(2, '0');
+let dd = String(localTime.getDate()).padStart(2, '0');
+let hh = String(localTime.getHours()).padStart(2, '0');
+let min = String(localTime.getMinutes()).padStart(2, '0');
+let ss = String(localTime.getSeconds()).padStart(2, '0');
+let ts = `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}+08:00`; // 明確帶上 +08:00 時區後綴交給 Supabase
                         let { error } = await sbClient.from('handovers').insert([{ content: content, priority: priority, creator: creator, created_at: ts, image_url: imageBase64 || "", assignee: assignee }]);
                         if (error) return this.failureHandler(error.message);
 
@@ -3180,14 +3191,12 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
             editingRowIndex = rowIndex; 
             document.getElementById('modalTitle').innerText = rowIndex !== -1 ? `編輯資料` : `新增資料`;
             
-            // 🚀 1. 隱藏刪除按鈕：新增時、SYS系統、以及 MES 系統 (強制回 OMS 刪除)
             document.getElementById('deleteBtn').classList.toggle('hidden', rowIndex === -1 || currentSysName === 'SYS' || currentSysName === 'MES');
             
             const formGrid = document.getElementById('formGrid'); 
             formGrid.innerHTML = '';
             const rowData = rowIndex !== -1 ? currentTableData[rowIndex] : {};
 
-            // 宣告鎖定旗標
             let isOmsLocked = false;
             let isMesLocked = false;
 
@@ -3210,6 +3219,10 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                                 </label>
                                 <input type="hidden" id="input_急件" value="否">
                             </div>
+                            <div class="flex items-center justify-between border-t border-indigo-200 pt-3 mt-1">
+                                <span class="text-sm font-bold text-indigo-700 flex items-center gap-1.5">📅 交件日期 (僅行事曆與單據提醒)</span>
+                                <input type="date" id="omsDeliveryDate" class="p-1.5 border border-indigo-300 rounded-lg text-sm font-bold bg-white">
+                            </div>
                         </div>
                     `;
                 } else {
@@ -3221,7 +3234,6 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                     `;
                 }
             } 
-            // 🚀 2. MES 全境鎖定與防呆橫幅
             else if (currentSysName === 'MES') {
                 isMesLocked = true;
                 formGrid.innerHTML += `
@@ -3231,7 +3243,6 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                 `;
             }
 
-            // 🚀 3. 隱藏儲存按鈕 (如果 OMS 被鎖定或處於 MES 系統)
             let submitBtn = document.getElementById('submitBtn');
             if (submitBtn) submitBtn.classList.toggle('hidden', isOmsLocked || isMesLocked);
 
@@ -3239,9 +3250,14 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                 if (header === 'ID') { formGrid.innerHTML += `<input type="hidden" id="input_${header}" value="${rowData[header] || ''}">`; return; }
                 if (header === '最近一次登入時間' && currentSysName === 'SYS' && rowIndex === -1) return; 
 
+                // 攔截 SYS 權限欄位，改以隱藏欄位儲存，稍後渲染宮格
+                if (currentSysName === 'SYS' && ['可視系統', '可操作系統', '可編輯系統'].includes(header)) {
+                    formGrid.innerHTML += `<input type="hidden" id="input_${header}" value="${rowData[header] || ''}">`;
+                    return; 
+                }
+
                 const discardedOmsFields = ['單價', '總金額', '運費報價', '運費備註', '運費成本', '預估成本', '產出量', '配料明細', '工序規劃紀錄', '示意圖', '貨運單號', '出貨時間'];
                 if (currentSysName === 'OMS' && discardedOmsFields.includes(header)) {
-                    // 🚀 關鍵修復：不要 return 丟掉！改為隱藏欄位 (hidden)，讓牽引過來的數值能被系統抓到並存進 Supabase
                     formGrid.innerHTML += `<input type="hidden" id="input_${header}" value="${rowData[header] || ''}">`;
                     return;
                 }
@@ -3251,7 +3267,6 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                 
                 let datalistHtml = ''; let hasListAttr = ''; let dlId = `dl_form_${header}_${Date.now()}`;
                 
-                // 鎖定狀態下，連下拉選單都拔掉防誤觸
                 if (currentDropdowns[header] && !isOmsLocked && !isMesLocked) {
                     hasListAttr = `list="${dlId}"`;
                     let opts = '';
@@ -3264,7 +3279,6 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                 const autoGenHeaders = ['訂單編號', '物料編號', '供應商編號', '客戶編號', '設備編號', '工單編號'];
                 let isReadOnlyAttr = ''; let placeholderStr = ''; let bgClassStr = 'w-full p-2 border rounded';
 
-                // 🚀 4. 核心防呆：OMS 鎖定模式 或 MES 模式下，所有輸入框強迫變為 disabled 且反灰
                 if (isOmsLocked || isMesLocked) {
                     isReadOnlyAttr = 'disabled';
                     bgClassStr = 'w-full p-2 border bg-gray-100 text-gray-500 cursor-not-allowed font-bold';
@@ -3293,13 +3307,11 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                 else if (header === '是否在職' && currentSysName === 'SYS') {
                     fieldHTML += `<select id="input_${header}" ${isReadOnlyAttr} class="w-full p-2 border rounded ${(isOmsLocked || isMesLocked) ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}"><option value="是" ${val!=='否'?'selected':''}>是</option><option value="否" ${val==='否'?'selected':''}>否</option></select>`;
                 } else if (header === '顯示財務金額' && currentSysName === 'SYS') {
-                    fieldHTML += `<select id="input_${header}" ${isReadOnlyAttr} class="w-full p-2 border rounded font-bold ${(isOmsLocked || isMesLocked) ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}"><option value="是" ${val!=='否'?'selected':''}>是</option><option value="否" ${val==='否'?'selected':''}>否</option></select>`;
+                    fieldHTML += `<select id="input_${header}" ${isReadOnlyAttr} onchange="handleFinancePrivacyAlert(this.value)" class="w-full p-2 border rounded font-bold ${(isOmsLocked || isMesLocked) ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}"><option value="是" ${val!=='否'?'selected':''}>是</option><option value="否" ${val==='否'?'selected':''}>否</option></select>`;
                 } else if (header === '急件') {
                     if (currentSysName === 'OMS' && rowIndex === -1) {
-                        // 🚀 在新增訂單時，已經由上方的滑動開關取代，此處不渲染重複的下拉選單
                         fieldHTML = '';
                     } else {
-                        // 檢閱舊訂單或在 MES 工單系統中，仍以唯讀下拉選單顯示
                         fieldHTML += `<select id="input_${header}" ${isReadOnlyAttr} class="w-full p-2 border rounded ${(isOmsLocked || isMesLocked) ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}"><option value="否" ${val==='否'?'selected':''}>否</option><option value="是" ${val==='是'?'selected':''}>是</option></select>`;
                     }
                 } else if (header === '員工編號' && rowIndex === -1 && currentSysName === 'SYS') {
@@ -3313,6 +3325,41 @@ let delBtn = canArchive ? `<button data-html2canvas-ignore="true" onclick="archi
                 }
                 formGrid.innerHTML += fieldHTML + `</div>`;
             });
+
+            // --- 渲染 SYS 宮格權限 ---
+            if (currentSysName === 'SYS') {
+                let viewAuths = (document.getElementById('input_可視系統')?.value || '').split(',');
+                let opAuths = (document.getElementById('input_可操作系統')?.value || '').split(',');
+                let editAuths = (document.getElementById('input_可編輯系統')?.value || '').split(',');
+
+                const sysModules = [
+                    {id:'CAL', name:'營運行事曆'}, {id:'EIP', name:'內部公告'}, {id:'CRM', name:'客戶資料'},
+                    {id:'SUP', name:'供應商資料'}, {id:'ERP', name:'物料庫存'}, {id:'OMS', name:'訂單管理'},
+                    {id:'MES', name:'生產工單'}, {id:'EQS', name:'設備狀態'}, {id:'EQM', name:'設備維護'},
+                    {id:'RPT', name:'報表中心'}, {id:'SYS', name:'權限管理'}
+                ];
+
+                let gridHtml = `<div class="col-span-1 md:col-span-2 mt-4 bg-white p-4 rounded-xl border shadow-sm">
+                    <h3 class="font-bold text-moSide mb-3 border-b pb-2">🛡️ 系統模組權限配置</h3>
+                    <div class="overflow-x-auto">
+                    <table class="w-full text-center text-sm border-collapse">
+                        <thead class="bg-gray-100 text-gray-600"><tr><th class="p-2 border">模組功能</th><th class="p-2 border">👁️ 可視</th><th class="p-2 border">🖱️ 可操作</th><th class="p-2 border">📝 可編輯</th></tr></thead>
+                        <tbody>`;
+                sysModules.forEach(m => {
+                    let vChk = viewAuths.includes(m.id) ? 'checked' : '';
+                    let oChk = opAuths.includes(m.id) ? 'checked' : '';
+                    let eChk = editAuths.includes(m.id) ? 'checked' : '';
+                    gridHtml += `<tr>
+                        <td class="p-2 border font-bold text-gray-700">${m.name} (${m.id})</td>
+                        <td class="p-2 border"><input type="checkbox" value="${m.id}" class="sys-perm-cb-可視系統 w-4 h-4 text-blue-600 rounded" onchange="syncCheckboxToPermissionValue('可視系統')" ${vChk}></td>
+                        <td class="p-2 border"><input type="checkbox" value="${m.id}" class="sys-perm-cb-可操作系統 w-4 h-4 text-green-600 rounded" onchange="syncCheckboxToPermissionValue('可操作系統')" ${oChk}></td>
+                        <td class="p-2 border"><input type="checkbox" value="${m.id}" class="sys-perm-cb-可編輯系統 w-4 h-4 text-red-600 rounded" onchange="syncCheckboxToPermissionValue('可編輯系統')" ${eChk}></td>
+                    </tr>`;
+                });
+                gridHtml += `</tbody></table></div></div>`;
+                formGrid.innerHTML += gridHtml;
+            }
+
             document.getElementById('formModal').classList.remove('hidden');
         }
 
@@ -4293,7 +4340,6 @@ function openHandoverModal() {
             });
         }
 
-        // 【✨ 儲存鍵卡死徹底解鎖】重構創單儲存引擎，精準適配 [交貨量] 與 [投產量] 新架構，阻斷空欄位崩潰
         function submitForm(btn) {
             btn.disabled = true;
             btn.innerHTML = '<span class="btn-spinner"></span>儲存中...';
@@ -4304,7 +4350,6 @@ function openHandoverModal() {
                 if (el) rowDataObj[h] = el.value; 
             });
 
-            // 🚀 動態修補表頭對照：拯救失蹤的示意圖，強迫對接資料庫的 images 欄位！
             if (!schemaMaps['訂單管理'].fields['示意圖']) {
                 schemaMaps['訂單管理'].fields['示意圖'] = 'images';
             }
@@ -4316,6 +4361,13 @@ function openHandoverModal() {
                 if (window.tempPulledImages) {
                     rowDataObj['示意圖'] = JSON.stringify(window.tempPulledImages);
                 }
+                
+                // 新增：捕捉交件日期，將其寫入備註欄位以供檢閱與行事曆顯示
+                let delDateInput = document.getElementById('omsDeliveryDate');
+                if(delDateInput && delDateInput.value) {
+                    let existingDetails = rowDataObj['訂單細項'] || '';
+                    rowDataObj['訂單細項'] = existingDetails + `\n[交件日期提醒]: ${delDateInput.value}`;
+                }
             }
 
             const op = document.getElementById('userNameDisplay').innerText.split(' | ')[0];
@@ -4323,7 +4375,7 @@ function openHandoverModal() {
             const args = editingRowIndex !== -1 ? [currentSheet, editingRowIndex, rowDataObj, op] : [currentSheet, rowDataObj, op];
 
             google.script.run.withSuccessHandler(res => { 
-                showCustomAlert("ℹ️ 系統提示", "訂單已成功與雲端安全同步存檔！");
+                showCustomAlert("ℹ️ 系統提示", "資料已成功與雲端安全同步存檔！");
                 closeModal('formModal'); 
                 window.tempPulledBomDetails = null; 
                 window.tempPulledImages = null;
@@ -4606,8 +4658,11 @@ function openHandoverModal() {
         }
 
         window.addPlanRow = function(stepData = null) {
-            let container = document.getElementById('planStepsContainer'); let prevRows = container.querySelectorAll('.plan-row'); let idx = prevRows.length + 1;
-            let listId = 'dl_mac_plan_' + Date.now() + '_' + idx; let empListId = 'dl_emp_plan_' + Date.now() + '_' + idx;
+            let container = document.getElementById('planStepsContainer'); 
+            let prevRows = container.querySelectorAll('.plan-row'); 
+            let idx = prevRows.length + 1;
+            let listId = 'dl_mac_plan_' + Date.now() + '_' + idx; 
+            let empListId = 'dl_emp_plan_' + Date.now() + '_' + idx;
             
             let mOpts = ''; let eOpts = '';
             if(currentDropdowns['作業機台']) { currentDropdowns['作業機台'].forEach(m => { mOpts += `<option value="${m.id} - ${m.name.replace(/\[|\]/g, '')}"></option>`; }); }
@@ -4615,9 +4670,31 @@ function openHandoverModal() {
             
             let initMac = stepData ? (stepData.name === stepData.mac ? stepData.name : `${stepData.mac} - ${stepData.name}`) : ""; 
             let initEmp = stepData ? stepData.emp : "";
-            let defaultStartDate = new Date(new Date().getTime() + 8*60*60*1000).toISOString().split('T')[0]; let defaultStartTime = "08:00";
-            let defaultEndDate = new Date(new Date().getTime() + 8*60*60*1000 + 24*60*60*1000).toISOString().split('T')[0]; let defaultEndTime = "08:00";
             let initRemark = stepData && stepData.remark ? stepData.remark : "";
+
+            let defaultStartDate = new Date(new Date().getTime() + 8*60*60*1000).toISOString().split('T')[0]; 
+            let defaultStartTime = "08:00";
+            let defaultEndDate = new Date(new Date().getTime() + 8*60*60*1000).toISOString().split('T')[0]; 
+            let defaultEndTime = "09:00";
+
+            // 新增邏輯：自動延續上一站的時間 +30 分鐘
+            if (!stepData && prevRows.length > 0) {
+                let lastRow = prevRows[prevRows.length - 1];
+                let lastEndD = lastRow.querySelector('.step-end-date').value;
+                let lastEndT = lastRow.querySelector('.step-end-time').value;
+                
+                if (lastEndD && lastEndT) {
+                    let lastEndObj = new Date(`${lastEndD}T${lastEndT}`);
+                    let newStartObj = new Date(lastEndObj.getTime() + 30 * 60000); // 往後推 30 分鐘
+                    let newEndObj = new Date(newStartObj.getTime() + 60 * 60000);  // 預設結束為開始後 1 小時
+
+                    defaultStartDate = newStartObj.toISOString().split('T')[0];
+                    defaultStartTime = String(newStartObj.getHours()).padStart(2, '0') + ':' + String(newStartObj.getMinutes()).padStart(2, '0');
+
+                    defaultEndDate = newEndObj.toISOString().split('T')[0];
+                    defaultEndTime = String(newEndObj.getHours()).padStart(2, '0') + ':' + String(newEndObj.getMinutes()).padStart(2, '0');
+                }
+            }
 
             if (stepData) {
                 if (stepData.startDate && stepData.startDate.includes(' ')) { let parts = stepData.startDate.split(' '); defaultStartDate = parts[0]; defaultStartTime = parts[1]; }
@@ -4629,12 +4706,10 @@ function openHandoverModal() {
                 let matObj = (currentDropdowns['物料編號']||[]).find(opt => opt.id === m.id); 
                 let n = matObj ? matObj.name.replace(m.id+' - ', '') : (m.customName || m.id);
                 
-                // 🚀 終極修復：綁定「索引 + ID」確保即使有重複料號，打勾狀態也絕對不會錯位！
                 let exactKey = `${m.id}@@${mIndex}`;
                 let legacyVal1 = `${n} (${m.qty})`;
                 let legacyVal2 = `${n} (量: ${m.qty})`;
                 
-                // 相容舊資料或精準對齊新資料
                 let isChecked = (checkedMats.includes(exactKey) || checkedMats.includes(m.id) || checkedMats.includes(legacyVal1) || checkedMats.includes(legacyVal2)) ? 'checked' : '';
                 
                 return `<label class="flex items-center gap-1.5 hover:bg-indigo-50 p-1.5 rounded cursor-pointer transition-colors border border-transparent hover:border-indigo-100">
@@ -5499,6 +5574,7 @@ function openHandoverModal() {
                         <div class="flex flex-wrap gap-2 text-[10px] md:text-xs font-bold">
                             <span class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded border border-purple-200">🟢 訂單開立日</span>
                             <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded border border-emerald-200">🚚 預計出貨日</span>
+                            <span class="px-2 py-0.5 bg-pink-100 text-pink-700 rounded border border-pink-200">🎯 交件日</span>
                             <span class="px-2 py-0.5 bg-slate-100 text-slate-800 rounded border border-slate-300">📌 追蹤交接</span>
                             <span class="px-2 py-0.5 bg-amber-50 text-amber-900 rounded border border-amber-200">⏰ 時效交接</span>
                         </div>
@@ -5567,7 +5643,6 @@ function openHandoverModal() {
             buildCalendarGrid();
         }
 
-        // 獨立出的事件 HTML 渲染核心（月/週共用，顯示邏輯 100% 不變）
         function getCalendarDayEventsMarkup(currentDayStr) {
             let dayEventsHtml = '';
             
@@ -5604,7 +5679,7 @@ function openHandoverModal() {
                         </div>`;
                 }
             });
-            
+
             // C. 交接追蹤與到期日項目
             (window.cachedCalHandovers || []).forEach(h => {
                 if (h.status === '已結案') return;
@@ -5623,6 +5698,22 @@ function openHandoverModal() {
                              title="${prefixIcon} ${h.creator}➔${h.assignee}: ${h.content}">
                             ${isTrackingMode ? "📌" : "⏰"} ${h.assignee}: ${h.content.split('】').pop().replace(/^-+/, '').substring(0, 8)}...
                         </div>`;
+                }
+            });
+
+            // D. 🎯 新增：交件日期提醒項目 (自動解析備註欄的文字)
+            (window.cachedCalOrders || []).forEach(o => {
+                if (o.details && o.details.includes('[交件日期提醒]:')) {
+                    let match = o.details.match(/\[交件日期提醒\]:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/);
+                    if (match && match[1] === currentDayStr) {
+                        dayEventsHtml += `
+                            <div class="cal-ev bg-pink-50 text-pink-700 border border-pink-200 rounded p-1 mb-1 text-[11px] font-bold cursor-pointer transition-all hover:scale-[1.02] overflow-hidden truncate whitespace-nowrap" 
+                                 data-related-id="${o.order_id}" data-target-sys="OMS" onclick="handleCalendarRedirect('OMS', '訂單管理', '${o.order_id}')"
+                                 onmouseenter="highlightCalendarRelation('${o.order_id}', true)" onmouseleave="highlightCalendarRelation('${o.order_id}', false)"
+                                 title="[交件日] ${o.customer_name || '未知客戶'}: ${o.product_name}">
+                                🎯 交件 | ${o.order_id.substring(o.order_id.length - 4)}
+                            </div>`;
+                    }
                 }
             });
 
@@ -6203,7 +6294,7 @@ function openHandoverModal() {
                 <input type="hidden" id="shipWoId"><input type="hidden" id="shipOrderId">
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1">貨運單號 / 配送註記</label>
-                    <input type="text" id="shipTrackingInput" class="w-full p-2 border rounded" placeholder="例如：黑貓單號 或 廠內自送">
+                    <input type="text" id="shipTrackingInput" autocomplete="on" class="w-full p-2 border rounded" placeholder="例如：黑貓單號 或 廠內自送 (支援中文)">
                 </div>
             </div>
             <div class="p-4 border-t flex justify-end gap-2 bg-gray-50">
